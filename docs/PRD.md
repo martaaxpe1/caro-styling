@@ -1,4 +1,4 @@
-# Caro Styling: Product requirements (v1.0, ready to build)
+# Caro Styling: Product requirements (v1.1, ready to build)
 
 The spec for building Caro Styling. It folds in every decision from the drafts (v0.2 to v0.10) and from the design round on the canvas. Where this file and the screens in `design/` disagree on layout, colour, type or copy, the screens win. Where they disagree on behaviour, this file wins. Changes are listed at the end.
 
@@ -106,14 +106,27 @@ Settings repeats steps 1 to 5, plus download everything, delete account and sign
 ## 6. Core concepts
 
 - **Piece.** One piece of clothing, shoes, a bag or an accessory. Photo, cut-out, details. (`items` in the database.)
-- **Chapter.** A category of pieces as the edit shows it: outerwear, knitwear, shirts and tops, trousers and skirts, dresses, shoes, bags and accessories.
+- **Chapter.** A category of pieces as the edit shows it, numbered 01 to 07: outerwear, knitwear, tops, trousers, dresses and skirts, shoes, accessories. These names replace the older ones on screens 07, 08 and 10 ("Shirts and tops", "Trousers and skirts", "Dresses", "Bags and accessories", and "Bottoms" on the review); here this file wins over the screens.
+- **Kind.** What a piece is, inside its chapter: a jumper, a hoodie, a skirt. Each kind belongs to one chapter and fills one slot on the styling table. A kind is a filter inside a chapter, not a chapter of its own.
+
+  | # | Chapter | Kinds | Slot on the styling table |
+  |---|---|---|---|
+  | 01 | Outerwear | coat, trench coat, puffer jacket, jacket, leather jacket, denim jacket, blazer, gilet | outer layer |
+  | 02 | Knitwear | jumper, cardigan, knitted vest, knitted top, sweatshirt, hoodie | top |
+  | 03 | Tops | shirt, blouse, t-shirt, long-sleeved top, tank top, bodysuit | top |
+  | 04 | Trousers | trousers, jeans, shorts, leggings | bottom |
+  | 05 | Dresses and skirts | dress, jumpsuit; skirt | one-piece; bottom |
+  | 06 | Shoes | trainers, boots, ankle boots, loafers, ballet flats, heels, sandals, mules | shoes |
+  | 07 | Accessories | bag; belt, scarf, hat, sunglasses, jewellery | bag; accessories |
+
+  For the unlock rule, a top is anything in the top slot, a bottom anything in the bottom slot, and a one-piece a dress or jumpsuit.
 - **Occasion.** Office, Working from home, Night out, Day out. Pieces and looks can have several.
 - **Season.** Part of your year, set in onboarding from where you live: four seasons, two, or none. Pieces and looks can have several.
 - **Look.** A set of pieces. Its source is built, photo or inspired. Can hold one or more photos of you wearing it. (`outfits` in the database.)
 - **Inspiration.** A photo of a look you like, an optional source link and a note.
 - **Missing piece.** A piece in an inspiration you do not have.
 - **To find.** The wishlist: missing pieces you marked as key, with products found in your stores. It lives inside Get the look.
-- **Store.** One of the stores a member shops at: a name and its website for their country.
+- **Store.** One of the stores a member shops at: a name and its website, such as cos.com, with its page for their country.
 - **Invitation.** An email the admin has allowed to sign in.
 
 In the app's words: the wardrobe is **the edit**, outfits are **looks**, the wishlist is **To find**.
@@ -158,7 +171,7 @@ Designed screens are in `design/screens/` (source from the design canvas). Scree
 ### The edit
 
 - **10 The edit.** The masthead (profile, CARO wordmark, add), a double rule and the dateline ("The autumn edit · 96 pieces"). Contents: one numbered chapter per category with its count, "N not styled yet" when some pieces are in no look, and a few cut-outs.
-- **S6 Chapter.** All pieces in one chapter as cut-outs. Filters: season (current season by default), occasion, colour, maybe.
+- **S6 Chapter.** All pieces in one chapter as cut-outs. Filters: kind (for example jumpers, cardigans, hoodies), season (current season by default), occasion, colour, maybe.
 - **11 Piece.** The piece large, its details (seasons, occasions, colour, brand, size), the looks it is in. **Edit**. **Style a look with it** opens the styling table with this piece placed.
 - **S7 Wardrobe overview.** Counts by category, colour, season and occasion. Pieces in no look yet. Occasions with fewer than three looks.
 
@@ -167,14 +180,14 @@ Designed screens are in `design/screens/` (source from the design canvas). Scree
 - **13 Looks.** Masthead and dateline ("Looks · 34 looks"), occasions as a row of words, **Style a look**, and the saved looks as flat lays with their number, occasion and source (built, from your photo, from an inspiration).
 - **12 Style a look.** The styling table: the pieces laid out as a flat lay with soft shadows, an empty dashed spot for an open slot, a rail of slots (outer layer, top, bottom, shoes, bag, accessories) and a tray of your pieces for the chosen slot, current season first. Occasion in the title ("A look for the office"), season chip. Starts empty or with the piece you came from ("Your starting piece"). **Save look**.
 - **S8 Look detail.** The flat lay, your photos wearing it, occasions, seasons, the pieces. Edit, delete.
-- **S9 Look from a photo.** Take or choose a photo of you wearing it; the pieces Caro spotted next to your photo; remove any, add missing ones by chapter; occasions and seasons; save. If a look with the same main pieces exists: "You already have this look", and the photo is added to it.
+- **S9 Look from a photo.** Take or choose a photo of you wearing it; the pieces Caro spotted next to your photo, where a piece it is less sure of is asked about ("Is this your pale pink t-shirt?"), not ticked; remove any, add missing ones by chapter; occasions and seasons; save. If a look with the same main pieces exists: "You already have this look", and the photo is added to it.
 
 ### Get the look
 
 - **14 Get the look.** Masthead and dateline, **Add an inspiration** (or share an image from Instagram or Pinterest), your inspirations with how much you own ("4 of 5 yours", "All yours"), and the To find list with each piece's state: not searched yet (**Find it**), options found, bought (**Add** to the edit).
 - **S10 Add inspiration, pieces found.** The photo, an optional link and note. Each piece in the look described, next to the closest piece you own of the same kind, or "Not in your wardrobe". Change or remove any match.
-- **15 Your version.** The inspiration with numbered pins. Below, your version as numbered credits: each piece marked yours, close or missing, with "For their grey oversized blazer". A missing piece shows a fact ("in 3 of your inspirations") and **Find it**. Fill a missing piece yourself, or mark it as key. **Save** as a look.
-- **S11 Find it.** Up to five products from your stores: image, name, store, price in your currency, link to the store page (opens in Safari inside the app). "Nothing found" is a valid answer. The piece goes on To find.
+- **15 Your version.** The inspiration with numbered pins. Below, your version as numbered credits: each piece marked yours, close or missing, with "For their grey oversized blazer". A missing piece shows your nearest piece of that kind, if you have one ("Your nearest: black knit jumper"), a fact ("in 3 of your inspirations") and **Find it**. Fill a missing piece yourself, or mark it as key. **Save** as a look.
+- **S11 Find it.** Up to five women's or unisex products from your stores: image, name, store, price in your currency, link to the store page (opens in Safari inside the app). "Nothing found" is a valid answer. The piece goes on To find.
 
 ### Settings and admin
 
@@ -188,6 +201,12 @@ Pieces:
 - On the phone: the background is removed with the iPhone's own cut-out feature (the Vision framework, the same as touching and holding a subject in Photos). Free, fast, works offline.
 - On the server: resize to about 2000 px on the long side, strip location data, store original and cut-out, make a thumbnail.
 - The app suggests a short name, chapter and kind, colours, pattern, material, warmth (light, medium, warm) and formality. Seasons are proposed from the warmth and the member's year. Occasions start empty: you choose them.
+- The details come from fixed lists, so they can be counted and filtered:
+  - Colours (up to three, main colour first, only as seen from the outside when worn): black, white, cream, beige, camel, brown, grey, navy, blue, light blue, green, olive, red, burgundy, pink, terracotta, orange, yellow, purple, silver, gold.
+  - Patterns: plain, striped, checked, floral, polka dot, animal print, graphic, other pattern.
+  - Materials: cotton, linen, wool, cashmere, silk, satin, denim, leather, suede, faux leather, viscose, polyester, nylon, canvas, straw, metal, not sure.
+  - Formality: casual, smart casual, smart, formal.
+  - A pair of shoes is one piece.
 - Optional: brand, size (with its system, since EU and US sizes differ), price paid, notes.
 - Pieces can be marked "maybe" to revisit after the clear-out.
 
@@ -199,16 +218,22 @@ Built looks:
 - The flat lay is arranged automatically. No free drag and drop in version one.
 
 Looks from a photo:
-- Spotting pieces only looks at your own wardrobe. Best matches first; you confirm.
+- Spotting pieces only looks at your own wardrobe. Best matches first; you confirm. A piece spotted with low certainty is asked about, not ticked.
 - **Same look rule.** Two looks are the same when their main pieces are the same: outer layer, top, bottom or one-piece, shoes. Bag and accessories can change. A photo of a look you already have is added to it.
 
 Inspired looks:
-- The app describes each piece (kind, colour, pattern, material, shape) and finds the closest piece you own of the same kind, or says nothing is close.
+- The app describes each piece (kind, colour, pattern, material, shape) and compares it with the pieces you own of the same kind:
+  - **Yours:** you own one of the same kind, colour and shape.
+  - **Close:** you own one of the same kind and a similar colour (the same colour or a close shade, like cream and white), different in shape or material.
+  - **Missing:** anything else, including the same kind in another colour. A missing piece still shows your nearest piece of that kind, if you have one.
+  - Close does not count as yours.
 - A missing piece shows a fact, not advice: "A piece like this is in 4 of your inspirations."
 - You decide which missing piece is key.
 
 Store search:
 - Only on your tap, for one piece, in your stores, on your country's site.
+- The search covers the store's whole website with your country set, and keeps only women's or unisex products in your currency. A search limited to the country page found nothing when that page was not the one the search engine knows.
+- Each product page is then opened to get its image and to drop links that no longer work.
 - Up to five results. "Nothing found" is a valid answer.
 - If one of your stores has no online shop in your country, the search says so instead of showing products you cannot buy.
 - Results are saved with the date found, since stock and prices change.
@@ -222,7 +247,9 @@ Onboarding, settings and admin:
 ## 9. Places, seasons and stores
 
 - **Any place.** Currency and formats come from the country. The Netherlands and Miami are where the first two testers live.
-- **Your year is proposed from your city's weather,** from its typical monthly temperatures (and rain, where it matters more than cold). The source is chosen in T1. Southern hemisphere places work the same way.
+- **Your year is proposed from your city's weather,** from its typical monthly temperatures (and rain, where it matters more than cold). Southern hemisphere places work the same way.
+  - The typical daily high and rain for each month come from Claude's memory (Sonnet), checked against Open-Meteo's 1991 to 2020 data. If the two differ by more than 3 °C in any month, Open-Meteo's numbers are used. Each city is looked up once and kept.
+  - A rule in code, not the AI, proposes the seasons. Four meteorological seasons when the typical highs vary by 10 °C or more over the year, shifted by six months in the southern hemisphere. Otherwise two, when most of the rain falls in six months in a row, named from the temperature and rain ("Hot and rainy", "Mild and dry"). Otherwise none.
 - **Warmth connects pieces to seasons.** Warmth (light, medium, warm) means the same everywhere. A light linen shirt becomes spring and summer in the Netherlands, and both seasons in Miami.
 - **The current season is a default filter.** It never hides pieces.
 - **Stores are a personal list,** chosen by every member in onboarding. No shared catalogue. Marta's examples (Arket, COS, Uniqlo, Zara, Ganni, Bimba y Lola, Samsøe Samsøe) are sample content.
@@ -236,7 +263,7 @@ Does (on the server, through the Claude API):
 - Describe the pieces of an inspiration and find the closest piece you own of the same kind.
 - Find a store's website for your country.
 - Search your stores for one piece (Claude's web search, limited to your stores' websites).
-- Possibly, propose your year from your city's weather (decided in T1).
+- Recall a city's typical monthly weather. The seasons themselves are proposed by a rule in code.
 
 Not an AI service: cut-outs are made on the phone by the iPhone itself.
 
@@ -245,7 +272,9 @@ Does not:
 - Say what goes with what.
 - Suggest buying anything you did not ask about.
 
-Limits: a monthly allowance of AI actions per member keeps costs predictable. The admin sets it.
+Models, chosen in T1 (`docs/SPIKE.md`): Sonnet 5.5 for piece details, looks from a photo and inspirations; Haiku 5.5 for store websites and store search. The prompts start from the ones in `server/spike/`.
+
+Limits: a monthly allowance of AI actions per member keeps costs predictable. The admin sets it. It starts at 300 a month; each piece, look, inspiration or search counts as one. A typical month costs about 3 dollars per member.
 
 ## 11. Rules that must hold on the server
 
@@ -425,8 +454,17 @@ Defaults taken to start building. Change them before the ticket that needs them.
 - **Sign-in:** email code (T3). Sign in with Apple would also work, but invitations are by email.
 - **Look from a photo:** kept as a way to create looks (T9).
 
-Decided in T1:
-- The Claude model and prompts, the climate data source, and a fallback if the iPhone's cut-outs are not good enough.
+Still open from T1:
+- A fallback if the iPhone's cut-outs are not good enough, after Marta's by-hand test (test 6 in `docs/SPIKE.md`).
+
+Decided in T1 (see `docs/SPIKE.md`):
+- Models: Sonnet 5.5 for anything with photos, Haiku 5.5 for store websites and search (section 10).
+- Seven chapters with short names, kinds as a filter inside each, cardigans always a top (section 6).
+- Fixed lists for colours, patterns, materials and formality (section 8).
+- Close means the same kind and a similar colour (section 8).
+- Store search covers the whole store website and keeps women's or unisex products (section 8).
+- Your year: Claude's memory for the weather, checked against Open-Meteo, and a rule for the seasons. Miami stays "mild and dry" (section 9).
+- The allowance starts at 300 AI actions a month (section 10).
 
 Needed from Sara:
 - The vector file of the wordmark, before T8 (app icon).
@@ -462,3 +500,4 @@ Not in version one. A short onboarding step to help a member see their own patte
 - **v0.9.** Spread chosen. Three sections: The edit, Looks, Get the look (with To find inside). Style a look with it from any piece.
 - **v0.10.** Building the wardrobe is the last, required onboarding step, unlocking at 20 pieces.
 - **v1.0.** Ready to build. Screen index linked to the design files, rules that must hold on the server, the design system, the stack, tickets T0 to T11 with what to check, defaults for the last open decisions.
+- **v1.1.** From the T1 spike. Seven chapters with short names (Knitwear, Tops, Trousers, Dresses and skirts, Accessories) and kinds as a filter. Fixed lists for the details. A stricter close. Store search on the whole store website, women's or unisex only. Your year from Claude's memory and a rule. Models per action. An allowance of 300. The chapter names change on screens 07, 08 and 10.

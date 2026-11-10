@@ -119,7 +119,7 @@ The piece was a black long wool coat, the first missing piece in inspiration 2. 
 
 So the recommended way is:
 1. Search the store's whole website, with the member's country set, using Haiku.
-2. Keep the results in the member's currency.
+2. Keep only women's or unisex products in the member's currency. Marta chose women's or unisex after the first run.
 3. Open each product page with Haiku's web fetch, to get its image and drop links that no longer work.
 
 That is about $0.035 for up to five products.
@@ -165,23 +165,25 @@ From the averages above, with the recommended models:
 
 The spike itself made 288 calls, close to a heavy month for one member.
 
-## Proposed changes to the PRD
+## Agreed changes to the PRD
 
-To agree before T5. Nothing in `docs/PRD.md` has been changed yet. Marta's decisions of 10 November are marked "Decided".
+Agreed with Marta on 10 November and applied to `docs/PRD.md` as v1.1.
 
-1. **Section 6, one list of categories.** This answers open question 4. Decided, with Marta's changes: sweatshirts join knitwear, skirts join dresses, leggings join trousers. Each kind belongs to one chapter and one slot on the styling table:
+1. **Section 6, one list of categories.** This answers open question 4. There are seven chapters with short names. Inside each chapter, the kind is a filter on the Chapter screen (S6). Sweatshirts join knitwear, skirts join dresses, leggings join trousers. Cardigans are always a top.
 
-   | Chapter | Kinds | Slot |
-   |---|---|---|
-   | Outerwear | coat, trench coat, puffer jacket, jacket, leather jacket, denim jacket, blazer, gilet | outer layer |
-   | Knitwear and sweatshirts | jumper, cardigan, knitted vest, knitted top, sweatshirt, hoodie | top (a cardigan could also be the outer layer) |
-   | Shirts and tops | shirt, blouse, t-shirt, long-sleeved top, tank top, bodysuit | top |
-   | Trousers | trousers, jeans, shorts, leggings | bottom |
-   | Dresses and skirts | dress, jumpsuit; skirt | one-piece; bottom |
-   | Shoes | trainers, boots, ankle boots, loafers, ballet flats, heels, sandals, mules | shoes |
-   | Bags and accessories | bag; belt, scarf, hat, sunglasses, jewellery | bag; accessories |
+   | # | Chapter | Kinds | Slot on the styling table |
+   |---|---|---|---|
+   | 01 | Outerwear | coat, trench coat, puffer jacket, jacket, leather jacket, denim jacket, blazer, gilet | outer layer |
+   | 02 | Knitwear | jumper, cardigan, knitted vest, knitted top, sweatshirt, hoodie | top |
+   | 03 | Tops | shirt, blouse, t-shirt, long-sleeved top, tank top, bodysuit | top |
+   | 04 | Trousers | trousers, jeans, shorts, leggings | bottom |
+   | 05 | Dresses and skirts | dress, jumpsuit; skirt | one-piece; bottom |
+   | 06 | Shoes | trainers, boots, ankle boots, loafers, ballet flats, heels, sandals, mules | shoes |
+   | 07 | Accessories | bag; belt, scarf, hat, sunglasses, jewellery | bag; accessories |
 
-   Rerun on Sonnet, the hoodie, jeans, trousers, dress and both skirts all land in the new chapters. The chapter names appear on three screens, which change with it: The edit (10), The edit while still building (08), and the review (07), where "Category Bottoms · Skirt" becomes "Dresses and skirts · Skirt".
+   Rerun on Sonnet, the hoodie, jeans, trousers, dress and both skirts all land in the new chapters.
+
+   The chapter names change on three screens: The edit (10), The edit while still building (08), and the review (07), where "Category Bottoms · Skirt" becomes "Dresses and skirts · Skirt".
 
 2. **Section 8, fixed lists for the details.**
    - Colours (21): black, white, cream, beige, camel, brown, grey, navy, blue, light blue, green, olive, red, burgundy, pink, terracotta, orange, yellow, purple, silver, gold.
@@ -194,10 +196,12 @@ To agree before T5. Nothing in `docs/PRD.md` has been changed yet. Marta's decis
 
 4. **Section 8, store search, and section 6, store.**
    - A store is saved as its website, such as cos.com, and searched as a whole with the member's country set.
-   - Only results in the member's currency are kept.
+   - Only women's or unisex products, and only results in the member's currency.
    - Each product page is opened to get its image and to drop links that no longer work.
 
-5. **Section 8, what close means.** Decided: the stricter meaning (B). This answers open question 8.
+   Rerun on Haiku with these rules, COS gave only women's coats: three in euros and five in dollars.
+
+5. **Section 8, what close means.** This answers open question 8.
    - Close is the same kind and a similar colour.
    - Anything else is missing, with the member's nearest piece of that kind shown under it, like "Your nearest: black knit jumper".
    - Close does not count as yours.
@@ -208,10 +212,9 @@ To agree before T5. Nothing in `docs/PRD.md` has been changed yet. Marta's decis
      - Otherwise two, when most of the rain falls in six months in a row.
      - Otherwise none.
    - The typical highs and rain come from Sonnet's memory, checked against Open-Meteo. If they differ by more than 3 °C in any month, Open-Meteo's numbers are used.
-   - In section 10, "possibly, propose your year" becomes "recall a city's typical weather".
-   - Miami's November to April stays mild and dry. Decided.
+   - Miami's November to April stays mild and dry.
 
-7. **Section 10, the allowance.** Decided: start at 300 AI actions a month per member. Each piece, look, inspiration or search counts as one action.
+7. **Section 10, the allowance.** Start at 300 AI actions a month per member. Each piece, look, inspiration or search counts as one action.
 
 8. **Section 18, decided in T1.**
    - The model per action, from the table above.

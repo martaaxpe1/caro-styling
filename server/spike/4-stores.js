@@ -86,7 +86,7 @@ function searchPrompt(store, country, piece, { local = false } = {}) {
     : '';
   return `Search the ${store} online shop for ${country.name} for this piece: "${piece}".
 ${language}
-Return up to five products listed in that shop that match the description, closest first. Only products from that shop, for ${country.name}.
+Return up to five products listed in that shop that match the description, closest first. Only products from that shop, for ${country.name}. Only women's or unisex products: leave out anything from the men's or children's sections.
 For each product: the name as the shop writes it, the price as a number, the three-letter currency code, the address of the product page, and the address of a product image if the search results show one (empty otherwise).
 If nothing matches, return an empty list. That is a valid answer.`;
 }

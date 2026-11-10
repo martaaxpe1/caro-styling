@@ -2,20 +2,11 @@
 // Every kind belongs to one chapter (how the edit groups pieces) and one slot
 // (where it goes on the styling table). The role says what it counts as for the unlock rule.
 //
-// Open points to agree with Marta, marked "open" below:
-// - knitwear on the styling table: a jumper is a top, but a cardigan is often worn as a layer.
-// - belts, scarves, hats and jewellery all share the accessories slot.
+// Agreed with Marta on 10 November: seven short chapters, kinds as a filter inside each,
+// cardigans always a top. Belts, scarves, hats and jewellery share the accessories slot.
 
-// Marta, 10 November: sweatshirts join knitwear, skirts join dresses, leggings join trousers.
-const CHAPTERS = [
-  'outerwear',
-  'knitwear and sweatshirts',
-  'shirts and tops',
-  'trousers',
-  'dresses and skirts',
-  'shoes',
-  'bags and accessories',
-];
+// Sweatshirts join knitwear, skirts join dresses, leggings join trousers.
+const CHAPTERS = ['outerwear', 'knitwear', 'tops', 'trousers', 'dresses and skirts', 'shoes', 'accessories'];
 
 // kind: [chapter, slot, role for the unlock rule]
 const KINDS = {
@@ -28,19 +19,19 @@ const KINDS = {
   blazer: ['outerwear', 'outer layer', null],
   gilet: ['outerwear', 'outer layer', null],
 
-  jumper: ['knitwear and sweatshirts', 'top', 'top'],
-  cardigan: ['knitwear and sweatshirts', 'top', 'top'], // open: or outer layer
-  'knitted vest': ['knitwear and sweatshirts', 'top', 'top'],
-  'knitted top': ['knitwear and sweatshirts', 'top', 'top'],
-  sweatshirt: ['knitwear and sweatshirts', 'top', 'top'],
-  hoodie: ['knitwear and sweatshirts', 'top', 'top'],
+  jumper: ['knitwear', 'top', 'top'],
+  cardigan: ['knitwear', 'top', 'top'],
+  'knitted vest': ['knitwear', 'top', 'top'],
+  'knitted top': ['knitwear', 'top', 'top'],
+  sweatshirt: ['knitwear', 'top', 'top'],
+  hoodie: ['knitwear', 'top', 'top'],
 
-  shirt: ['shirts and tops', 'top', 'top'],
-  blouse: ['shirts and tops', 'top', 'top'],
-  't-shirt': ['shirts and tops', 'top', 'top'],
-  'long-sleeved top': ['shirts and tops', 'top', 'top'],
-  'tank top': ['shirts and tops', 'top', 'top'],
-  bodysuit: ['shirts and tops', 'top', 'top'],
+  shirt: ['tops', 'top', 'top'],
+  blouse: ['tops', 'top', 'top'],
+  't-shirt': ['tops', 'top', 'top'],
+  'long-sleeved top': ['tops', 'top', 'top'],
+  'tank top': ['tops', 'top', 'top'],
+  bodysuit: ['tops', 'top', 'top'],
 
   trousers: ['trousers', 'bottom', 'bottom'],
   jeans: ['trousers', 'bottom', 'bottom'],
@@ -60,12 +51,12 @@ const KINDS = {
   sandals: ['shoes', 'shoes', 'shoes'],
   mules: ['shoes', 'shoes', 'shoes'],
 
-  bag: ['bags and accessories', 'bag', null],
-  belt: ['bags and accessories', 'accessories', null], // open
-  scarf: ['bags and accessories', 'accessories', null], // open
-  hat: ['bags and accessories', 'accessories', null],
-  sunglasses: ['bags and accessories', 'accessories', null],
-  jewellery: ['bags and accessories', 'accessories', null],
+  bag: ['accessories', 'bag', null],
+  belt: ['accessories', 'accessories', null],
+  scarf: ['accessories', 'accessories', null],
+  hat: ['accessories', 'accessories', null],
+  sunglasses: ['accessories', 'accessories', null],
+  jewellery: ['accessories', 'accessories', null],
 };
 
 const COLOURS = [
