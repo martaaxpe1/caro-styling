@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Onboarding, Your stores</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#161514}a:hover{color:#9A5E48}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #F7F2E9; color: #161514; font-family: Inter, system-ui, sans-serif;">
+
+<div style="padding: 50px 8px 0;">
+<div style="display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; height: 44px;">
+<a href="O-Year.dc.html" aria-label="Back" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; color: #161514;">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>
+</a>
+<p style="margin: 0; text-align: center; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B645C;">Step 4 of 6</p>
+<span aria-hidden="true"></span>
+</div>
+<div aria-hidden="true" style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; margin: 6px 12px 0;">
+<span style="height: 2px; background: #161514;"></span><span style="height: 2px; background: #161514;"></span><span style="height: 2px; background: #161514;"></span><span style="height: 2px; background: #161514;"></span><span style="height: 2px; background: #DCD2C2;"></span><span style="height: 2px; background: #DCD2C2;"></span>
+</div>
+</div>
+
+<div style="padding: 28px 20px 0;">
+<h1 style="margin: 0; font-family: 'Bodoni Moda', serif; font-weight: 400; font-size: 32px; line-height: 1.1; letter-spacing: -0.01em;">Your <span style="font-style: italic;">stores</span></h1>
+<p style="margin: 10px 0 0; font-size: 14px; line-height: 1.45; color: #6B645C;">Where you shop. Caro only searches these, only when you ask, on their US sites.</p>
+
+<div style="position: relative; margin-top: 22px;">
+<label for="o-store" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">Add a store</label>
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B645C" stroke-width="1.5" stroke-linecap="round" style="position: absolute; left: 0; top: 15px;"><path d="M12 5v14M5 12h14"></path></svg>
+<input id="o-store" type="text" value="Uniq" style="width: 100%; box-sizing: border-box; height: 48px; padding: 0 0 0 28px; border: 0; border-bottom: 1px solid #161514; background: transparent; color: #161514; font: 400 22px 'Bodoni Moda', serif;">
+</div>
+<button type="button" style="display: flex; align-items: center; justify-content: space-between; width: 100%; height: 52px; margin-top: 4px; padding: 0 14px; border: 0; border-radius: 4px; background: #EFE7DB; color: #161514; text-align: left;">
+<span style="display: flex; flex-direction: column;"><span style="font: 500 15px Inter, sans-serif;">Uniqlo</span><span style="font: 400 12px Inter, sans-serif; color: #6B645C;">uniqlo.com · US site found</span></span>
+<span style="font: 600 13px Inter, sans-serif;">Add</span>
+</button>
+
+<div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 24px;">
+<h2 style="margin: 0; font-family: 'Bodoni Moda', serif; font-style: italic; font-weight: 400; font-size: 18px;">Added</h2>
+<span style="font-size: 12px; color: #6B645C;">4 stores</span>
+</div>
+<ul style="list-style: none; margin: 8px 0 0; padding: 0;">
+<sc-for list="{{stores}}" as="s" hint-placeholder-count="4">
+<li style="display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; height: 58px; border-top: 1px solid #DCD2C2;">
+<span style="display: flex; flex-direction: column; gap: 2px;">
+<span style="font-family: 'Bodoni Moda', serif; font-size: 19px;">{{s.name}}</span>
+<span style="{{s.noteStyle}}">{{s.note}}</span>
+</span>
+<button type="button" aria-label="Remove {{s.name}}" style="width: 44px; height: 44px; border: 0; background: transparent; color: #6B645C; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</li>
+</sc-for>
+</ul>
+</div>
+
+<a href="O-Wardrobe.dc.html" style="position: absolute; left: 0; right: 0; bottom: 96px; text-align: center; font-size: 14px; font-weight: 500; color: #161514;">Skip for now</a>
+<a href="O-Wardrobe.dc.html" style="position: absolute; left: 20px; right: 20px; bottom: 34px; display: flex; align-items: center; justify-content: center; height: 52px; border-radius: 26px; background: #161514; color: #F7F2E9; font-size: 15px; font-weight: 500; text-decoration: none;">Continue</a>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ok = 'font-size: 12px; color: #6B645C;';
+    const warn = 'font-size: 12px; color: #9A5E48;';
+    const stores = [
+      { name: 'Zara', note: 'zara.com · US site', noteStyle: ok },
+      { name: 'COS', note: 'cos.com · US site', noteStyle: ok },
+      { name: 'Ganni', note: 'ganni.com · US site', noteStyle: ok },
+      { name: 'Arket', note: 'No online store in the US, so Caro can’t search it', noteStyle: warn }
+    ];
+    return { stores };
+  }
+}
+</script>
+</body>
+</html>

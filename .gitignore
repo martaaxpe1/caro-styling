@@ -1,0 +1,16 @@
+# Mac
+.DS_Store
+
+# Claude Code, personal settings
+.claude/settings.local.json
+
+# Server: installed packages, secrets, and local data (database and photos)
+server/node_modules/
+server/.env
+server/data/
+
+# Xcode: personal settings and build output
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/

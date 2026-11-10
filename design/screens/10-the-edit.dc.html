@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spread, The edit</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#161514}a:hover{color:#9A5E48}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #F7F2E9; color: #161514; font-family: Inter, system-ui, sans-serif;">
+<div style="padding: 50px 20px 0;">
+
+<header style="display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; height: 44px;">
+<button type="button" aria-label="Profile and settings" style="width: 34px; height: 34px; border-radius: 17px; border: 1px solid #161514; background: transparent; font: 500 13px Inter, sans-serif; color: #161514;">M</button>
+<img src="/_blob/a841e02b9fa8bb0deeffbfafaa1b670a" alt="Caro" style="height: 28px; width: auto; display: block; justify-self: center;">
+<button type="button" aria-label="Add pieces" style="width: 44px; height: 44px; border: 0; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center; color: #161514;">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+</button>
+</header>
+
+<div aria-hidden="true" style="margin-top: 10px; border-top: 1px solid #161514; height: 3px; border-bottom: 1px solid #161514;"></div>
+<div style="display: flex; justify-content: space-between; margin-top: 9px; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B645C;">
+<span>The autumn edit</span><span>96 pieces</span>
+</div>
+
+<h1 style="margin: 22px 0 4px; font-family: 'Bodoni Moda', serif; font-style: italic; font-weight: 400; font-size: 17px; color: #6B645C;">Contents</h1>
+
+<nav aria-label="Chapters">
+<sc-for list="{{chapters}}" as="c" hint-placeholder-count="7">
+<a href="{{c.href}}" style="display: grid; grid-template-columns: 50px minmax(0, 1fr) 112px; align-items: center; height: 80px; border-bottom: 1px solid #DCD2C2; color: #161514; text-decoration: none;">
+<span style="font-family: 'Bodoni Moda', serif; font-size: 30px; line-height: 1;">{{c.num}}</span>
+<span style="display: flex; flex-direction: column; gap: 3px;">
+<span style="font-family: 'Bodoni Moda', serif; font-size: 21px; line-height: 1.15;">{{c.name}}</span>
+<span style="{{c.metaStyle}}">{{c.meta}}</span>
+</span>
+<span aria-hidden="true" style="display: flex; justify-content: flex-end;">
+<sc-for list="{{c.pieces}}" as="p" hint-placeholder-count="3">
+<svg width="48" height="48" viewBox="0 0 100 100" style="margin-left: -12px; filter: drop-shadow(0 3px 4px rgba(60, 40, 20, 0.18));"><path d="{{p.d}}" fill="{{p.fill}}" stroke="{{p.stroke}}" stroke-width="1.5"></path></svg>
+</sc-for>
+</span>
+</a>
+</sc-for>
+</nav>
+
+</div>
+
+<nav aria-label="Main" style="position: absolute; left: 0; right: 0; bottom: 0; height: 83px; box-sizing: border-box; padding: 16px 40px 0; display: flex; justify-content: space-between; border-top: 1px solid #161514; background: #F7F2E9;">
+<a href="B-Wardrobe.dc.html" aria-current="page" style="height: 44px; font-size: 14px; font-weight: 600; color: #161514; text-decoration: underline; text-underline-offset: 6px;">The edit</a>
+<a href="B-Looks.dc.html" style="height: 44px; font-size: 14px; font-weight: 500; color: #6B645C; text-decoration: none;">Looks</a>
+<a href="B-GetTheLookHome.dc.html" style="height: 44px; font-size: 14px; font-weight: 500; color: #6B645C; text-decoration: none;">Get the look</a>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const G = {
+      tee: 'M32 14 L43 10 Q50 17 57 10 L68 14 L84 28 L75 38 L68 33 L68 88 L32 88 L32 33 L25 38 L16 28 Z',
+      shirt: 'M33 12 L44 8 L50 16 L56 8 L67 12 L84 62 L75 65 L67 38 L67 90 L33 90 L33 38 L25 65 L16 62 Z',
+      knit: 'M32 13 L42 9 Q50 15 58 9 L68 13 L86 64 L76 67 L68 40 L68 88 L32 88 L32 40 L24 67 L14 64 Z',
+      coat: 'M33 8 L44 5 L50 22 L56 5 L67 8 L82 60 L74 62 L69 42 L71 95 L29 95 L31 42 L26 62 L18 60 Z',
+      blazer: 'M33 10 L44 7 L50 26 L56 7 L67 10 L82 58 L74 60 L69 40 L70 80 L30 80 L31 40 L26 60 L18 58 Z',
+      trousers: 'M31 8 L69 8 L73 94 L56 94 L50 34 L44 94 L27 94 Z',
+      skirt: 'M36 14 L64 14 L78 88 L22 88 Z',
+      dress: 'M39 6 L44 6 Q50 13 56 6 L61 6 L63 32 L76 92 L24 92 L37 32 Z',
+      shoe: 'M12 52 Q13 40 28 40 L52 42 Q68 44 84 51 Q91 54 89 60 L14 60 Q10 58 12 52 Z',
+      bag: 'M24 42 L76 42 L80 86 L20 86 Z M36 42 Q36 18 50 18 Q64 18 64 42 L60 42 Q60 23 50 23 Q40 23 40 42 Z'
+    };
+    const line = '#CFC6B8';
+    const p = (k, fill, stroke) => ({ d: G[k], fill, stroke: stroke || 'none' });
+    const chapters = [
+      { num: '01', name: 'Outerwear', count: 11, open: 2, pieces: [p('coat', '#B88A5E'), p('coat', '#CDB48C'), p('blazer', '#5A4033')] },
+      { num: '02', name: 'Knitwear', count: 9, open: 0, pieces: [p('knit', '#A9A8A3'), p('knit', '#D8C7A8'), p('knit', '#2E3A55')] },
+      { num: '03', name: 'Shirts and tops', count: 19, open: 4, pieces: [p('shirt', '#FBF9F4', line), p('tee', '#F6F0E4', line), p('shirt', '#3C5387')] },
+      { num: '04', name: 'Trousers and skirts', count: 17, open: 1, pieces: [p('trousers', '#2E3A55'), p('trousers', '#4A5E7E'), p('skirt', '#B4765F')] },
+      { num: '05', name: 'Dresses', count: 9, open: 3, pieces: [p('dress', '#22211F'), p('dress', '#B4765F'), p('dress', '#D9B986')] },
+      { num: '06', name: 'Shoes', count: 14, open: 0, pieces: [p('shoe', '#22211F'), p('shoe', '#8A5A3C'), p('shoe', '#F3ECE0', '#B9AE9C')] },
+      { num: '07', name: 'Bags and accessories', count: 17, open: 2, pieces: [p('bag', '#A0703F'), p('bag', '#22211F'), p('bag', '#E8DCC8', '#B9AE9C')] }
+    ].map((c) => ({
+      ...c,
+      meta: c.count + ' pieces' + (c.open ? ' · ' + c.open + ' not styled yet' : ''),
+      metaStyle: 'font-size: 12px; color: #6B645C;',
+      href: c.num === '01' ? 'B-Piece.dc.html' : '#'
+    }));
+    return { chapters };
+  }
+}
+</script>
+</body>
+</html>

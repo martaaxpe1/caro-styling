@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spread, Piece</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#161514}a:hover{color:#9A5E48}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #F7F2E9; color: #161514; font-family: Inter, system-ui, sans-serif;">
+
+<header style="display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 50px 8px 0 4px;">
+<a href="B-Wardrobe.dc.html" style="display: flex; align-items: center; gap: 2px; height: 44px; padding: 0 8px; font-size: 15px; color: #161514; text-decoration: none;">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>The edit</a>
+<button type="button" style="height: 44px; padding: 0 12px; border: 0; background: transparent; color: #161514; font: 500 15px Inter, sans-serif;">Edit</button>
+</header>
+
+<div style="padding: 10px 20px 0;">
+<p style="margin: 0; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B645C;">01 · Outerwear</p>
+</div>
+
+<div aria-hidden="true" style="display: flex; align-items: center; justify-content: center; height: 240px;">
+<svg width="226" height="226" viewBox="0 0 100 100" style="transform: rotate(-3deg); filter: drop-shadow(0 12px 14px rgba(70, 50, 30, 0.24));"><path d="M33 8 L44 5 L50 22 L56 5 L67 8 L82 60 L74 62 L69 42 L71 95 L29 95 L31 42 L26 62 L18 60 Z" fill="#B88A5E"></path></svg>
+</div>
+
+<div style="padding: 4px 20px 0;">
+<h1 style="margin: 0; font-family: 'Bodoni Moda', serif; font-weight: 400; font-size: 34px; line-height: 1.1; letter-spacing: -0.01em;">Camel wool <span style="font-style: italic;">coat</span></h1>
+<p style="margin: 6px 0 0; font-size: 13px; color: #6B645C;">Arket · Wool · Warm</p>
+
+<dl style="margin: 16px 0 0; padding: 0;">
+<div style="display: flex; justify-content: space-between; align-items: center; height: 38px; border-top: 1px solid #DCD2C2;">
+<dt style="font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B645C;">Seasons</dt><dd style="margin: 0; font-size: 14px;">Autumn, winter</dd>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; height: 38px; border-top: 1px solid #DCD2C2;">
+<dt style="font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B645C;">Occasions</dt><dd style="margin: 0; font-size: 14px;">Office, day out</dd>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; height: 38px; border-top: 1px solid #DCD2C2;">
+<dt style="font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B645C;">Colour</dt><dd style="margin: 0; font-size: 14px;">Camel</dd>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; height: 38px; border-top: 1px solid #DCD2C2; border-bottom: 1px solid #DCD2C2;">
+<dt style="font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B645C;">Size</dt><dd style="margin: 0; font-size: 14px;">EU 38</dd>
+</div>
+</dl>
+
+<div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 18px;">
+<h2 style="margin: 0; font-family: 'Bodoni Moda', serif; font-style: italic; font-weight: 400; font-size: 18px;">In 3 looks</h2>
+<a href="B-Looks.dc.html" style="font-size: 13px; font-weight: 500; color: #9A5E48; text-decoration: none;">See all</a>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px;">
+<sc-for list="{{looks}}" as="l" hint-placeholder-count="3">
+<a href="#" aria-label="{{l.label}}" style="position: relative; display: block; height: 100px; border-radius: 4px; background: #EFE7DB; overflow: hidden;">
+<sc-for list="{{l.pieces}}" as="p" hint-placeholder-count="3">
+<svg aria-hidden="true" width="100%" height="100%" viewBox="0 0 100 100" style="{{p.style}}"><path d="{{p.d}}" fill="{{p.fill}}" stroke="{{p.stroke}}" stroke-width="2"></path></svg>
+</sc-for>
+</a>
+</sc-for>
+</div>
+</div>
+
+<a href="B-StyleLook.dc.html" style="position: absolute; left: 20px; right: 20px; bottom: 34px; display: flex; align-items: center; justify-content: center; height: 52px; border-radius: 26px; background: #161514; color: #F7F2E9; font-size: 15px; font-weight: 500; text-decoration: none;">Style a look with it</a>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const G = {
+      tee: 'M32 14 L43 10 Q50 17 57 10 L68 14 L84 28 L75 38 L68 33 L68 88 L32 88 L32 33 L25 38 L16 28 Z',
+      shirt: 'M33 12 L44 8 L50 16 L56 8 L67 12 L84 62 L75 65 L67 38 L67 90 L33 90 L33 38 L25 65 L16 62 Z',
+      knit: 'M32 13 L42 9 Q50 15 58 9 L68 13 L86 64 L76 67 L68 40 L68 88 L32 88 L32 40 L24 67 L14 64 Z',
+      coat: 'M33 8 L44 5 L50 22 L56 5 L67 8 L82 60 L74 62 L69 42 L71 95 L29 95 L31 42 L26 62 L18 60 Z',
+      trousers: 'M31 8 L69 8 L73 94 L56 94 L50 34 L44 94 L27 94 Z',
+      skirt: 'M36 14 L64 14 L78 88 L22 88 Z',
+      shoe: 'M12 52 Q13 40 28 40 L52 42 Q68 44 84 51 Q91 54 89 60 L14 60 Q10 58 12 52 Z'
+    };
+    const place = (k, fill, x, y, s, r, stroke) => ({
+      d: G[k], fill, stroke: stroke || 'none',
+      style: 'position: absolute; left: ' + x + 'px; top: ' + y + 'px; width: ' + s + 'px; height: ' + s + 'px; transform: rotate(' + r + 'deg); filter: drop-shadow(0 3px 4px rgba(70, 50, 30, 0.2));'
+    });
+    const looks = [
+      { label: 'Look 34, office', pieces: [place('shirt', '#FBF9F4', 46, 6, 58, 4, '#D8CEBF'), place('coat', '#B88A5E', 4, 4, 72, -4), place('trousers', '#2E3A55', 52, 34, 62, 3)] },
+      { label: 'Look 29, day out', pieces: [place('tee', '#F6F0E4', 50, 4, 54, 4, '#D8CEBF'), place('coat', '#B88A5E', 4, 4, 72, -4), place('trousers', '#4A5E7E', 54, 36, 58, 3), place('shoe', '#22211F', 46, 62, 50, -8)] },
+      { label: 'Look 21, office', pieces: [place('knit', '#A9A8A3', 46, 6, 58, 4), place('coat', '#B88A5E', 4, 4, 72, -4), place('skirt', '#22211F', 54, 40, 54, 3)] }
+    ];
+    return { looks };
+  }
+}
+</script>
+</body>
+</html>

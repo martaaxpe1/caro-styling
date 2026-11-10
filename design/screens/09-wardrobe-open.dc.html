@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Onboarding, Your wardrobe is open</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#161514}a:hover{color:#9A5E48}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #F7F2E9; color: #161514; font-family: Inter, system-ui, sans-serif;">
+
+<div style="display: flex; justify-content: center; padding-top: 62px;">
+<img src="/_blob/a841e02b9fa8bb0deeffbfafaa1b670a" alt="Caro" style="height: 18px; width: auto; display: block;">
+</div>
+
+<div aria-hidden="true" style="position: absolute; left: 0; top: 120px; width: 390px; height: 330px;">
+<sc-for list="{{pieces}}" as="p" hint-placeholder-count="6">
+<div style="{{p.style}}">
+<svg width="100%" height="100%" viewBox="0 0 100 100"><path d="{{p.d}}" fill="{{p.fill}}" stroke="{{p.stroke}}" stroke-width="1"></path></svg>
+</div>
+</sc-for>
+</div>
+
+<div style="position: absolute; left: 28px; right: 28px; top: 468px; text-align: center;">
+<p style="margin: 0; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B645C;">20 pieces</p>
+<h1 style="margin: 10px 0 0; font-family: 'Bodoni Moda', serif; font-weight: 400; font-size: 34px; line-height: 1.1; letter-spacing: -0.01em;">Your wardrobe is <span style="font-style: italic;">open</span></h1>
+<p style="margin: 14px 0 0; font-size: 14px; line-height: 1.5; color: #6B645C;">Looks and Get the look are ready. Keep adding pieces whenever you like: the more of your wardrobe Caro knows, the more of an inspiration it can match.</p>
+</div>
+
+<a href="B-Wardrobe.dc.html" style="position: absolute; left: 20px; right: 20px; bottom: 96px; display: flex; align-items: center; justify-content: center; height: 52px; box-sizing: border-box; border: 1px solid #161514; border-radius: 26px; color: #161514; font-size: 15px; font-weight: 500; text-decoration: none;">Go to the edit</a>
+<a href="B-StyleLook.dc.html" style="position: absolute; left: 20px; right: 20px; bottom: 34px; display: flex; align-items: center; justify-content: center; height: 52px; border-radius: 26px; background: #161514; color: #F7F2E9; font-size: 15px; font-weight: 500; text-decoration: none;">Style your first look</a>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const G = {
+      shirt: 'M33 12 L44 8 L50 16 L56 8 L67 12 L84 62 L75 65 L67 38 L67 90 L33 90 L33 38 L25 65 L16 62 Z',
+      coat: 'M33 8 L44 5 L50 22 L56 5 L67 8 L82 60 L74 62 L69 42 L71 95 L29 95 L31 42 L26 62 L18 60 Z',
+      trousers: 'M31 8 L69 8 L73 94 L56 94 L50 34 L44 94 L27 94 Z',
+      skirt: 'M36 14 L64 14 L78 88 L22 88 Z',
+      shoe: 'M12 52 Q13 40 28 40 L52 42 Q68 44 84 51 Q91 54 89 60 L14 60 Q10 58 12 52 Z',
+      bag: 'M24 42 L76 42 L80 86 L20 86 Z M36 42 Q36 18 50 18 Q64 18 64 42 L60 42 Q60 23 50 23 Q40 23 40 42 Z'
+    };
+    const shadow = ' filter: drop-shadow(0 8px 9px rgba(70, 50, 30, 0.22));';
+    const place = (k, fill, x, y, s, r, stroke) => ({
+      d: G[k], fill, stroke: stroke || 'none',
+      style: 'position: absolute; left: ' + x + 'px; top: ' + y + 'px; width: ' + s + 'px; height: ' + s + 'px; transform: rotate(' + r + 'deg);' + shadow
+    });
+    const pieces = [
+      place('shirt', '#FBF9F4', 150, 6, 124, 4, '#D8CEBF'),
+      place('coat', '#B88A5E', 28, 4, 178, -5),
+      place('skirt', '#B4765F', 238, 20, 128, 7),
+      place('trousers', '#2E3A55', 156, 112, 150, -2),
+      place('bag', '#A0703F', 34, 186, 112, -6),
+      place('shoe', '#22211F', 236, 212, 124, -10)
+    ];
+    return { pieces };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spread, Get the look</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#161514}a:hover{color:#9A5E48}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #F7F2E9; color: #161514; font-family: Inter, system-ui, sans-serif;">
+
+<header style="display: grid; grid-template-columns: 72px 1fr 72px; align-items: center; height: 44px; padding: 50px 8px 0;">
+<a href="B-GetTheLookHome.dc.html" aria-label="Back to Get the look" style="display: flex; align-items: center; width: 44px; height: 44px; justify-content: center; color: #161514;">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>
+</a>
+<p style="margin: 0; text-align: center; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;">Get the look</p>
+<button type="button" style="justify-self: end; height: 44px; padding: 0 12px; border: 0; background: transparent; color: #161514; font: 600 15px Inter, sans-serif;">Save</button>
+</header>
+
+<figure aria-label="Inspiration photo with five numbered pieces" style="position: relative; margin: 4px 0 0; height: 310px; background: #D3C7B6; overflow: hidden;">
+<sc-for list="{{look}}" as="p" hint-placeholder-count="5">
+<div style="{{p.style}}">
+<svg aria-hidden="true" width="100%" height="100%" viewBox="0 0 100 100"><path d="{{p.d}}" fill="{{p.fill}}" stroke="{{p.stroke}}" stroke-width="1"></path></svg>
+</div>
+</sc-for>
+<sc-for list="{{pins}}" as="pin" hint-placeholder-count="5">
+<span aria-hidden="true" style="{{pin.style}}">{{pin.n}}</span>
+</sc-for>
+<figcaption style="position: absolute; left: 16px; bottom: 12px; font-size: 11px; letter-spacing: 0.08em; color: #3E3A35;">Saved from Pinterest</figcaption>
+</figure>
+
+<section aria-label="Your version" style="padding: 20px 20px 0;">
+<div style="display: flex; align-items: baseline; justify-content: space-between;">
+<h1 style="margin: 0; font-family: 'Bodoni Moda', serif; font-weight: 400; font-size: 28px; letter-spacing: -0.01em;">Your <span style="font-style: italic;">version</span></h1>
+<p style="margin: 0; font-size: 12px; color: #6B645C;">4 of 5 from your wardrobe</p>
+</div>
+<ol style="list-style: none; margin: 12px 0 0; padding: 0;">
+<sc-for list="{{credits}}" as="c" hint-placeholder-count="5">
+<li style="display: grid; grid-template-columns: 26px 48px minmax(0, 1fr) auto; align-items: center; gap: 10px; height: 58px; border-top: 1px solid #DCD2C2;">
+<span style="font-family: 'Bodoni Moda', serif; font-size: 18px;">{{c.n}}</span>
+<span style="{{c.thumbStyle}}">
+<sc-if value="{{c.have}}" hint-placeholder-val="{{true}}">
+<svg aria-hidden="true" width="40" height="40" viewBox="0 0 100 100"><path d="{{c.d}}" fill="{{c.fill}}" stroke="{{c.stroke}}" stroke-width="2"></path></svg>
+</sc-if>
+</span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+<span style="{{c.titleStyle}}">{{c.title}}</span>
+<span style="font-size: 12px; color: #6B645C;">{{c.sub}}</span>
+</span>
+<sc-if value="{{c.have}}" hint-placeholder-val="{{true}}">
+<span style="display: flex; align-items: center; gap: 6px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #6B645C;"><span aria-hidden="true" style="{{c.dotStyle}}"></span>{{c.status}}</span>
+</sc-if>
+<sc-if value="{{c.missing}}" hint-placeholder-val="{{false}}">
+<button type="button" style="height: 32px; padding: 0 14px; border: 1px solid #9A5E48; border-radius: 16px; background: transparent; color: #9A5E48; font: 600 13px Inter, sans-serif;">Find it</button>
+</sc-if>
+</li>
+</sc-for>
+</ol>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const G = {
+      tee: 'M32 14 L43 10 Q50 17 57 10 L68 14 L84 28 L75 38 L68 33 L68 88 L32 88 L32 33 L25 38 L16 28 Z',
+      blazer: 'M33 10 L44 7 L50 26 L56 7 L67 10 L82 58 L74 60 L69 40 L70 80 L30 80 L31 40 L26 60 L18 58 Z',
+      trousers: 'M31 8 L69 8 L73 94 L56 94 L50 34 L44 94 L27 94 Z',
+      shoe: 'M12 52 Q13 40 28 40 L52 42 Q68 44 84 51 Q91 54 89 60 L14 60 Q10 58 12 52 Z',
+      bag: 'M24 42 L76 42 L80 86 L20 86 Z M36 42 Q36 18 50 18 Q64 18 64 42 L60 42 Q60 23 50 23 Q40 23 40 42 Z'
+    };
+    const shadow = ' filter: drop-shadow(0 4px 6px rgba(40, 30, 20, 0.22));';
+    const place = (k, fill, x, y, s, r, stroke) => ({
+      d: G[k], fill, stroke: stroke || 'none',
+      style: 'position: absolute; left: ' + x + 'px; top: ' + y + 'px; width: ' + s + 'px; height: ' + s + 'px; transform: rotate(' + r + 'deg);' + shadow
+    });
+    const look = [
+      place('tee', '#FFFFFF', 190, 14, 120, 5, '#C9BFB0'),
+      place('blazer', '#8E8C88', 22, 18, 172, -4),
+      place('trousers', '#3F4F6B', 200, 116, 172, 3),
+      place('shoe', '#1B1A19', 36, 206, 126, -8),
+      place('bag', '#1B1A19', 142, 196, 92, 4)
+    ];
+    const pin = (n, x, y) => ({
+      n,
+      style: 'position: absolute; left: ' + x + 'px; top: ' + y + 'px; width: 24px; height: 24px; border-radius: 12px; background: #161514; color: #F7F2E9; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center;'
+    });
+    const pins = [pin(1, 96, 92), pin(2, 238, 44), pin(3, 296, 196), pin(4, 88, 244), pin(5, 178, 252)];
+    const tileHave = 'width: 48px; height: 48px; border-radius: 4px; background: #EFE7DB; display: flex; align-items: center; justify-content: center;';
+    const tileMissing = 'width: 48px; height: 48px; border-radius: 4px; box-sizing: border-box; border: 1.5px dashed #9A5E48;';
+    const dot = (c) => 'width: 7px; height: 7px; border-radius: 4px; background: ' + c + ';';
+    const credits = [
+      { n: 1, title: 'Chocolate blazer', sub: 'For their grey oversized blazer', status: 'Close', dot: '#D9B986', k: 'blazer', fill: '#5A4033' },
+      { n: 2, title: 'Ecru cotton tee', sub: 'For their white tee', status: 'Yours', dot: '#161514', k: 'tee', fill: '#F6F0E4', stroke: '#CFC6B8' },
+      { n: 3, title: 'Dark straight jeans', sub: 'For their straight jeans', status: 'Yours', dot: '#161514', k: 'trousers', fill: '#4A5E7E' },
+      { n: 4, title: 'Black loafers', sub: 'For their black loafers', status: 'Yours', dot: '#161514', k: 'shoe', fill: '#22211F' },
+      { n: 5, title: 'Small black shoulder bag', sub: 'Not in your wardrobe · in 3 of your inspirations', missing: true }
+    ].map((c) => ({
+      ...c,
+      have: !c.missing,
+      missing: !!c.missing,
+      d: c.k ? G[c.k] : '',
+      fill: c.fill || 'none',
+      stroke: c.stroke || 'none',
+      thumbStyle: c.missing ? tileMissing : tileHave,
+      dotStyle: dot(c.dot || '#161514'),
+      titleStyle: c.missing ? 'font-size: 14px; font-weight: 500; color: #9A5E48;' : 'font-size: 14px; font-weight: 500;'
+    }));
+    return { look, pins, credits };
+  }
+}
+</script>
+</body>
+</html>
