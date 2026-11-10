@@ -8,6 +8,10 @@
 server/node_modules/
 server/.env
 server/data/
+# Any SQLite database, in case one ever sits outside server/data/
+*.db
+*.db-wal
+*.db-shm
 
 # Xcode: personal settings and build output
 xcuserdata/

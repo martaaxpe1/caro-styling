@@ -25,6 +25,22 @@ It prints two addresses: one for the Simulator and the browser, one for your iPh
 
 On your iPhone: same wifi as the Mac, phone unlocked. The first time, allow Caro to find devices on your local network. With a free Apple account, an app installed from Xcode stops opening after 7 days: press Run again.
 
+## The database
+
+One SQLite file, `server/data/caro.db`, ignored by Git. Its tables are built by the numbered files in `server/src/db/migrations/`, which run by themselves the first time the database is opened. To change a table later, add a new numbered file; never edit one that is already committed.
+
+In `server/.env`, set `ADMIN_EMAIL` to your email first. Then, in `server/`:
+
+```bash
+npm run seed       # adds you as admin and a test invitation for sara@example.com, and prints both
+npm run reset-dev  # deletes the local database and seeds a fresh one (never runs online)
+npm run db         # opens the database in the Mac's sqlite3
+```
+
+In `sqlite3`: `.tables` lists the tables, `SELECT * FROM users;` shows a table (end each query with a semicolon), `.quit` leaves.
+
+To pretend it is another day, put `DEV_TODAY=2026-10-30` in `server/.env`, or run one command with it: `DEV_TODAY=2026-10-30 npm run reset-dev`.
+
 ## What is in here
 
 | Path | What it is | Who reads it |
@@ -32,7 +48,7 @@ On your iPhone: same wifi as the Mac, phone unlocked. The first time, allow Caro
 | `app/` | The iPhone app: Swift and SwiftUI, opened with `app/Caro.xcodeproj`. | Both |
 | `server/` | The server: Node, Express, SQLite. | Both |
 | `CLAUDE.md` | Standing instructions for Claude Code: how we work, design rules, server rules. Read automatically at the start of every session. | Claude Code |
-| `docs/PRD.md` | The spec (v1.0), with the build plan and tickets in section 17. | Both |
+| `docs/PRD.md` | The spec (v1.2), with the build plan and tickets in section 17. | Both |
 | `docs/FIRST_PROMPT.md` | The first message to paste into Claude Code. | You |
 | `docs/BENCHMARK.md` | The other wardrobe apps, and how Caro differs. | Both |
 | `design/screens/` | The designed screens, exported from the canvas, plus a README mapping each to its ticket. | Claude Code |

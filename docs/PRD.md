@@ -1,4 +1,4 @@
-# Caro Styling: Product requirements (v1.1, ready to build)
+# Caro Styling: Product requirements (v1.2, ready to build)
 
 The spec for building Caro Styling. It folds in every decision from the drafts (v0.2 to v0.10) and from the design round on the canvas. Where this file and the screens in `design/` disagree on layout, colour, type or copy, the screens win. Where they disagree on behaviour, this file wins. Changes are listed at the end.
 
@@ -105,7 +105,7 @@ Settings repeats steps 1 to 5, plus download everything, delete account and sign
 
 ## 6. Core concepts
 
-- **Piece.** One piece of clothing, shoes, a bag or an accessory. Photo, cut-out, details. (`items` in the database.)
+- **Piece.** One piece of clothing, shoes, a bag or an accessory. Photo, cut-out, details. (`pieces` in the database.)
 - **Chapter.** A category of pieces as the edit shows it, numbered 01 to 07: outerwear, knitwear, tops, trousers, dresses and skirts, shoes, accessories. These names replace the older ones on screens 07, 08 and 10 ("Shirts and tops", "Trousers and skirts", "Dresses", "Bags and accessories", and "Bottoms" on the review); here this file wins over the screens.
 - **Kind.** What a piece is, inside its chapter: a jumper, a hoodie, a skirt. Each kind belongs to one chapter and fills one slot on the styling table. A kind is a filter inside a chapter, not a chapter of its own.
 
@@ -122,10 +122,10 @@ Settings repeats steps 1 to 5, plus download everything, delete account and sign
   For the unlock rule, a top is anything in the top slot, a bottom anything in the bottom slot, and a one-piece a dress or jumpsuit.
 - **Occasion.** Office, Working from home, Night out, Day out. Pieces and looks can have several.
 - **Season.** Part of your year, set in onboarding from where you live: four seasons, two, or none. Pieces and looks can have several.
-- **Look.** A set of pieces. Its source is built, photo or inspired. Can hold one or more photos of you wearing it. (`outfits` in the database.)
+- **Look.** A set of pieces. Its source is built, photo or inspired. Can hold one or more photos of you wearing it. (`looks` in the database.)
 - **Inspiration.** A photo of a look you like, an optional source link and a note.
 - **Missing piece.** A piece in an inspiration you do not have.
-- **To find.** The wishlist: missing pieces you marked as key, with products found in your stores. It lives inside Get the look.
+- **To find.** The wishlist: missing pieces you marked as key, with products found in your stores. It lives inside Get the look. (`to_find` in the database.)
 - **Store.** One of the stores a member shops at: a name and its website, such as cos.com, with its page for their country.
 - **Invitation.** An email the admin has allowed to sign in.
 
@@ -288,19 +288,27 @@ Limits: a monthly allowance of AI actions per member keeps costs predictable. Th
 - The monthly AI allowance is enforced on the server.
 - Removed members cannot sign in; their data is deleted 30 days after removal.
 
-## 12. Data model (sketch)
+## 12. Data model
 
-Lives on the server. Every row belongs to a member (`user_id`), except invitations, which belong to the admin who sent them.
+Lives on the server, in SQLite. Built in T2 by the numbered migrations in `server/src/db/migrations/`; later tickets change it with new ones. The tables use the app's words: pieces, looks, to find.
 
-- `users`: email, name, city, country, currency, store sections (any of women's, men's, unisex), role (member, admin), status (onboarding, active, removed), onboarding step, unlocked at, removed at, created, last active. `login_codes`: hashed code, expires, attempts. `sessions`.
-- `invitations`: name, email, invited by, status (pending, accepted, cancelled, expired), sent, expires.
-- `seasons`: name, months. Four, two or none per member.
-- `stores`: name, website for the member's country, sells online in the country (yes or no).
-- `items`: name, chapter, kind, colours, pattern, material, warmth, formality, brand, size, size system, price, notes, status (pending review, confirmed, maybe), photo paths (original, cut-out, thumb). `item_occasions`, `item_seasons`.
-- `outfits`: source (built, photo, inspired), number, note. `outfit_items` (with slot). `outfit_occasions`, `outfit_seasons`. `outfit_photos`: photo, added.
-- `inspirations`: photo, link, note. `inspiration_pieces`: description, kind, matched item, match (yours, close, missing), key.
-- `wishlist`: from piece, status (considering, bought, dropped). `store_results`: store, name, price, currency, url, image, found at.
+- Every row that holds a member's data has `user_id`, link tables included, so deleting a member deletes all of it.
+- Invitations belong to the admin who sent them. Sign-in codes belong to an email, since an invited person has no account until their first sign-in.
+- Dates are text in UTC and come from the server's clock, or `DEV_TODAY` in development. Prices are in cents.
+
+Tables:
+- Fixed lists, the same for everyone: `chapters`, `kinds` (chapter, slot), `colours`, `patterns`, `materials`, `occasions` (sections 6 and 8). `settings`: the monthly AI allowance, one number for every member.
+- `users`: email, name, role (member, admin), status (onboarding, active, removed), onboarding step, city, country, currency, store sections (women's, men's, unisex, each yes or no, all no until chosen), unlocked at, removed at, created, last active. `login_codes`: email, hashed code, expires, attempts, used. `sessions`: hashed token, created, last used.
+- `invitations`: name, email, invited by, status (pending, accepted, cancelled, expired), sent, expires. One pending invitation per email.
+- `seasons`: name, order. `season_months`: the season each month belongs to. A month is in one season at most, so seasons never overlap. Four, two or none per member.
+- `stores`: name, domain (such as cos.com), the page for the member's country, sells online in the country (yes or no), order.
+- `pieces`: name, kind (the chapter and slot follow from it), pattern, material, warmth, formality, brand, size, size system, price paid and its currency, notes, status (pending review, confirmed, maybe), photo paths (original, cut-out, thumbnail; no cut-out when nothing lifted). `piece_colours` (up to three, main first), `piece_occasions`, `piece_seasons`.
+- `looks`: number, source (built, photo, inspired), note. `look_pieces` (with slot: one piece per slot, several accessories). `look_occasions`, `look_seasons`. `look_photos`: photo, added.
+- `inspirations`: photo, link, note. `inspiration_pieces`: pin number, description, kind, matched piece, match (yours, close, missing), key.
+- `to_find`: from inspiration piece, status (considering, bought, dropped), last searched (empty means not searched yet). `store_results`: store, name, price, currency, link, image, found at.
 - `ai_usage`: action, date.
+
+To add with the ticket that needs it: the typical weather kept for each city (T4, section 9), an occasion on inspirations (T10, screen 14 shows one), pin positions on the inspiration photo (T10).
 
 ## 13. Notifications
 
@@ -499,3 +507,4 @@ Not in version one. A short onboarding step to help a member see their own patte
 - **v0.10.** Building the wardrobe is the last, required onboarding step, unlocking at 20 pieces.
 - **v1.0.** Ready to build. Screen index linked to the design files, rules that must hold on the server, the design system, the stack, tickets T0 to T11 with what to check, defaults for the last open decisions.
 - **v1.1.** From the T1 spike. Seven chapters with short names (Knitwear, Tops, Trousers, Dresses and skirts, Accessories) and kinds as a filter. Fixed lists for the details. A stricter close. Store search on the whole store website, in the sections each member chooses in onboarding (women's, men's, unisex). Your year from Claude's memory and a rule. Models per action. An allowance of 300. Cut-outs stay on the phone, with the photo itself as the fallback. The chapter names change on screens 07, 08 and 10, and screen 04 gets the section chips above the store list.
+- **v1.2.** From T2. The database tables use the app's words: `pieces`, `looks`, `to_find`. Section 12 matches the tables as built: the fixed lists as tables, the allowance as one setting for every member, store domains, store sections as three yes or no choices, months per season, sign-in codes kept by email, last searched on To find, prices in cents.
