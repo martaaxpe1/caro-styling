@@ -8,6 +8,7 @@
 //   --model opus,haiku   only these models (default: all three)
 //   --text-only          send the wardrobe as details only, without the small photos
 //   --effort low         think less (default medium)
+//   --score              no new calls: score the saved answers against answers.json
 
 const { ask, pickModels, describeError, MODELS } = require('./lib/claude');
 const { loadFolder, imageBlock } = require('./lib/images');
@@ -74,8 +75,38 @@ function score(spotted, expected) {
   };
 }
 
+// Scores the saved answers again, after the answer key is added or changed. Free.
+function scoreSaved() {
+  const answers = loadAnswers().looks || {};
+  const results = loadJson('looks.json', null);
+  if (!results) {
+    console.error('No saved looks yet. Run npm run spike:looks first.');
+    process.exit(1);
+  }
+  for (const [mode, byModel] of Object.entries(results.modes)) {
+    for (const [model, run] of Object.entries(byModel)) {
+      let found = 0;
+      let expected = 0;
+      let extra = 0;
+      console.log(`\n${MODELS[model].label}, wardrobe sent as ${mode}`);
+      for (const r of run) {
+        const spotted = r.data ? r.data.worn.map((w) => w.piece) : [];
+        r.score = score(spotted, answers[String(Number(r.number))]);
+        if (!r.score) continue;
+        found += r.score.found.length;
+        expected += r.score.expected.length;
+        extra += r.score.extra.length;
+        console.log(`  Look ${Number(r.number)}: found ${r.score.found.length} of ${r.score.expected.length}, missed ${r.score.missed.join(', ') || 'none'}, extra ${r.score.extra.join(', ') || 'none'}`);
+      }
+      if (expected) console.log(`  In all: found ${found} of ${expected}, ${extra} wrongly added`);
+    }
+  }
+  saveJson('looks.json', results);
+}
+
 async function main() {
   const options = readOptions();
+  if (options.score) return scoreSaved();
   const models = pickModels(options.model);
   const effort = options.effort || 'medium';
   const withPhotos = !options['text-only'];

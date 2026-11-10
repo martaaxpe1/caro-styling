@@ -14,7 +14,8 @@ You recognise clothing in photos and match it to pieces in their wardrobe.
 You only recognise and describe. You never suggest outfits or looks, never say what goes with what, never rate or judge style or taste, and never recommend buying anything.
 When you are not sure, say so through the certainty fields instead of guessing.`;
 
-async function loadWardrobe(source = 'opus') {
+// Sonnet by default: Marta judged its details the best in test 1.
+async function loadWardrobe(source = 'sonnet') {
   const details = loadJson('details-1568.json', null);
   if (!details || Object.keys(details.runs).length === 0) {
     console.error('Tests 2 and 3 use the details from test 1. Run it first: npm run spike:details');

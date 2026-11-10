@@ -5,6 +5,7 @@
 //   --model opus,haiku   only these models (default: all three)
 //   --size 1024          send smaller photos (default 1568 pixels on the long side)
 //   --effort medium      think longer before answering (default low)
+//   --pieces 01,04       only these pieces; the answers for the others stay
 
 const { ask, pickModels, describeError, MODELS } = require('./lib/claude');
 const { loadFolder, imageBlock, visualTokens } = require('./lib/images');
@@ -23,7 +24,7 @@ name: 2 to 4 words in sentence case, the way a person would name it in their own
 kind and chapter: choose the kind first, then the chapter it is listed under:
 ${C.kindsByChapterText()}
 
-colours: one to three, main colour first.
+colours: one to three, main colour first. Only the colours you see on the outside of the piece when it is worn: leave out linings, insoles, soles, labels and the inside of a bag.
 
 pattern and material: what you can see. Use "not sure" for material when the photo does not show it.
 
@@ -69,7 +70,8 @@ async function main() {
   const size = Number(options.size) || 1568;
   const effort = options.effort || 'low';
 
-  const pieces = await loadFolder('pieces', size);
+  const only = options.pieces ? String(options.pieces).split(',').map((n) => n.trim().padStart(2, '0')) : null;
+  const pieces = (await loadFolder('pieces', size)).filter((piece) => !only || only.includes(piece.number));
   if (pieces.length === 0) {
     console.error('No photos in server/spike/photos/pieces/ yet.');
     process.exit(1);
@@ -119,7 +121,9 @@ async function main() {
         console.log(`  ${piece.number} failed: ${describeError(error)}`);
       }
     }
-    results.runs[model] = run;
+    // With --pieces, the new answers replace only those pieces and the others stay.
+    const kept = only && results.runs[model] ? results.runs[model].filter((r) => !only.includes(r.number)) : [];
+    results.runs[model] = [...kept, ...run].sort((a, b) => a.number.localeCompare(b.number));
     saveJson(file, results);
 
     const done = run.filter((r) => r.data);
