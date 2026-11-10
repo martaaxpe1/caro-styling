@@ -455,7 +455,7 @@ Defaults taken to start building. Change them before the ticket that needs them.
 - **Look from a photo:** kept as a way to create looks (T9).
 
 Decided in T1 (see `docs/SPIKE.md`):
-- Cut-outs: the iPhone's own feature, as planned (on Marta's 16 photos: 11 good, 5 fair, none failed). When nothing lifts, the piece keeps its photo on the tile colour and can be retaken (section 8).
+- Cut-outs: the iPhone's own feature, as planned (on Marta's 16 photos: 12 good, 4 fair, none failed). When nothing lifts, the piece keeps its photo on the tile colour and can be retaken (section 8).
 - Models: Sonnet 5.5 for anything with photos, Haiku 5.5 for store websites and search (section 10).
 - Seven chapters with short names, kinds as a filter inside each, cardigans always a top (section 6).
 - Fixed lists for colours, patterns, materials and formality (section 8).

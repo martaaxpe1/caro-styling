@@ -12,7 +12,7 @@ The whole spike cost $4.26 over 288 calls. Every call finished normally: no mode
 - **Haiku 5.5 for everything that searches the web.** It searched before answering, where the larger models often answered from memory and got some addresses wrong. It costs a few cents at most.
 - **Your year: a simple rule in code proposes the seasons.** It was right in all six places, costs nothing, and its answer never changes. The typical highs shown to the member come from Sonnet's memory, which was closer to the official numbers than either free data source.
 - **Store search needs two changes:** search the store's whole website rather than a country page, and open each product page to get its image and check the link still works.
-- **The iPhone's own cut-outs are good enough:** 11 of 16 good, 5 fair, none poor or failed. No other service is needed.
+- **The iPhone's own cut-outs are good enough:** 12 of 16 good, 4 fair, none poor or failed. No other service is needed.
 
 ## Recommended model per action
 
@@ -155,8 +155,8 @@ Marta touched and held each of the 16 piece photos in the Photos app on her iPho
 
 | Result | Pieces |
 |---|---|
-| Good | 11: ballet flats, trainers, hoodie, jeans, striped jumper, cream trousers, leopard dress, floral mesh top, satin skirt, pink t-shirt, striped shirt |
-| Fair | 5: beaded bag (04), graphic t-shirt (07), mesh bodysuit (12), white midi skirt (13), black jumper (14) |
+| Good | 12: ballet flats, trainers, hoodie, jeans, striped jumper, cream trousers, leopard dress, floral mesh top, satin skirt, white midi skirt, pink t-shirt, striped shirt |
+| Fair | 4: beaded bag (04), graphic t-shirt (07), mesh bodysuit (12), black jumper (14) |
 | Poor or failed | none |
 
 What works:

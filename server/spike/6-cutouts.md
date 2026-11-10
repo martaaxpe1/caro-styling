@@ -45,11 +45,11 @@ How you took the photos (flat or on a hanger, the background, the light):
 | 10 | Floral mesh top | Good |  |
 | 11 | Black satin skirt | Good |  |
 | 12 | Black mesh bodysuit | Fair | A bit of the background lingers between the straps |
-| 13 | White midi skirt | Fair | A bit of the background lingers on the edges |
+| 13 | White midi skirt | Good |  |
 | 14 | Black jumper | Fair | A bit of the background lingers on the edges |
 | 15 | Pale pink t-shirt | Good |  |
 | 16 | Green striped shirt | Good |  |
 
 Anything else you noticed (speed, which kinds of pieces were hard):
 
-Marta, 10 November: 11 good, 5 fair, none poor or failed. The fair ones have fine detail (beads, straps) or leave a little background at the edges.
+Marta, 10 November: 12 good, 4 fair, none poor or failed. The fair ones have fine detail (beads, straps) or leave a little background at the edges.
