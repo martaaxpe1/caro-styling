@@ -12,7 +12,7 @@ The whole spike cost $4.26 over 288 calls. Every call finished normally: no mode
 - **Haiku 5.5 for everything that searches the web.** It searched before answering, where the larger models often answered from memory and got some addresses wrong. It costs a few cents at most.
 - **Your year: a simple rule in code proposes the seasons.** It was right in all six places, costs nothing, and its answer never changes. The typical highs shown to the member come from Sonnet's memory, which was closer to the official numbers than either free data source.
 - **Store search needs two changes:** search the store's whole website rather than a country page, and open each product page to get its image and check the link still works.
-- **Still to do:** test 6, the iPhone cut-outs, by hand (see below).
+- **The iPhone's own cut-outs are good enough:** 11 of 16 good, 5 fair, none poor or failed. No other service is needed.
 
 ## Recommended model per action
 
@@ -151,7 +151,23 @@ Proposing the seasons:
 
 ## Test 6: the iPhone's own cut-outs
 
-Not done yet. Marta does it by hand on her iPhone, following `server/spike/6-cutouts.md`, and records good, fair, poor or failed for each of the 16 piece photos. The fallback recommendation will be added here afterwards. If the cut-outs are poor, the simplest fallback is to keep the photo as it is, on Caro's tile colour, and let the member retake it.
+Marta touched and held each of the 16 piece photos in the Photos app on her iPhone, which uses the same feature the app will use, and rated each cut-out. The full table is in `server/spike/6-cutouts.md`.
+
+| Result | Pieces |
+|---|---|
+| Good | 11: ballet flats, trainers, hoodie, jeans, striped jumper, cream trousers, leopard dress, floral mesh top, satin skirt, pink t-shirt, striped shirt |
+| Fair | 5: beaded bag (04), graphic t-shirt (07), mesh bodysuit (12), white midi skirt (13), black jumper (14) |
+| Poor or failed | none |
+
+What works:
+- Every piece lifts whole, with no AI and no cost: shoes, a hoodie, a dress, skirts and a sheer top.
+
+What does not:
+- Fine detail (beads, straps) and some edges keep a little background.
+
+Recommendation:
+- Keep the iPhone's cut-outs, as the PRD planned. No background removal on the server and no other service.
+- **The fallback,** for a photo where nothing lifts: the piece keeps its photo as it is, on Caro's tile colour, and the member can retake it. A fair cut-out is kept; on the tile colour a little leftover background hardly shows.
 
 ## What the AI costs a member
 
@@ -220,7 +236,7 @@ Agreed with Marta on 10 November and applied to `docs/PRD.md` as v1.1.
 8. **Section 18, decided in T1.**
    - The model per action, from the table above.
    - The climate source, as in proposal 6.
-   - The cut-out fallback, once test 6 is done.
+   - The cut-out fallback: when nothing lifts from a photo, the piece keeps its photo as it is, on Caro's tile colour, and the member can retake it.
 
 ## Prompts
 

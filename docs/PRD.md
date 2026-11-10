@@ -198,7 +198,7 @@ Designed screens are in `design/screens/` (source from the design canvas). Scree
 
 Pieces:
 - Batch capture from the camera or multi-select from the photo library. Each photo becomes one piece.
-- On the phone: the background is removed with the iPhone's own cut-out feature (the Vision framework, the same as touching and holding a subject in Photos). Free, fast, works offline.
+- On the phone: the background is removed with the iPhone's own cut-out feature (the Vision framework, the same as touching and holding a subject in Photos). Free, fast, works offline. If nothing lifts from a photo, the piece keeps its photo as it is, on the tile colour, and can be retaken.
 - On the server: resize to about 2000 px on the long side, strip location data, store original and cut-out, make a thumbnail.
 - The app suggests a short name, chapter and kind, colours, pattern, material, warmth (light, medium, warm) and formality. Seasons are proposed from the warmth and the member's year. Occasions start empty: you choose them.
 - The details come from fixed lists, so they can be counted and filtered:
@@ -454,10 +454,8 @@ Defaults taken to start building. Change them before the ticket that needs them.
 - **Sign-in:** email code (T3). Sign in with Apple would also work, but invitations are by email.
 - **Look from a photo:** kept as a way to create looks (T9).
 
-Still open from T1:
-- A fallback if the iPhone's cut-outs are not good enough, after Marta's by-hand test (test 6 in `docs/SPIKE.md`).
-
 Decided in T1 (see `docs/SPIKE.md`):
+- Cut-outs: the iPhone's own feature, as planned (on Marta's 16 photos: 11 good, 5 fair, none failed). When nothing lifts, the piece keeps its photo on the tile colour and can be retaken (section 8).
 - Models: Sonnet 5.5 for anything with photos, Haiku 5.5 for store websites and search (section 10).
 - Seven chapters with short names, kinds as a filter inside each, cardigans always a top (section 6).
 - Fixed lists for colours, patterns, materials and formality (section 8).
@@ -500,4 +498,4 @@ Not in version one. A short onboarding step to help a member see their own patte
 - **v0.9.** Spread chosen. Three sections: The edit, Looks, Get the look (with To find inside). Style a look with it from any piece.
 - **v0.10.** Building the wardrobe is the last, required onboarding step, unlocking at 20 pieces.
 - **v1.0.** Ready to build. Screen index linked to the design files, rules that must hold on the server, the design system, the stack, tickets T0 to T11 with what to check, defaults for the last open decisions.
-- **v1.1.** From the T1 spike. Seven chapters with short names (Knitwear, Tops, Trousers, Dresses and skirts, Accessories) and kinds as a filter. Fixed lists for the details. A stricter close. Store search on the whole store website, in the sections each member chooses in onboarding (women's, men's, unisex). Your year from Claude's memory and a rule. Models per action. An allowance of 300. The chapter names change on screens 07, 08 and 10, and screen 04 gets the section chips above the store list.
+- **v1.1.** From the T1 spike. Seven chapters with short names (Knitwear, Tops, Trousers, Dresses and skirts, Accessories) and kinds as a filter. Fixed lists for the details. A stricter close. Store search on the whole store website, in the sections each member chooses in onboarding (women's, men's, unisex). Your year from Claude's memory and a rule. Models per action. An allowance of 300. Cut-outs stay on the phone, with the photo itself as the fallback. The chapter names change on screens 07, 08 and 10, and screen 04 gets the section chips above the store list.
