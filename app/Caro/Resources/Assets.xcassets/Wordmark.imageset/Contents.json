@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "caro-wordmark-ink.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

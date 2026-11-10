@@ -2,10 +2,35 @@
 
 This folder is the handoff from design to build. It is also the start of the code repository: Claude Code will add the app (`app/`) and the server (`server/`) next to these files.
 
+## How to run it
+
+Both halves run on your Mac. Start the server first.
+
+**The server**, in Terminal:
+
+```bash
+cd server
+npm install           # first time only
+cp .env.example .env  # first time only
+npm run dev
+```
+
+It prints two addresses: one for the Simulator and the browser, one for your iPhone. Open `http://localhost:3000/health` in a browser to see `{"ok":true}`. It restarts by itself when a file changes. Stop it with Control C.
+
+**The app**, in Xcode:
+
+1. Open `app/Caro.xcodeproj`.
+2. In the device menu at the top of the window, choose a simulator (iPhone 17) or your iPhone.
+3. Press Run (Command R).
+
+On your iPhone: same wifi as the Mac, phone unlocked. The first time, allow Caro to find devices on your local network. With a free Apple account, an app installed from Xcode stops opening after 7 days: press Run again.
+
 ## What is in here
 
 | Path | What it is | Who reads it |
 |---|---|---|
+| `app/` | The iPhone app: Swift and SwiftUI, opened with `app/Caro.xcodeproj`. | Both |
+| `server/` | The server: Node, Express, SQLite. | Both |
 | `CLAUDE.md` | Standing instructions for Claude Code: how we work, design rules, server rules. Read automatically at the start of every session. | Claude Code |
 | `docs/PRD.md` | The spec (v1.0), with the build plan and tickets in section 17. | Both |
 | `docs/FIRST_PROMPT.md` | The first message to paste into Claude Code. | You |
