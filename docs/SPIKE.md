@@ -119,7 +119,7 @@ The piece was a black long wool coat, the first missing piece in inspiration 2. 
 
 So the recommended way is:
 1. Search the store's whole website, with the member's country set, using Haiku.
-2. Keep only women's or unisex products in the member's currency. Marta chose women's or unisex after the first run.
+2. Keep only products in the member's currency, from the store sections the member shops in. Marta decided that each member chooses these in onboarding (women's, men's, unisex), because what someone shops for is a preference, not who they are.
 3. Open each product page with Haiku's web fetch, to get its image and drop links that no longer work.
 
 That is about $0.035 for up to five products.
@@ -194,12 +194,13 @@ Agreed with Marta on 10 November and applied to `docs/PRD.md` as v1.1.
 
 3. **Section 8, looks from a photo.** Pieces spotted with low certainty are asked about, not ticked.
 
-4. **Section 8, store search, and section 6, store.**
+4. **Sections 5, 6 and 8, stores and store search.**
    - A store is saved as its website, such as cos.com, and searched as a whole with the member's country set.
-   - Only women's or unisex products, and only results in the member's currency.
+   - In onboarding step 4, before adding stores, the member chooses the sections they shop in: Women's, Men's, Unisex, one or more. Nothing is chosen until they pick. They can change it in settings.
+   - The search keeps only products from those sections, in the member's currency. Children's sections are never searched.
    - Each product page is opened to get its image and to drop links that no longer work.
 
-   Rerun on Haiku with these rules, COS gave only women's coats: three in euros and five in dollars.
+   Rerun on Haiku with these rules, COS gave only women's coats when searching women's and unisex (three in euros, five in dollars), and only men's coats when searching men's (three in dollars). Screen 04 gets the section chips above the store list.
 
 5. **Section 8, what close means.** This answers open question 8.
    - Close is the same kind and a similar colour.

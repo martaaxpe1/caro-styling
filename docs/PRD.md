@@ -90,7 +90,7 @@ Designed for a new person the app knows nothing about. Every step is a check, no
 3. **Your year.** The app proposes your seasons from your city's typical weather, shown as 12 months with their typical high. Choose four seasons, two, or none; tap a month to move it to another season; rename a season. A line like "Now: hot and rainy, until the end of October" helps check it. For example:
    - The Netherlands: four seasons. Spring March to May, summer June to August, autumn September to November, winter December to February.
    - Miami: two seasons. Hot and rainy May to October, mild and dry November to April.
-4. **Your stores.** Type the stores you shop at. For each, the app finds its website for your country and shows it to confirm. A store with no online shop in your country says so. Remove any. **Skip for now** is allowed; stores are only needed for the store search.
+4. **Your stores.** First, which sections of the stores you shop in: **Women's**, **Men's**, **Unisex**, one or more. Nothing is chosen until you pick, and you pick at least one. This is about what you shop for, not about who you are. Then type the stores you shop at. For each, the app finds its website for your country and shows it to confirm. A store with no online shop in your country says so. Remove any. **Skip for now** is allowed; stores and sections are only needed for the store search.
 5. **Occasions.** The four, explained: Office, Working from home, Night out, Day out. The same four for everyone in version one.
 6. **Your wardrobe.** The last and longest step, required before Looks and Get the look open.
    - How to photograph a piece: one piece per photo, flat or on a hanger, plain background, daylight.
@@ -187,7 +187,7 @@ Designed screens are in `design/screens/` (source from the design canvas). Scree
 - **14 Get the look.** Masthead and dateline, **Add an inspiration** (or share an image from Instagram or Pinterest), your inspirations with how much you own ("4 of 5 yours", "All yours"), and the To find list with each piece's state: not searched yet (**Find it**), options found, bought (**Add** to the edit).
 - **S10 Add inspiration, pieces found.** The photo, an optional link and note. Each piece in the look described, next to the closest piece you own of the same kind, or "Not in your wardrobe". Change or remove any match.
 - **15 Your version.** The inspiration with numbered pins. Below, your version as numbered credits: each piece marked yours, close or missing, with "For their grey oversized blazer". A missing piece shows your nearest piece of that kind, if you have one ("Your nearest: black knit jumper"), a fact ("in 3 of your inspirations") and **Find it**. Fill a missing piece yourself, or mark it as key. **Save** as a look.
-- **S11 Find it.** Up to five women's or unisex products from your stores: image, name, store, price in your currency, link to the store page (opens in Safari inside the app). "Nothing found" is a valid answer. The piece goes on To find.
+- **S11 Find it.** Up to five products from your stores, in the sections you shop in: image, name, store, price in your currency, link to the store page (opens in Safari inside the app). "Nothing found" is a valid answer. The piece goes on To find.
 
 ### Settings and admin
 
@@ -232,7 +232,7 @@ Inspired looks:
 
 Store search:
 - Only on your tap, for one piece, in your stores, on your country's site.
-- The search covers the store's whole website with your country set, and keeps only women's or unisex products in your currency. A search limited to the country page found nothing when that page was not the one the search engine knows.
+- The search covers the store's whole website with your country set, and keeps only products in your currency, from the sections you shop in (women's, men's, unisex: chosen in onboarding, changed in settings). Children's sections are never searched. A search limited to the country page found nothing when that page was not the one the search engine knows.
 - Each product page is then opened to get its image and to drop links that no longer work.
 - Up to five results. "Nothing found" is a valid answer.
 - If one of your stores has no online shop in your country, the search says so instead of showing products you cannot buy.
@@ -292,7 +292,7 @@ Limits: a monthly allowance of AI actions per member keeps costs predictable. Th
 
 Lives on the server. Every row belongs to a member (`user_id`), except invitations, which belong to the admin who sent them.
 
-- `users`: email, name, city, country, currency, role (member, admin), status (onboarding, active, removed), onboarding step, unlocked at, removed at, created, last active. `login_codes`: hashed code, expires, attempts. `sessions`.
+- `users`: email, name, city, country, currency, store sections (any of women's, men's, unisex), role (member, admin), status (onboarding, active, removed), onboarding step, unlocked at, removed at, created, last active. `login_codes`: hashed code, expires, attempts. `sessions`.
 - `invitations`: name, email, invited by, status (pending, accepted, cancelled, expired), sent, expires.
 - `seasons`: name, months. Four, two or none per member.
 - `stores`: name, website for the member's country, sells online in the country (yes or no).
@@ -382,7 +382,7 @@ Done when: Marta signs in with the code from the terminal; adds a test person; t
 - Steps 1 to 5: welcome and name, where you live, your year, your stores, occasions.
 - City search, the worked-out country, currency and formats.
 - The proposed year: four, two or none seasons; move months; rename seasons.
-- Stores: add, find the website for the country, "no online shop in your country", remove, skip.
+- Stores: the sections you shop in (women's, men's, unisex, at least one), add, find the website for the country, "no online shop in your country", remove, skip.
 - Resume where you stopped. Settings (S5) repeats steps 1 to 5.
 - Screens 01 to 04, S4, S5.
 Done when: as the test Sara in the Simulator, with `DEV_TODAY=2026-10-30`: Miami, two seasons, "Now: hot and rainy", add two stores, close the app, reopen it, and it resumes at the same step.
@@ -462,7 +462,7 @@ Decided in T1 (see `docs/SPIKE.md`):
 - Seven chapters with short names, kinds as a filter inside each, cardigans always a top (section 6).
 - Fixed lists for colours, patterns, materials and formality (section 8).
 - Close means the same kind and a similar colour (section 8).
-- Store search covers the whole store website and keeps women's or unisex products (section 8).
+- Store search covers the whole store website, in the sections each member shops in: women's, men's, unisex, chosen in onboarding (sections 5 and 8).
 - Your year: Claude's memory for the weather, checked against Open-Meteo, and a rule for the seasons. Miami stays "mild and dry" (section 9).
 - The allowance starts at 300 AI actions a month (section 10).
 
@@ -500,4 +500,4 @@ Not in version one. A short onboarding step to help a member see their own patte
 - **v0.9.** Spread chosen. Three sections: The edit, Looks, Get the look (with To find inside). Style a look with it from any piece.
 - **v0.10.** Building the wardrobe is the last, required onboarding step, unlocking at 20 pieces.
 - **v1.0.** Ready to build. Screen index linked to the design files, rules that must hold on the server, the design system, the stack, tickets T0 to T11 with what to check, defaults for the last open decisions.
-- **v1.1.** From the T1 spike. Seven chapters with short names (Knitwear, Tops, Trousers, Dresses and skirts, Accessories) and kinds as a filter. Fixed lists for the details. A stricter close. Store search on the whole store website, women's or unisex only. Your year from Claude's memory and a rule. Models per action. An allowance of 300. The chapter names change on screens 07, 08 and 10.
+- **v1.1.** From the T1 spike. Seven chapters with short names (Knitwear, Tops, Trousers, Dresses and skirts, Accessories) and kinds as a filter. Fixed lists for the details. A stricter close. Store search on the whole store website, in the sections each member chooses in onboarding (women's, men's, unisex). Your year from Claude's memory and a rule. Models per action. An allowance of 300. The chapter names change on screens 07, 08 and 10, and screen 04 gets the section chips above the store list.

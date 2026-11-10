@@ -38,6 +38,7 @@ Options, added after `--`, for example `npm run spike:details -- --model haiku -
 - `--pieces 01,04`: test 1 for only these pieces; the answers for the others stay
 - `--score`: test 2 scores the saved answers against your answer key again, free
 - `--search-domain cos.com`: test 4 searches this whole website instead of the store's country page
+- `--sections women,unisex`: test 4 searches only these store sections, any of women, men, unisex (default all three)
 - `--local`: test 4 also searches in the country's language
 - `--small-places`: test 5 for Vlissingen, Vero Beach and Mar del Plata, to check the models' memory beyond famous cities
 

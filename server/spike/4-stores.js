@@ -13,6 +13,8 @@
 //   --country NL         only one country (default: NL and US)
 //   --piece "..."        the piece to search for in (b)
 //   --search-store COS   the store to search in (b) (default COS)
+//   --sections women,unisex  the store sections to search, any of women, men, unisex (b)
+//                        (default: all three; in the app, the member's choice from onboarding)
 //   --local              also search in the country's language (b)
 //   --search-domain cos.com  search this domain instead of the store's country site (b)
 
@@ -80,13 +82,21 @@ function websitePrompt(store, country) {
 - evidence: one short sentence on what you found`;
 }
 
-function searchPrompt(store, country, piece, { local = false } = {}) {
+// The sections of a store a member shops in, chosen in onboarding: any of women, men, unisex.
+const SECTIONS = { women: "women's", men: "men's", unisex: 'unisex' };
+
+function sectionsText(sections) {
+  const names = sections.map((key) => SECTIONS[key]);
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0];
+}
+
+function searchPrompt(store, country, piece, { local = false, sections } = {}) {
   const language = local && country.language !== 'English'
     ? `\nThe shop for ${country.name} may be written in ${country.language}. Search in ${country.language} as well as in English.\n`
     : '';
   return `Search the ${store} online shop for ${country.name} for this piece: "${piece}".
 ${language}
-Return up to five products listed in that shop that match the description, closest first. Only products from that shop, for ${country.name}. Only women's or unisex products: leave out anything from the men's or children's sections.
+Return up to five products listed in that shop that match the description, closest first. Only products from that shop, for ${country.name}. Only products from the shop's ${sectionsText(sections)} sections: leave out every other section, including children's.
 For each product: the name as the shop writes it, the price as a number, the three-letter currency code, the address of the product page, and the address of a product image if the search results show one (empty otherwise).
 If nothing matches, return an empty list. That is a valid answer.`;
 }
@@ -213,10 +223,11 @@ function knownWebsite(results, code, store) {
   return null;
 }
 
-async function searchPiece({ models, countries, piece, store, results, domainOverride, local }) {
+async function searchPiece({ models, countries, piece, store, results, domainOverride, local, sections }) {
   results.search = results.search || {};
   results.search.piece = piece;
   results.search.store = store;
+  results.search.sections = sections;
   for (const code of countries) {
     const country = COUNTRIES[code];
     const website = knownWebsite(results, code, store);
@@ -227,14 +238,14 @@ async function searchPiece({ models, countries, piece, store, results, domainOve
     const domain = domainOverride || searchDomain(website);
     results.search[code] = results.search[code] || {};
     for (const model of models) {
-      console.log(`\nSearching ${domain} for "${piece}", ${MODELS[model].label}`);
+      console.log(`\nSearching ${domain} for "${piece}" in ${sectionsText(sections)}, ${MODELS[model].label}`);
       try {
         const answer = await searchAndFill({
           model,
           test: '4-stores',
           action: 'store search',
           system: SEARCH_SYSTEM,
-          prompt: searchPrompt(store, country, piece, { local }),
+          prompt: searchPrompt(store, country, piece, { local, sections }),
           schema: SEARCH_SCHEMA,
           toolOptions: { max_uses: 3, allowed_domains: [domain], user_location: country.location },
         });
@@ -274,6 +285,12 @@ async function main() {
   const part = options.part || 'both';
   const stores = options.stores ? String(options.stores).split(',').map((s) => s.trim()) : STORES;
   const countries = options.country ? [String(options.country).toUpperCase()] : Object.keys(COUNTRIES);
+  const sections = options.sections ? String(options.sections).split(',').map((s) => s.trim().toLowerCase()) : Object.keys(SECTIONS);
+  const unknown = sections.filter((s) => !SECTIONS[s]);
+  if (unknown.length) {
+    console.error(`Unknown section: ${unknown.join(', ')}. Use any of: women, men, unisex.`);
+    process.exit(1);
+  }
   const results = loadJson('stores.json', {});
 
   if (part === 'both' || part === 'websites') {
@@ -291,6 +308,7 @@ async function main() {
         results,
         domainOverride: options['search-domain'],
         local: Boolean(options.local),
+        sections,
       });
     }
   }
