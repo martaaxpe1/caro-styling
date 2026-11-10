@@ -6,12 +6,13 @@
 // - knitwear on the styling table: a jumper is a top, but a cardigan is often worn as a layer.
 // - belts, scarves, hats and jewellery all share the accessories slot.
 
+// Marta, 10 November: sweatshirts join knitwear, skirts join dresses, leggings join trousers.
 const CHAPTERS = [
   'outerwear',
-  'knitwear',
+  'knitwear and sweatshirts',
   'shirts and tops',
-  'trousers and skirts',
-  'dresses',
+  'trousers',
+  'dresses and skirts',
   'shoes',
   'bags and accessories',
 ];
@@ -27,10 +28,12 @@ const KINDS = {
   blazer: ['outerwear', 'outer layer', null],
   gilet: ['outerwear', 'outer layer', null],
 
-  jumper: ['knitwear', 'top', 'top'],
-  cardigan: ['knitwear', 'top', 'top'], // open: or outer layer
-  'knitted vest': ['knitwear', 'top', 'top'],
-  'knitted top': ['knitwear', 'top', 'top'],
+  jumper: ['knitwear and sweatshirts', 'top', 'top'],
+  cardigan: ['knitwear and sweatshirts', 'top', 'top'], // open: or outer layer
+  'knitted vest': ['knitwear and sweatshirts', 'top', 'top'],
+  'knitted top': ['knitwear and sweatshirts', 'top', 'top'],
+  sweatshirt: ['knitwear and sweatshirts', 'top', 'top'],
+  hoodie: ['knitwear and sweatshirts', 'top', 'top'],
 
   shirt: ['shirts and tops', 'top', 'top'],
   blouse: ['shirts and tops', 'top', 'top'],
@@ -38,15 +41,15 @@ const KINDS = {
   'long-sleeved top': ['shirts and tops', 'top', 'top'],
   'tank top': ['shirts and tops', 'top', 'top'],
   bodysuit: ['shirts and tops', 'top', 'top'],
-  sweatshirt: ['shirts and tops', 'top', 'top'],
 
-  trousers: ['trousers and skirts', 'bottom', 'bottom'],
-  jeans: ['trousers and skirts', 'bottom', 'bottom'],
-  shorts: ['trousers and skirts', 'bottom', 'bottom'],
-  skirt: ['trousers and skirts', 'bottom', 'bottom'],
+  trousers: ['trousers', 'bottom', 'bottom'],
+  jeans: ['trousers', 'bottom', 'bottom'],
+  shorts: ['trousers', 'bottom', 'bottom'],
+  leggings: ['trousers', 'bottom', 'bottom'],
 
-  dress: ['dresses', 'top and bottom', 'one-piece'],
-  jumpsuit: ['dresses', 'top and bottom', 'one-piece'],
+  dress: ['dresses and skirts', 'top and bottom', 'one-piece'],
+  jumpsuit: ['dresses and skirts', 'top and bottom', 'one-piece'],
+  skirt: ['dresses and skirts', 'bottom', 'bottom'],
 
   trainers: ['shoes', 'shoes', 'shoes'],
   boots: ['shoes', 'shoes', 'shoes'],

@@ -84,8 +84,10 @@ What works:
 - **The descriptions are good,** like "Navy quilted mandarin-collar jacket", "Pink suede ballet flats with bow" or "Black leather belt with silver buckle".
 - **Yours is used sparingly.** Opus and Sonnet marked only one piece as yours: the cream wide-leg trousers (08) in inspiration 3. That is right. Haiku also marked the striped jumper (06) in inspiration 5 as yours, where the others said close.
 
-What needs a decision:
-- **"Close" is generous.** The prompt follows the PRD: close means the same kind, but different in colour, shape or material. So a grey chunky jumper is close to Marta's black jumper, black Mary Janes are close to her pink ballet flats, and black canvas trainers are close to her grey running trainers. This is the open question about what close means (proposal 5 below).
+What changed:
+- **"Close" was generous.** The first prompt followed the PRD: close meant the same kind, but different in colour, shape or material. So a grey chunky jumper was close to Marta's black jumper, black Mary Janes to her pink ballet flats, and black canvas trainers to her grey running trainers.
+- **Marta chose a stricter close** (proposal 5): the same kind and a similar colour. Rerun on Sonnet, the grey jumper, the Mary Janes, the trainers, the camel trousers and the blue jeans all became missing, each with Marta's nearest piece of that kind. A black skirt, black jeans and the pink suede ballet flats stayed close.
+- **One inconsistency:** a black crossbody bag was missing in inspiration 2 (a structured leather bag) but close in inspiration 5 (a small one), against the same black beaded handbag. Watch for this in T10.
 
 ## Test 4: stores
 
@@ -145,7 +147,7 @@ What this shows:
 Proposing the seasons:
 - **The rule in code proposed the PRD's years in all six places:** four seasons in Amsterdam, Vlissingen, Buenos Aires and Mar del Plata (reversed in the south), and two in Miami and Vero Beach (hot and rainy May to October, mild and dry November to April).
 - **The models were less steady.** Sonnet matched the rule in five places of six. Opus moved Vlissingen's summer to June to September and Mar del Plata's to December to March. Haiku gave Vero Beach two seasons that overlap, which is not a valid year.
-- **One naming difference:** Opus and Sonnet call Miami's November to April "warm and dry". The PRD says "mild and dry". With highs of 25 to 28 °C, "warm" may fit better. That is for Sara to decide.
+- **One naming difference:** Opus and Sonnet call Miami's November to April "warm and dry". Marta chose to keep "mild and dry", as in the PRD and the rule.
 
 ## Test 6: the iPhone's own cut-outs
 
@@ -165,19 +167,21 @@ The spike itself made 288 calls, close to a heavy month for one member.
 
 ## Proposed changes to the PRD
 
-To agree before T5. Nothing in `docs/PRD.md` has been changed yet.
+To agree before T5. Nothing in `docs/PRD.md` has been changed yet. Marta's decisions of 10 November are marked "Decided".
 
-1. **Section 6, one list of categories.** This answers open question 4. Each kind belongs to one chapter, and each chapter fills one slot on the styling table:
+1. **Section 6, one list of categories.** This answers open question 4. Decided, with Marta's changes: sweatshirts join knitwear, skirts join dresses, leggings join trousers. Each kind belongs to one chapter and one slot on the styling table:
 
    | Chapter | Kinds | Slot |
    |---|---|---|
    | Outerwear | coat, trench coat, puffer jacket, jacket, leather jacket, denim jacket, blazer, gilet | outer layer |
-   | Knitwear | jumper, cardigan, knitted vest, knitted top | top (a cardigan could also be the outer layer) |
-   | Shirts and tops | shirt, blouse, t-shirt, long-sleeved top, tank top, bodysuit, sweatshirt | top |
-   | Trousers and skirts | trousers, jeans, shorts, skirt | bottom |
-   | Dresses | dress, jumpsuit | one-piece |
+   | Knitwear and sweatshirts | jumper, cardigan, knitted vest, knitted top, sweatshirt, hoodie | top (a cardigan could also be the outer layer) |
+   | Shirts and tops | shirt, blouse, t-shirt, long-sleeved top, tank top, bodysuit | top |
+   | Trousers | trousers, jeans, shorts, leggings | bottom |
+   | Dresses and skirts | dress, jumpsuit; skirt | one-piece; bottom |
    | Shoes | trainers, boots, ankle boots, loafers, ballet flats, heels, sandals, mules | shoes |
    | Bags and accessories | bag; belt, scarf, hat, sunglasses, jewellery | bag; accessories |
+
+   Rerun on Sonnet, the hoodie, jeans, trousers, dress and both skirts all land in the new chapters. The chapter names appear on three screens, which change with it: The edit (10), The edit while still building (08), and the review (07), where "Category Bottoms · Skirt" becomes "Dresses and skirts · Skirt".
 
 2. **Section 8, fixed lists for the details.**
    - Colours (21): black, white, cream, beige, camel, brown, grey, navy, blue, light blue, green, olive, red, burgundy, pink, terracotta, orange, yellow, purple, silver, gold.
@@ -193,11 +197,10 @@ To agree before T5. Nothing in `docs/PRD.md` has been changed yet.
    - Only results in the member's currency are kept.
    - Each product page is opened to get its image and to drop links that no longer work.
 
-5. **Section 8, what close means.** This is open question 8, and two options are on the table:
-   - **A, as now:** close is the same kind in any colour. Most inspirations have several close pieces.
-   - **B, stricter:** close is the same kind and a similar colour. Anything else is missing, with "Your nearest: black knit jumper" shown under it.
-
-   The spike did not test B. Either way, close does not count as yours.
+5. **Section 8, what close means.** Decided: the stricter meaning (B). This answers open question 8.
+   - Close is the same kind and a similar colour.
+   - Anything else is missing, with the member's nearest piece of that kind shown under it, like "Your nearest: black knit jumper".
+   - Close does not count as yours.
 
 6. **Sections 9 and 10, your year.**
    - Seasons are proposed by a rule in code, not by the AI:
@@ -206,9 +209,9 @@ To agree before T5. Nothing in `docs/PRD.md` has been changed yet.
      - Otherwise none.
    - The typical highs and rain come from Sonnet's memory, checked against Open-Meteo. If they differ by more than 3 °C in any month, Open-Meteo's numbers are used.
    - In section 10, "possibly, propose your year" becomes "recall a city's typical weather".
-   - Miami's November to April: mild and dry, or warm and dry (Sara).
+   - Miami's November to April stays mild and dry. Decided.
 
-7. **Section 10, the allowance.** Start at 300 AI actions a month per member. Each piece, look, inspiration or search counts as one action.
+7. **Section 10, the allowance.** Decided: start at 300 AI actions a month per member. Each piece, look, inspiration or search counts as one action.
 
 8. **Section 18, decided in T1.**
    - The model per action, from the table above.

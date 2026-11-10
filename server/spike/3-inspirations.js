@@ -21,11 +21,11 @@ For each piece you can see in the inspiration:
 ${C.kindsByChapterText()}
 - colours (main colour first), pattern and material, from the lists. Material "not sure" when you cannot tell.
 - shape: a few words on the cut or fit, like "oversized, single-breasted"
-- closest_piece: the number of my piece of the same kind (or a near kind in the same chapter, like a jacket for a blazer) that is most like it, or "none"
+- closest_piece: the number of my piece of the same kind (or a near kind in the same chapter, like a jacket for a blazer) that is most like it, or "none" if I have nothing of that kind
 - match:
   - yours: my piece is very much like it, with the same kind, colour and shape
-  - close: my piece is the same or a near kind, but differs in colour, shape or material
-  - missing: I have nothing like it. Then closest_piece is "none".
+  - close: my piece is the same or a near kind and a similar colour (the same colour or a close shade, like cream and white, or camel and beige), but differs in shape or material
+  - missing: anything else. A piece of the same kind in another colour is missing, not close. closest_piece still names my nearest piece of that kind, if I have one.
 
 Describe and compare only. Do not comment on the look or on how the pieces go together.`;
 
