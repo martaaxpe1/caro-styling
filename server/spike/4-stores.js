@@ -13,6 +13,8 @@
 //   --country NL         only one country (default: NL and US)
 //   --piece "..."        the piece to search for in (b)
 //   --search-store COS   the store to search in (b) (default COS)
+//   --local              also search in the country's language (b)
+//   --search-domain cos.com  search this domain instead of the store's country site (b)
 
 const { Anthropic, ask, pickModels, describeError, MODELS } = require('./lib/claude');
 const { saveJson, loadJson, readOptions, dollars } = require('./lib/output');
@@ -20,8 +22,8 @@ const { saveJson, loadJson, readOptions, dollars } = require('./lib/output');
 const STORES = ['Arket', 'COS', 'Uniqlo', 'Zara', 'Ganni', 'Bimba y Lola', 'Samsøe Samsøe'];
 
 const COUNTRIES = {
-  NL: { name: 'the Netherlands', currency: 'EUR', location: { type: 'approximate', country: 'NL', city: 'Amsterdam' } },
-  US: { name: 'the United States', currency: 'USD', location: { type: 'approximate', country: 'US', city: 'Miami', region: 'Florida' } },
+  NL: { name: 'the Netherlands', currency: 'EUR', language: 'Dutch', location: { type: 'approximate', country: 'NL', city: 'Amsterdam' } },
+  US: { name: 'the United States', currency: 'USD', language: 'English', location: { type: 'approximate', country: 'US', city: 'Miami', region: 'Florida' } },
 };
 
 const WEBSITE_SYSTEM = `You help a person set up the list of stores they shop at. You look up facts about stores on the web.
@@ -78,9 +80,12 @@ function websitePrompt(store, country) {
 - evidence: one short sentence on what you found`;
 }
 
-function searchPrompt(store, country, piece) {
+function searchPrompt(store, country, piece, { local = false } = {}) {
+  const language = local && country.language !== 'English'
+    ? `\nThe shop for ${country.name} may be written in ${country.language}. Search in ${country.language} as well as in English.\n`
+    : '';
   return `Search the ${store} online shop for ${country.name} for this piece: "${piece}".
-
+${language}
 Return up to five products listed in that shop that match the description, closest first. Only products from that shop, for ${country.name}.
 For each product: the name as the shop writes it, the price as a number, the three-letter currency code, the address of the product page, and the address of a product image if the search results show one (empty otherwise).
 If nothing matches, return an empty list. That is a valid answer.`;
@@ -208,7 +213,7 @@ function knownWebsite(results, code, store) {
   return null;
 }
 
-async function searchPiece({ models, countries, piece, store, results }) {
+async function searchPiece({ models, countries, piece, store, results, domainOverride, local }) {
   results.search = results.search || {};
   results.search.piece = piece;
   results.search.store = store;
@@ -219,7 +224,7 @@ async function searchPiece({ models, countries, piece, store, results }) {
       console.log(`\nNo ${store} website for ${country.name} yet. Run the websites part first: npm run spike:stores -- --part websites --stores "${store}"`);
       continue;
     }
-    const domain = searchDomain(website);
+    const domain = domainOverride || searchDomain(website);
     results.search[code] = results.search[code] || {};
     for (const model of models) {
       console.log(`\nSearching ${domain} for "${piece}", ${MODELS[model].label}`);
@@ -229,7 +234,7 @@ async function searchPiece({ models, countries, piece, store, results }) {
           test: '4-stores',
           action: 'store search',
           system: SEARCH_SYSTEM,
-          prompt: searchPrompt(store, country, piece),
+          prompt: searchPrompt(store, country, piece, { local }),
           schema: SEARCH_SCHEMA,
           toolOptions: { max_uses: 3, allowed_domains: [domain], user_location: country.location },
         });
@@ -278,7 +283,15 @@ async function main() {
     if (!options.piece || options.piece === true) {
       console.log('\nTo search for a piece, add it like this: npm run spike:stores -- --part search --piece "black leather loafers"');
     } else {
-      await searchPiece({ models, countries, piece: options.piece, store: options['search-store'] || 'COS', results });
+      await searchPiece({
+        models,
+        countries,
+        piece: options.piece,
+        store: options['search-store'] || 'COS',
+        results,
+        domainOverride: options['search-domain'],
+        local: Boolean(options.local),
+      });
     }
   }
 

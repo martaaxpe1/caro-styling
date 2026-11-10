@@ -10,9 +10,11 @@
 // Options:
 //   --model opus,haiku   only these models (default: all three)
 //   --no-ai              only the climate data and the rule; costs nothing
+//   --cities Vlissingen  only these places (default: Amsterdam, Miami, Buenos Aires)
+//   --small-places       the smaller places, to check the models' memory beyond famous cities
 
 const { ask, pickModels, describeError, MODELS } = require('./lib/claude');
-const { saveJson, readOptions, dollars } = require('./lib/output');
+const { saveJson, loadJson, readOptions, dollars } = require('./lib/output');
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const SHORT = MONTHS.map((m) => m.slice(0, 3).toLowerCase());
@@ -45,6 +47,37 @@ const CITIES = [
       source: 'Servicio Meteorológico Nacional, Observatorio Central, 1991 to 2020',
       high: [30.1, 28.9, 27.0, 23.2, 19.4, 16.4, 15.5, 17.9, 19.7, 22.6, 26.0, 29.0],
       rain: [134.4, 129.3, 120.0, 130.3, 93.5, 61.5, 74.4, 70.3, 80.6, 122.9, 117.6, 122.8],
+    },
+  },
+  // Smaller places, to check whether the models' memory holds beyond famous cities.
+  {
+    name: 'Vlissingen',
+    country: 'NL',
+    small: true,
+    official: {
+      source: 'KNMI, Vlissingen, 1991 to 2020',
+      high: [6.4, 6.8, 9.6, 13.3, 16.8, 19.6, 21.8, 22.0, 19.0, 14.8, 10.4, 7.2],
+      rain: [58.9, 52.8, 44.6, 35.0, 49.4, 62.0, 72.4, 81.8, 73.6, 73.8, 78.9, 75.7],
+    },
+  },
+  {
+    name: 'Vero Beach',
+    country: 'US',
+    small: true,
+    official: {
+      source: 'NOAA, Vero Beach Regional Airport, 1991 to 2020 (converted from °F and inches)',
+      high: [22.9, 24.2, 25.8, 27.7, 29.8, 31.6, 32.5, 32.6, 31.3, 29.3, 26.3, 24.1],
+      rain: [69.6, 55.9, 87.4, 77.7, 106.7, 171.7, 144.3, 186.7, 178.8, 135.4, 73.9, 64.5],
+    },
+  },
+  {
+    name: 'Mar del Plata',
+    country: 'AR',
+    small: true,
+    official: {
+      source: 'Servicio Meteorológico Nacional, Mar del Plata, 1991 to 2020',
+      high: [26.4, 25.5, 23.8, 20.4, 16.9, 13.8, 12.6, 14.7, 15.9, 18.6, 21.7, 25.2],
+      rain: [91.1, 103.6, 95.2, 97.3, 60.0, 66.1, 57.8, 63.6, 63.1, 83.1, 80.3, 84.8],
     },
   },
 ];
@@ -256,9 +289,12 @@ function fahrenheit(c) {
 async function main() {
   const options = readOptions();
   const models = options['no-ai'] ? [] : pickModels(options.model);
-  const results = { cities: [] };
+  const names = options.cities ? String(options.cities).split(',').map((n) => n.trim().toLowerCase()) : null;
+  const cities = CITIES.filter((c) => (names ? names.includes(c.name.toLowerCase()) : options['small-places'] ? c.small : !c.small));
+  // Earlier results for other places stay; the places run now replace their own.
+  const results = loadJson('year.json', { cities: [] });
 
-  for (const city of CITIES) {
+  for (const city of cities) {
     console.log(`\n${city.name}`);
     const result = { name: city.name, official: city.official, sources: {}, memory: {}, proposals: {} };
     try {
@@ -266,7 +302,7 @@ async function main() {
       console.log(`  Found by Open-Meteo city search: ${result.place.latitude}, ${result.place.longitude}, ${result.place.country}, ${result.place.timezone}`);
     } catch (error) {
       console.log(`  City search failed: ${error.message}`);
-      results.cities.push(result);
+      results.cities = [...results.cities.filter((c) => c.name !== city.name), result];
       continue;
     }
 
@@ -342,9 +378,10 @@ async function main() {
         console.log(`  ${MODELS[model].label} year failed: ${describeError(error)}`);
       }
     }
-    results.cities.push(result);
+    results.cities = [...results.cities.filter((c) => c.name !== city.name), result];
   }
 
+  results.cities.sort((a, b) => CITIES.findIndex((c) => c.name === a.name) - CITIES.findIndex((c) => c.name === b.name));
   saveJson('year.json', results);
   console.log('\nSaved to server/spike/results/year.json.');
 }
