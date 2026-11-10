@@ -35,6 +35,15 @@ Options, added after `--`, for example `npm run spike:details -- --model haiku -
 - `--text-only`: the wardrobe without its photos (tests 2 and 3)
 - `--effort low|medium|high`: how much the model thinks before answering
 - `--no-ai`: test 5 without Claude, free
+- `--pieces 01,04`: test 1 for only these pieces; the answers for the others stay
+- `--score`: test 2 scores the saved answers against your answer key again, free
+- `--search-domain cos.com`: test 4 searches this whole website instead of the store's country page
+- `--local`: test 4 also searches in the country's language
+- `--small-places`: test 5 for Vlissingen, Vero Beach and Mar del Plata, to check the models' memory beyond famous cities
+
+Your corrections and answer key live in `spike/photos/answers.json`, next to your photos and also ignored by Git.
+
+The findings are in `docs/SPIKE.md`.
 
 ## What it costs
 
