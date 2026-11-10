@@ -3,7 +3,7 @@
 // For each city it compares four sources of typical weather, month by month:
 //   - official normals from the national weather service (typed in below, 1991 to 2020)
 //   - Open-Meteo: free, no key; daily history 1991 to 2020, averaged per month here
-//   - NASA POWER: free, no key; monthly averages for a point
+//   - NASA POWER: free, no key; daily history 1991 to 2020 for the same point
 //   - each Claude model, from memory
 // Then it proposes a year two ways: a simple rule in code, and each model given the data.
 //
@@ -49,8 +49,15 @@ const CITIES = [
   },
 ];
 
-async function getJson(url) {
-  const response = await fetch(url, { signal: AbortSignal.timeout(60000) });
+// Open-Meteo's free tier allows only so much data per minute, and 30 years of daily
+// weather counts as a lot. When it says "too many requests", wait a minute and try once more.
+async function getJson(url, { retry = true } = {}) {
+  const response = await fetch(url, { signal: AbortSignal.timeout(120000) });
+  if (response.status === 429 && retry) {
+    console.log(`  ${new URL(url).hostname} asks to slow down; waiting a minute`);
+    await new Promise((resolve) => setTimeout(resolve, 65000));
+    return getJson(url, { retry: false });
+  }
   if (!response.ok) throw new Error(`${new URL(url).hostname} answered ${response.status}`);
   return response.json();
 }
@@ -72,15 +79,38 @@ async function openMeteo(place) {
     '&start_date=1991-01-01&end_date=2020-12-31' +
     '&daily=temperature_2m_max,precipitation_sum&timezone=auto';
   const data = await getJson(url);
-  const highs = MONTHS.map(() => []);
+  return monthlyAverages(data.daily.time, data.daily.temperature_2m_max, data.daily.precipitation_sum);
+}
+
+// NASA POWER: 30 years of daily highs and rain for the same point.
+// (Its ready-made monthly summary gives the hottest day of each month, not a typical day.)
+async function nasaPower(place) {
+  const url =
+    'https://power.larc.nasa.gov/api/temporal/daily/point' +
+    `?parameters=T2M_MAX,PRECTOTCORR&community=AG&longitude=${place.longitude}&latitude=${place.latitude}` +
+    '&start=19910101&end=20201231&format=JSON';
+  const data = await getJson(url);
+  const p = data.properties.parameter;
+  const days = Object.keys(p.T2M_MAX);
+  const dates = days.map((d) => `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6)}`);
+  const missing = (v) => (v === null || v <= -999 ? null : v); // NASA marks missing days as -999
+  return monthlyAverages(
+    dates,
+    days.map((d) => missing(p.T2M_MAX[d])),
+    days.map((d) => missing(p.PRECTOTCORR[d])),
+  );
+}
+
+// Daily weather (dates like 2020-01-31) turned into 12 months: the average daily high,
+// and the average rain per month across the years.
+function monthlyAverages(dates, highs, rains) {
+  const highsByMonth = MONTHS.map(() => []);
   const rainByYearMonth = {};
-  data.daily.time.forEach((day, i) => {
+  dates.forEach((day, i) => {
     const month = Number(day.slice(5, 7)) - 1;
-    const high = data.daily.temperature_2m_max[i];
-    const rain = data.daily.precipitation_sum[i];
-    if (high !== null) highs[month].push(high);
+    if (highs[i] !== null) highsByMonth[month].push(highs[i]);
     const key = day.slice(0, 7);
-    rainByYearMonth[key] = (rainByYearMonth[key] || 0) + (rain || 0);
+    rainByYearMonth[key] = (rainByYearMonth[key] || 0) + (rains[i] || 0);
   });
   const rain = MONTHS.map((_, month) => {
     const totals = Object.entries(rainByYearMonth)
@@ -88,27 +118,7 @@ async function openMeteo(place) {
       .map(([, total]) => total);
     return average(totals);
   });
-  return { high: highs.map(average), rain };
-}
-
-// NASA POWER: monthly averages for a point. Rain comes in mm per day.
-async function nasaPower(place) {
-  const base =
-    'https://power.larc.nasa.gov/api/temporal/climatology/point' +
-    `?parameters=T2M_MAX,PRECTOTCORR&community=AG&longitude=${place.longitude}&latitude=${place.latitude}&format=JSON`;
-  let data;
-  try {
-    data = await getJson(`${base}&start=1991&end=2020`);
-  } catch {
-    data = await getJson(base); // its default period, if it does not accept 1991 to 2020
-  }
-  const p = data.properties.parameter;
-  const keys = MONTHS.map((m) => m.slice(0, 3).toUpperCase());
-  const days = [31, 28.25, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  return {
-    high: keys.map((k) => p.T2M_MAX[k]),
-    rain: keys.map((k, i) => p.PRECTOTCORR[k] * days[i]),
-  };
+  return { high: highsByMonth.map(average), rain };
 }
 
 function average(values) {
