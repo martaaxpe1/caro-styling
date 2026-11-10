@@ -1,12 +1,12 @@
 # Test 6: iPhone cut-outs, by hand
 
-The app will cut each piece out of its photo on the iPhone itself, with the same feature as touching and holding a subject in the Photos app. This test checks how good those cut-outs are on your 15 piece photos, before we build on it.
+The app will cut each piece out of its photo on the iPhone itself, with the same feature as touching and holding a subject in the Photos app. This test checks how good those cut-outs are on your 16 piece photos, before we build on it.
 
 It takes about 15 minutes. No code, no cost.
 
 ## How to do it
 
-On your iPhone, for each of the 15 piece photos (the same ones as in `photos/pieces/`):
+On your iPhone, for each of the 16 piece photos (the same ones as in `photos/pieces/`):
 
 1. Open the photo in the Photos app.
 2. Touch and hold the piece until a glowing outline runs around it, then lift your finger. A small menu appears.
@@ -48,5 +48,6 @@ How you took the photos (flat or on a hanger, the background, the light):
 | 13 | | | |
 | 14 | | | |
 | 15 | | | |
+| 16 | | | |
 
 Anything else you noticed (speed, which kinds of pieces were hard):
