@@ -1,6 +1,6 @@
 // npm run spike:looks
 // Test 2: which of my pieces am I wearing in this photo?
-// Each model gets the wardrobe (small photos and details of the 15 pieces) and one look photo.
+// Each model gets the wardrobe (small photos and details of your pieces) and one look photo.
 // The wardrobe part is the same for every look, so from the second look on it is read from
 // the cache at a discount. The answers are scored against answers.json, if it exists.
 //

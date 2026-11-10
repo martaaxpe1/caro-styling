@@ -38,7 +38,7 @@ formality:
 - smart: office or a dinner, such as tailored trousers, a blazer, heels
 - formal: special occasions, such as an evening dress
 
-single_piece: false if the photo shows more than one piece. Then describe the main one.
+single_piece: false if the photo shows more than one piece. A pair of shoes, a pair of earrings or a set sold together counts as one piece. If there is more than one piece, describe the main one.
 
 unsure_about: the fields you could not tell well from the photo, if any.`;
 

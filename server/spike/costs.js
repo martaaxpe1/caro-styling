@@ -5,6 +5,7 @@
 
 const { MODELS } = require('./lib/claude');
 const { readCostLog, saveJson, dollars } = require('./lib/output');
+const { listPhotos } = require('./lib/images');
 
 function average(values) {
   return values.length ? values.reduce((sum, v) => sum + v, 0) / values.length : 0;
@@ -76,9 +77,10 @@ function main() {
     const p = {};
     if (details) p.first_wardrobe_100_pieces = details.cost * 100;
     if (first && first.cache_write_tokens) {
-      // The cached part is the instructions plus the wardrobe; most of it is the 15 pieces.
-      const perPiece = first.cache_write_tokens / 15;
-      const extra = perPiece * 85;
+      // The cached part is the instructions plus the wardrobe; most of it is the pieces.
+      const pieceCount = listPhotos('pieces').length || 15;
+      const perPiece = first.cache_write_tokens / pieceCount;
+      const extra = perPiece * (100 - pieceCount);
       p.look_at_100_pieces_first = first.cost + (extra * model.price.cacheWrite) / 1e6;
       if (cached) p.look_at_100_pieces_cached = cached.cost + (extra * model.price.cacheRead) / 1e6;
       p.tokens_per_wardrobe_piece = Math.round(perPiece);
