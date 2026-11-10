@@ -14,3 +14,7 @@ xcuserdata/
 *.xcuserstate
 DerivedData/
 build/
+
+# T1 AI spike: Marta's photos and the results made from them stay on this Mac
+server/spike/photos/
+server/spike/results/
