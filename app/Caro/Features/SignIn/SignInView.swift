@@ -75,9 +75,7 @@ struct SignInView: View {
             }
             .buttonStyle(.pill)
             .disabled(email.trimmingCharacters(in: .whitespaces).isEmpty || sending)
-            .padding(.horizontal, CaroLayout.pageMargin)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
+            .bottomButtonBar()
         }
         .background(Color.paper)
         .toolbar(.hidden, for: .navigationBar)

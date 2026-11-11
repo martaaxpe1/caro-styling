@@ -64,8 +64,7 @@ struct SettingsSheet: View {
                     Task { await session.signOut() }
                 }
                 .buttonStyle(.pillOutlined)
-                .padding(.horizontal, CaroLayout.pageMargin)
-                .padding(.bottom, 8)
+                .bottomButtonBar()
             }
             .background(Color.paper)
             .toolbar {

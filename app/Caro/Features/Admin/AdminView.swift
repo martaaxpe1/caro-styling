@@ -81,28 +81,28 @@ struct AdminView: View {
                 await load()
             }
         }
-        .confirmationDialog(
+        // Centred system alerts: ask first before removing access or cancelling an invitation.
+        .alert(
             "Remove access for \(memberToRemove?.name ?? "")?",
             isPresented: isShowing($memberToRemove),
-            titleVisibility: .visible,
             presenting: memberToRemove
         ) { member in
+            Button("Keep access", role: .cancel) {}
             Button("Remove access", role: .destructive) {
                 Task { await removeAccess(member) }
             }
         } message: { member in
             Text("\(member.name) can no longer sign in. Everything in this account is kept for 30 days, so you can restore access, then deleted.")
         }
-        .confirmationDialog(
+        .alert(
             "Cancel the invitation for \(invitationToCancel?.name ?? "")?",
             isPresented: isShowing($invitationToCancel),
-            titleVisibility: .visible,
             presenting: invitationToCancel
         ) { invitation in
+            Button("Keep invitation", role: .cancel) {}
             Button("Cancel invitation", role: .destructive) {
                 Task { await cancel(invitation) }
             }
-            Button("Keep invitation", role: .cancel) {}
         } message: { invitation in
             Text("\(invitation.email) can no longer sign in with it.")
         }
@@ -259,7 +259,7 @@ struct AdminView: View {
         return date.formatted(.dateTime.day().month(.abbreviated).locale(locale))
     }
 
-    /// Turns "a member is chosen" into the yes or no a confirmation dialog needs.
+    /// Turns "a member is chosen" into the yes or no an alert needs to show itself.
     private func isShowing<Item>(_ item: Binding<Item?>) -> Binding<Bool> {
         Binding(
             get: { item.wrappedValue != nil },

@@ -92,9 +92,7 @@ struct AddPersonView: View {
                 }
                 .buttonStyle(.pill)
                 .disabled(!canSend)
-                .padding(.horizontal, CaroLayout.pageMargin)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
+                .bottomButtonBar()
             }
             .background(Color.paper)
             .toolbar {

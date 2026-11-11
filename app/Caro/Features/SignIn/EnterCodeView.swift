@@ -80,9 +80,7 @@ struct EnterCodeView: View {
             }
             .buttonStyle(.pill)
             .disabled(code.count < 6 || checking)
-            .padding(.horizontal, CaroLayout.pageMargin)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
+            .bottomButtonBar()
         }
         .background(Color.paper)
         .navigationBarTitleDisplayMode(.inline)

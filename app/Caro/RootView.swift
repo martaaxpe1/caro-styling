@@ -75,8 +75,7 @@ private struct NotReachableView: View {
         .safeAreaInset(edge: .bottom) {
             Button("Try again", action: tryAgain)
                 .buttonStyle(.pillOutlined)
-                .padding(.horizontal, CaroLayout.pageMargin)
-                .padding(.bottom, 8)
+                .bottomButtonBar()
         }
         .background(Color.paper)
     }

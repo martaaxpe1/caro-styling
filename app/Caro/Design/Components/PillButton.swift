@@ -29,7 +29,22 @@ struct PillButtonStyle: ButtonStyle {
                 }
                 .contentShape(Capsule())
                 .opacity(!isEnabled ? 0.35 : configuration.isPressed ? 0.7 : 1)
+                // Paper behind the faded pill, so it stays solid and nothing shows through it.
+                .background(Color.paper, in: Capsule())
         }
+    }
+}
+
+extension View {
+    /// The pill button pinned to the bottom of a screen: page margins, and a strip of paper
+    /// behind it, so text scrolling underneath never shows through, also with the keyboard up.
+    /// Use inside `.safeAreaInset(edge: .bottom) { Button(...).buttonStyle(.pill).bottomButtonBar() }`.
+    func bottomButtonBar() -> some View {
+        self
+            .padding(.horizontal, CaroLayout.pageMargin)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            .background(Color.paper)
     }
 }
 
