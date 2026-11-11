@@ -2,6 +2,8 @@ const express = require('express');
 const healthRoutes = require('./routes/health');
 const authRoutes = require('./routes/auth');
 const meRoutes = require('./routes/me');
+const storeRoutes = require('./routes/stores');
+const placeRoutes = require('./routes/places');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
@@ -14,7 +16,9 @@ app.use('/health', healthRoutes);
 app.use('/auth', authRoutes);
 
 // Signed in only: each route checks the session itself (src/middleware/signed-in.js).
+app.use('/me/stores', storeRoutes);
 app.use('/me', meRoutes);
+app.use('/places', placeRoutes);
 
 // The admin only: checked on the server for every route (src/routes/admin.js).
 app.use('/admin', adminRoutes);

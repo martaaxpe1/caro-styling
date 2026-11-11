@@ -17,6 +17,8 @@ const ADMIN = {
   city: 'Rotterdam',
   country: 'NL',
   currency: 'EUR',
+  dateOrder: 'day month',
+  sizeSystem: 'EU',
   shopsWomens: 1,
   shopsMens: 0,
   shopsUnisex: 1,
@@ -41,6 +43,18 @@ const STORES = [
   { name: 'Samsøe Samsøe', domain: 'samsoe.com', countryUrl: 'https://www.samsoe.com/en-NL/' },
 ];
 
+// Rotterdam, as Open-Meteo's city search finds it (T4). Its typical weather is looked up the
+// first time Marta opens Your year in Settings.
+const ROTTERDAM = {
+  id: 2747891,
+  name: 'Rotterdam',
+  region: 'South Holland',
+  country: 'NL',
+  latitude: 51.9225,
+  longitude: 4.47917,
+  timezone: 'Europe/Amsterdam',
+};
+
 const TEST_INVITATION = { name: 'Sara', email: 'sara@example.com' };
 
 function readAdminEmail() {
@@ -58,14 +72,20 @@ function readAdminEmail() {
 const addAdmin = db.transaction((email) => {
   const createdAt = iso(now());
 
+  db.prepare(
+    `INSERT INTO cities (id, name, region, country, latitude, longitude, timezone, created_at)
+     VALUES (@id, @name, @region, @country, @latitude, @longitude, @timezone, @createdAt)
+     ON CONFLICT (id) DO NOTHING`
+  ).run({ ...ROTTERDAM, createdAt });
+
   const { lastInsertRowid: userId } = db
     .prepare(
-      `INSERT INTO users (email, name, role, status, onboarding_step, city, country, currency,
-         shops_womens, shops_mens, shops_unisex, created_at)
-       VALUES (@email, @name, 'admin', 'active', 6, @city, @country, @currency,
-         @shopsWomens, @shopsMens, @shopsUnisex, @createdAt)`
+      `INSERT INTO users (email, name, role, status, onboarding_step, city_id, city, country, currency,
+         date_order, size_system, shops_womens, shops_mens, shops_unisex, created_at)
+       VALUES (@email, @name, 'admin', 'active', 6, @cityId, @city, @country, @currency,
+         @dateOrder, @sizeSystem, @shopsWomens, @shopsMens, @shopsUnisex, @createdAt)`
     )
-    .run({ ...ADMIN, email, createdAt });
+    .run({ ...ADMIN, cityId: ROTTERDAM.id, email, createdAt });
 
   const addSeason = db.prepare('INSERT INTO seasons (user_id, name, position) VALUES (?, ?, ?)');
   const addMonth = db.prepare('INSERT INTO season_months (user_id, month, season_id) VALUES (?, ?, ?)');
@@ -75,11 +95,11 @@ const addAdmin = db.transaction((email) => {
   });
 
   const addStore = db.prepare(
-    `INSERT INTO stores (user_id, name, domain, country_url, sells_online, position, created_at)
-     VALUES (?, ?, ?, ?, 1, ?, ?)`
+    `INSERT INTO stores (user_id, name, domain, country_url, sells_online, country, position, created_at)
+     VALUES (?, ?, ?, ?, 1, ?, ?, ?)`
   );
   STORES.forEach((store, index) => {
-    addStore.run(userId, store.name, store.domain, store.countryUrl, index + 1, createdAt);
+    addStore.run(userId, store.name, store.domain, store.countryUrl, ADMIN.country, index + 1, createdAt);
   });
 
   return userId;
