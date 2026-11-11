@@ -31,12 +31,14 @@ struct HomePlaceholderView: View {
         .frame(maxWidth: .infinity)
         .background(Color.paper)
         .sheet(isPresented: $showingSettings) {
-            SettingsSheet(member: member)
+            SettingsView(member: member)
         }
     }
 }
 
 #Preview {
+    let session = Session()
     HomePlaceholderView(member: Member(id: 1, name: "Marta", email: "marta@example.com", role: .admin, status: .active, onboardingStep: 6, country: "NL"))
-        .environment(Session())
+        .environment(session)
+        .environment(SetupStore(session: session))
 }
