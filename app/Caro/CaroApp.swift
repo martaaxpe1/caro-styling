@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// Where the app starts. It opens one window and shows the first screen in it.
+/// Where the app starts. It opens one window and shows the root view in it.
 @main
 struct CaroApp: App {
     var body: some Scene {
         WindowGroup {
-            HelloView()
+            RootView()
         }
     }
 }

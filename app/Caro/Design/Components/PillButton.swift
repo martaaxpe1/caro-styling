@@ -1,24 +1,35 @@
 import SwiftUI
 
 /// Caro's pill buttons: 52 points high, full width.
-/// Primary is filled with ink, secondary is outlined.
+/// Primary is filled with ink, secondary is outlined. Faded while it cannot be pressed.
 /// Use: `Button("Continue") { ... }.buttonStyle(.pill)` or `.buttonStyle(.pillOutlined)`.
 struct PillButtonStyle: ButtonStyle {
     var filled: Bool
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.caroButton)
-            .foregroundStyle(filled ? Color.onInk : Color.ink)
-            .frame(maxWidth: .infinity, minHeight: CaroLayout.buttonHeight)
-            .background(filled ? Color.ink : Color.clear, in: Capsule())
-            .overlay {
-                if !filled {
-                    Capsule().strokeBorder(Color.ink, lineWidth: 1)
+        Pill(configuration: configuration, filled: filled)
+    }
+
+    // A view of its own, so it can read whether the button is enabled.
+    private struct Pill: View {
+        let configuration: Configuration
+        let filled: Bool
+        @Environment(\.isEnabled) private var isEnabled
+
+        var body: some View {
+            configuration.label
+                .font(.caroButton)
+                .foregroundStyle(filled ? Color.onInk : Color.ink)
+                .frame(maxWidth: .infinity, minHeight: CaroLayout.buttonHeight)
+                .background(filled ? Color.ink : Color.clear, in: Capsule())
+                .overlay {
+                    if !filled {
+                        Capsule().strokeBorder(Color.ink, lineWidth: 1)
+                    }
                 }
-            }
-            .contentShape(Capsule())
-            .opacity(configuration.isPressed ? 0.7 : 1)
+                .contentShape(Capsule())
+                .opacity(!isEnabled ? 0.35 : configuration.isPressed ? 0.7 : 1)
+        }
     }
 }
 
@@ -30,6 +41,7 @@ extension ButtonStyle where Self == PillButtonStyle {
 #Preview {
     VStack(spacing: 12) {
         Button("Continue") {}.buttonStyle(.pill)
+        Button("Continue") {}.buttonStyle(.pill).disabled(true)
         Button("Choose from library") {}.buttonStyle(.pillOutlined)
     }
     .padding(CaroLayout.pageMargin)

@@ -11,9 +11,15 @@ extension Font {
     static let caroChapterNumber = display(30, relativeTo: .title)
     static let caroChapterName = display(21, relativeTo: .title2)
     static let caroSectionTitle = display(18, relativeTo: .title3).italic()
+    static let caroLead = display(26, relativeTo: .title).italic()  // The line under the wordmark: welcome, sign in
+    static let caroField = display(22, relativeTo: .title2)         // Text typed into an underlined field
+    static let caroCode = display(30, relativeTo: .title)           // The 6-digit sign-in code
 
     // Text, Inter.
     static let caroBody = text(14, relativeTo: .body)
+    static let caroRowTitle = text(15, weight: .medium, relativeTo: .body)    // The main line of a list row
+    static let caroNote = text(13, relativeTo: .subheadline)                  // Notes and error lines
+    static let caroLink = text(13, weight: .medium, relativeTo: .subheadline) // Small links, like Send a new code
     static let caroButton = text(15, weight: .medium, relativeTo: .body)
     static let caroTab = text(14, weight: .medium, relativeTo: .body)
     static let caroTabSelected = text(14, weight: .semibold, relativeTo: .body)
