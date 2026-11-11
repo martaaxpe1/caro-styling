@@ -29,6 +29,30 @@ struct SettingsSheet: View {
                     .fill(Color.hairline)
                     .frame(height: 1)
 
+                // Only the admin sees this row. The server checks it again on every admin request.
+                if member.isAdmin {
+                    NavigationLink {
+                        AdminView()
+                    } label: {
+                        HStack {
+                            Text("Admin")
+                                .font(.caroRowTitle)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Color.muted)
+                        }
+                        .frame(minHeight: 58)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .overlay(alignment: .bottom) {
+                        Rectangle()
+                            .fill(Color.hairline)
+                            .frame(height: 1)
+                    }
+                }
+
                 Spacer()
             }
             .foregroundStyle(Color.ink)

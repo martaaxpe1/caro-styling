@@ -20,6 +20,7 @@ struct SignInView: View {
     @State private var sending = false
     /// Set once a code is sent. That opens Enter code for this email.
     @State private var codeSentTo: String?
+    @FocusState private var emailFocused: Bool
 
     private let api = APIClient()
 
@@ -45,6 +46,7 @@ struct SignInView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .submitLabel(.send)
+                        .focused($emailFocused)
                         .onSubmit { Task { await sendCode() } }
                         .onChange(of: email) { errorMessage = nil }
 
@@ -99,6 +101,8 @@ struct SignInView: View {
             codeSentTo = address
         } catch {
             errorMessage = session.message(for: error)
+            // Back into the field, so the email can be fixed straight away.
+            emailFocused = true
         }
     }
 }
