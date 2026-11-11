@@ -2,6 +2,7 @@ const express = require('express');
 const healthRoutes = require('./routes/health');
 const authRoutes = require('./routes/auth');
 const meRoutes = require('./routes/me');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 
@@ -14,6 +15,9 @@ app.use('/auth', authRoutes);
 
 // Signed in only: each route checks the session itself (src/middleware/signed-in.js).
 app.use('/me', meRoutes);
+
+// The admin only: checked on the server for every route (src/routes/admin.js).
+app.use('/admin', adminRoutes);
 
 // Anything else: the app always gets JSON back, never an HTML page.
 app.use((req, res) => {

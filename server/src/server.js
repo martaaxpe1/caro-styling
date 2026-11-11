@@ -1,5 +1,6 @@
 const { execFileSync } = require('child_process');
 const app = require('./app');
+const { startDailyCleanUp } = require('./jobs/clean-up');
 
 const port = process.env.PORT || 3000;
 
@@ -27,4 +28,7 @@ app.listen(port, (err) => {
   if (wifiName) {
     console.log(`  iPhone on the same wifi: http://${wifiName}:${port}/health`);
   }
+
+  // Expires old invitations and deletes members removed more than 30 days ago.
+  startDailyCleanUp();
 });
