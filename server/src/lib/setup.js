@@ -4,6 +4,7 @@
 const db = require('../db');
 const { now, iso } = require('./today');
 const { memberJSON } = require('./members');
+const occasions = require('./occasions');
 
 const DATE_ORDERS = ['day month', 'month day'];
 const SIZE_SYSTEMS = ['EU', 'US', 'UK', 'AU'];
@@ -76,6 +77,8 @@ function setupJSON(userId) {
       unisex: member.shops_unisex === 1,
     },
     stores: storesFor(userId),
+    occasions: occasions.occasionsFor(userId),
+    proposedOccasions: occasions.proposalsJSON(),
     // The server's today (DEV_TODAY in development), for the "Now:" line and date examples.
     today: iso(now()).slice(0, 10),
   };

@@ -10,6 +10,7 @@ const { now, iso, MINUTE, HOUR } = require('../lib/today');
 const { makeCode, hashCode, checkCode, makeToken, hashToken, cleanEmail, looksLikeEmail } = require('../lib/auth');
 const email = require('../lib/email');
 const { memberJSON } = require('../lib/members');
+const { proposeFor } = require('../lib/occasions');
 const { requireMember } = require('../middleware/signed-in');
 
 const router = express.Router();
@@ -110,12 +111,14 @@ router.post('/verify', (req, res) => {
     let userId = access.user?.id;
 
     // The first sign-in with an invitation: the invitation is accepted and the member is
-    // created, with the name from the invitation. They start onboarding at step 1.
+    // created, with the name from the invitation and Caro's four occasions to start from.
+    // They start onboarding at step 1.
     if (!userId) {
       userId = db
         .prepare('INSERT INTO users (email, name, created_at) VALUES (?, ?, ?)')
         .run(address, access.invitation.name, iso(at)).lastInsertRowid;
       db.prepare(`UPDATE invitations SET status = 'accepted' WHERE id = ?`).run(access.invitation.id);
+      proposeFor(userId);
     }
 
     // Only the token's hash is stored. The token itself goes to the app, once.

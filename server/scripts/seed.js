@@ -7,6 +7,7 @@ const path = require('path');
 const db = require('../src/db');
 const { now, iso, devToday } = require('../src/lib/today');
 const { databaseFile } = require('../src/lib/paths');
+const { proposeFor } = require('../src/lib/occasions');
 
 const isProduction = process.env.NODE_ENV === 'production';
 const DAY = 24 * 60 * 60 * 1000;
@@ -102,6 +103,9 @@ const addAdmin = db.transaction((email) => {
     addStore.run(userId, store.name, store.domain, store.countryUrl, ADMIN.country, index + 1, createdAt);
   });
 
+  // Caro's four occasions, as a new member gets them.
+  proposeFor(userId);
+
   return userId;
 });
 
@@ -152,6 +156,7 @@ function printAdmin(email) {
   ].filter(Boolean);
 
   const stores = db.prepare('SELECT name FROM stores WHERE user_id = ? ORDER BY position').pluck().all(admin.id);
+  const occasions = db.prepare('SELECT name FROM occasions WHERE user_id = ? ORDER BY position').pluck().all(admin.id);
 
   console.log('\nAdmin');
   console.log(`  ${admin.name}, ${admin.email}`);
@@ -160,6 +165,7 @@ function printAdmin(email) {
   console.log(`  Seasons: ${seasons.join(', ') || 'none'}`);
   console.log(`  Shops in: ${sections.join(', ') || 'not chosen yet'}`);
   console.log(`  Stores: ${stores.join(', ') || 'none'}`);
+  console.log(`  Occasions: ${occasions.join(', ') || 'none'}`);
 }
 
 function printInvitations() {

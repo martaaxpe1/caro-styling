@@ -9,7 +9,7 @@
 // PUT  /me/sections             step 4: the store sections, saved on each tap (the stores are in stores.js)
 // POST /me/onboarding/stores-done   step 4: Continue, with at least one section
 // POST /me/onboarding/skip-stores   step 4: Skip for now
-// POST /me/onboarding/finish        step 5: set-up done, on to building the wardrobe
+// PUT  /me/occasions            step 5: the member's own occasions; set-up done, on to the wardrobe
 //
 // Every route runs behind requireMember and uses only req.member.id. Each save in onboarding
 // moves the member on one step, so the app can resume where they stopped. Every save answers
@@ -24,6 +24,7 @@ const places = require('../lib/places');
 const weather = require('../lib/weather');
 const { proposeYear, checkSeasons } = require('../lib/year');
 const setup = require('../lib/setup');
+const occasions = require('../lib/occasions');
 
 const router = express.Router();
 router.use(requireMember);
@@ -168,9 +169,16 @@ router.post('/onboarding/skip-stores', (req, res) => {
   res.json(setup.setupJSON(req.member.id));
 });
 
-// Step 5: Continue after the occasions. Set-up is done: the member becomes active at step 6.
-router.post('/onboarding/finish', (req, res) => {
-  advanceOnboarding(req.member.id, 6);
+// Step 5: { occasions: [{ id?, name }] }, the member's own list in order, one to eight.
+// In onboarding this is the last save of set-up: the member becomes active at step 6.
+router.put('/occasions', (req, res) => {
+  const checked = occasions.checkOccasions(req.body?.occasions, req.member.id);
+  if (checked.error) return res.status(400).json({ error: checked.error });
+
+  db.transaction(() => {
+    occasions.saveOccasions(req.member.id, checked.occasions);
+    advanceOnboarding(req.member.id, 6);
+  })();
   res.json(setup.setupJSON(req.member.id));
 });
 

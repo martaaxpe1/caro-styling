@@ -350,19 +350,77 @@ test('step 4 keeps the sections as they are tapped, and needs one to continue', 
   assert.equal(done.body.member.onboardingStep, 5);
 });
 
-test('step 5 finishes set-up: active at step 6, which restore keeps', async () => {
-  const done = await call('POST', '/me/onboarding/finish', { token: saraToken });
+test('a new member starts with Caro\'s four occasions, explained', async () => {
+  const setup = await call('GET', '/me/setup', { token: saraToken });
+  assert.deepEqual(
+    setup.body.occasions.map((o) => o.name),
+    ['Office', 'Working from home', 'Night out', 'Day out']
+  );
+  assert.equal(setup.body.occasions[0].description, 'Workdays with colleagues or clients.');
+  assert.equal(setup.body.proposedOccasions.length, 4);
+});
+
+test('occasions follow the rules: one to eight, a name each, no repeats, only your own', async () => {
+  const mine = (await call('GET', '/me/setup', { token: saraToken })).body.occasions;
+  const save = (list, token = saraToken) => call('PUT', '/me/occasions', { token, body: { occasions: list } });
+
+  assert.equal((await save([])).body.error, 'Keep at least one occasion.');
+  const nine = Array.from({ length: 9 }, (_, i) => ({ name: `Occasion ${i + 1}` }));
+  assert.equal((await save(nine)).body.error, 'Up to eight occasions.');
+  assert.equal((await save([{ name: 'Travel' }, { name: 'travel' }])).body.error, 'Give each occasion its own name.');
+  assert.equal((await save([{ name: 'x'.repeat(31) }])).body.error, 'Keep occasion names to 30 letters.');
+
+  // Another member cannot rename or take Sara's occasions.
+  const anaToken = await signIn('ana@example.test');
+  const stolen = await save([{ id: mine[0].id, name: 'Mine now' }], anaToken);
+  assert.equal(stolen.status, 400);
+
+  const after = (await call('GET', '/me/setup', { token: saraToken })).body;
+  assert.deepEqual(after.occasions, mine, 'nothing changed');
+  assert.equal(after.member.onboardingStep, 5, 'a refused save does not move on');
+});
+
+test('step 5 keeps, renames, removes and adds occasions, and finishes set-up', async () => {
+  const [office, home, night] = (await call('GET', '/me/setup', { token: saraToken })).body.occasions;
+  const done = await call('PUT', '/me/occasions', {
+    token: saraToken,
+    body: { occasions: [{ id: office.id, name: 'Studio' }, home, night, { name: 'Travel' }] },
+  });
+  assert.equal(done.status, 200, done.body.error);
+  assert.deepEqual(
+    done.body.occasions.map((o) => o.name),
+    ['Studio', 'Working from home', 'Night out', 'Travel']
+  );
+  assert.equal(done.body.occasions[0].id, office.id, 'a rename keeps the occasion');
+  assert.equal(done.body.occasions[0].description, null, 'a renamed proposal loses its line');
+  assert.equal(done.body.occasions[3].description, null);
+
   assert.equal(done.body.member.status, 'active');
   assert.equal(done.body.member.onboardingStep, 6);
   const sara = db.prepare(`SELECT * FROM users WHERE email = 'sara@example.test'`).get();
   assert.equal(statusAfterRestore(sara), 'active');
 });
 
+test('in Settings, two occasions can swap names and a removed proposal can come back', async () => {
+  const [studio, home, night, travel] = (await call('GET', '/me/setup', { token: saraToken })).body.occasions;
+  const swapped = await call('PUT', '/me/occasions', {
+    token: saraToken,
+    body: { occasions: [{ id: studio.id, name: 'Travel' }, home, night, { id: travel.id, name: 'Studio' }, { name: 'day out' }] },
+  });
+  assert.equal(swapped.status, 200, swapped.body.error);
+  assert.deepEqual(
+    swapped.body.occasions.map((o) => [o.id ?? 'new', o.name]),
+    [[studio.id, 'Travel'], [home.id, 'Working from home'], [night.id, 'Night out'], [travel.id, 'Studio'], [swapped.body.occasions[4].id, 'day out']]
+  );
+  assert.equal(swapped.body.occasions[4].description, 'Weekends, errands and lunches with friends.');
+  assert.equal(swapped.body.member.status, 'active');
+});
+
 test('a step cannot be skipped by calling the server directly', async () => {
   const boToken = await signIn('bo@example.test');
   await call('PUT', '/me/sections', { token: boToken, body: { unisex: true } });
   await call('POST', '/me/onboarding/stores-done', { token: boToken });
-  await call('POST', '/me/onboarding/finish', { token: boToken });
+  await call('PUT', '/me/occasions', { token: boToken, body: { occasions: [{ name: 'Office' }] } });
   const me = await call('GET', '/me', { token: boToken });
   assert.equal(me.body.member.status, 'onboarding');
   assert.equal(me.body.member.onboardingStep, 1);
