@@ -6,7 +6,8 @@
 // PUT  /me/place                step 2: city and formats (with the new year, when the city changes in Settings)
 // GET  /me/year                 step 3: the city's typical weather and the proposed years
 // PUT  /me/year                 step 3: the year the member confirmed
-// PUT  /me/sections             step 4: the store sections (the stores themselves are in stores.js)
+// PUT  /me/sections             step 4: the store sections, saved on each tap (the stores are in stores.js)
+// POST /me/onboarding/stores-done   step 4: Continue, with at least one section
 // POST /me/onboarding/skip-stores   step 4: Skip for now
 // POST /me/onboarding/finish        step 5: set-up done, on to building the wardrobe
 //
@@ -142,21 +143,22 @@ router.put('/year', (req, res) => {
   res.json(setup.setupJSON(req.member.id));
 });
 
-// Step 4: { womens, mens, unisex }, at least one. What the member shops for, not who they are.
+// Step 4: { womens, mens, unisex }, saved as the member taps each one, so they are still
+// there after closing the app. What the member shops for, not who they are.
 router.put('/sections', (req, res) => {
   const body = req.body || {};
-  const sections = [body.womens, body.mens, body.unisex].map((value) => value === true);
-  if (!sections.some(Boolean)) {
+  const sections = [body.womens, body.mens, body.unisex].map((value) => (value === true ? 1 : 0));
+  db.prepare('UPDATE users SET shops_womens = ?, shops_mens = ?, shops_unisex = ? WHERE id = ?').run(...sections, req.member.id);
+  res.json(setup.setupJSON(req.member.id));
+});
+
+// Step 4: Continue. Needs at least one section: the store search looks only in those.
+router.post('/onboarding/stores-done', (req, res) => {
+  const member = db.prepare('SELECT shops_womens, shops_mens, shops_unisex FROM users WHERE id = ?').get(req.member.id);
+  if (!member.shops_womens && !member.shops_mens && !member.shops_unisex) {
     return res.status(400).json({ error: 'Choose at least one section.' });
   }
-
-  db.transaction(() => {
-    db.prepare('UPDATE users SET shops_womens = ?, shops_mens = ?, shops_unisex = ? WHERE id = ?').run(
-      ...sections.map(Number),
-      req.member.id
-    );
-    advanceOnboarding(req.member.id, 5);
-  })();
+  advanceOnboarding(req.member.id, 5);
   res.json(setup.setupJSON(req.member.id));
 });
 

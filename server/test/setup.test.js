@@ -77,6 +77,7 @@ stores.remote.claude = async (name) => {
   const known = {
     zara: { found: true, official_name: 'Zara', domain: 'zara.com', website: 'https://www.zara.com/us/', sells_online: 'yes', evidence: '' },
     arket: { found: true, official_name: 'Arket', domain: 'arket.com', website: '', sells_online: 'no', evidence: '' },
+    unsure: { found: true, official_name: 'Unsure', domain: 'unsure.com', website: 'https://www.unsure.com/', sells_online: 'not sure', evidence: '' },
   };
   return known[name.toLowerCase()] || { found: false, official_name: '', domain: '', website: '', sells_online: 'not sure', evidence: '' };
 };
@@ -288,6 +289,10 @@ test('step 4 finds a store site for her country, adds it, and says when there is
     ]
   );
 
+  const unsure = await call('POST', '/me/stores/find', { token: saraToken, body: { name: 'Unsure' } });
+  assert.equal(unsure.body.store.sellsOnline, false, 'not sure counts as no online shop');
+  assert.equal(unsure.body.store.countryUrl, null);
+
   const unknown = await call('POST', '/me/stores/find', { token: saraToken, body: { name: 'Nowhere shop' } });
   assert.deepEqual(unknown.body.store, { found: false, name: 'Nowhere shop' });
 
@@ -297,7 +302,7 @@ test('step 4 finds a store site for her country, adds it, and says when there is
 
   const sara = db.prepare(`SELECT id FROM users WHERE email = 'sara@example.test'`).pluck().get();
   const lookUps = db.prepare(`SELECT COUNT(*) FROM ai_usage WHERE user_id = ? AND action = 'store website'`).pluck().get(sara);
-  assert.equal(lookUps, 3, 'every look-up counts as an AI action');
+  assert.equal(lookUps, 4, 'every look-up counts as an AI action');
 });
 
 test('a store site must be on the store domain, over https', async () => {
@@ -330,15 +335,19 @@ test('another member cannot touch her stores', async () => {
   assert.equal(setup.body.stores.length, 2);
 });
 
-test('step 4 needs at least one section to continue', async () => {
-  const none = await call('PUT', '/me/sections', { token: saraToken, body: { womens: false, mens: false, unisex: false } });
+test('step 4 keeps the sections as they are tapped, and needs one to continue', async () => {
+  const none = await call('POST', '/me/onboarding/stores-done', { token: saraToken });
   assert.equal(none.status, 400);
   assert.equal(none.body.error, 'Choose at least one section.');
 
   const womens = await call('PUT', '/me/sections', { token: saraToken, body: { womens: true } });
   assert.equal(womens.status, 200);
   assert.deepEqual(womens.body.sections, { womens: true, mens: false, unisex: false });
-  assert.equal(womens.body.member.onboardingStep, 5);
+  assert.equal(womens.body.member.onboardingStep, 4, 'a tap saves, it does not move on');
+
+  const done = await call('POST', '/me/onboarding/stores-done', { token: saraToken });
+  assert.equal(done.status, 200);
+  assert.equal(done.body.member.onboardingStep, 5);
 });
 
 test('step 5 finishes set-up: active at step 6, which restore keeps', async () => {
@@ -352,6 +361,7 @@ test('step 5 finishes set-up: active at step 6, which restore keeps', async () =
 test('a step cannot be skipped by calling the server directly', async () => {
   const boToken = await signIn('bo@example.test');
   await call('PUT', '/me/sections', { token: boToken, body: { unisex: true } });
+  await call('POST', '/me/onboarding/stores-done', { token: boToken });
   await call('POST', '/me/onboarding/finish', { token: boToken });
   const me = await call('GET', '/me', { token: boToken });
   assert.equal(me.body.member.status, 'onboarding');

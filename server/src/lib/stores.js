@@ -83,8 +83,9 @@ async function findWebsite(name, country, currency) {
     return { found: false, name };
   }
 
-  // "not sure" with a shop address counts as yes: the store search will find out.
-  const sellsOnline = answer.sells_online === 'yes' || (answer.sells_online === 'not sure' && Boolean(countryUrl));
+  // Only a clear yes counts. "Not sure" is shown as no online shop in the country, so Caro
+  // never searches a site it could not confirm. The member can look the store up again later.
+  const sellsOnline = answer.sells_online === 'yes';
   return {
     found: true,
     name: (answer.official_name || name).trim().slice(0, 60),
