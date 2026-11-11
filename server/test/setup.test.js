@@ -369,6 +369,7 @@ test('occasions follow the rules: one to eight, a name each, no repeats, only yo
   assert.equal((await save(nine)).body.error, 'Up to eight occasions.');
   assert.equal((await save([{ name: 'Travel' }, { name: 'travel' }])).body.error, 'Give each occasion its own name.');
   assert.equal((await save([{ name: 'x'.repeat(31) }])).body.error, 'Keep occasion names to 30 letters.');
+  assert.equal((await save([{ name: 'Gym', description: 'x'.repeat(81) }])).body.error, 'Keep the line under an occasion to 80 letters.');
 
   // Another member cannot rename or take Sara's occasions.
   const anaToken = await signIn('ana@example.test');
@@ -384,7 +385,7 @@ test('step 5 keeps, renames, removes and adds occasions, and finishes set-up', a
   const [office, home, night] = (await call('GET', '/me/setup', { token: saraToken })).body.occasions;
   const done = await call('PUT', '/me/occasions', {
     token: saraToken,
-    body: { occasions: [{ id: office.id, name: 'Studio' }, home, night, { name: 'Travel' }] },
+    body: { occasions: [{ ...office, name: 'Studio' }, home, night, { name: 'Travel', description: 'Flights and weekends away.' }] },
   });
   assert.equal(done.status, 200, done.body.error);
   assert.deepEqual(
@@ -392,8 +393,8 @@ test('step 5 keeps, renames, removes and adds occasions, and finishes set-up', a
     ['Studio', 'Working from home', 'Night out', 'Travel']
   );
   assert.equal(done.body.occasions[0].id, office.id, 'a rename keeps the occasion');
-  assert.equal(done.body.occasions[0].description, null, 'a renamed proposal loses its line');
-  assert.equal(done.body.occasions[3].description, null);
+  assert.equal(done.body.occasions[0].description, 'Workdays with colleagues or clients.', 'a rename keeps its line');
+  assert.equal(done.body.occasions[3].description, 'Flights and weekends away.', 'your own occasion can have a line');
 
   assert.equal(done.body.member.status, 'active');
   assert.equal(done.body.member.onboardingStep, 6);
