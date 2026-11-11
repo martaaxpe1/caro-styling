@@ -41,6 +41,23 @@ In `sqlite3`: `.tables` lists the tables, `SELECT * FROM users;` shows a table (
 
 To pretend it is another day, put `DEV_TODAY=2026-10-30` in `server/.env`, or run one command with it: `DEV_TODAY=2026-10-30 npm run reset-dev`.
 
+## Signing in
+
+Caro is invite only: you sign in with your email and a 6-digit code. On this Mac no emails are sent. Sign-in codes and invitations are printed in the terminal where `npm run dev` runs, between two dashed lines.
+
+1. In `server/`: `npm run reset-dev`, then `npm run dev`.
+2. In the app, type the email from `ADMIN_EMAIL`, press **Send code**, and type the code from the terminal.
+3. The profile button (your initial, top left) opens settings: **Admin** to add people, resend or cancel invitations, remove and restore access. **Sign out** is there too.
+
+The app keeps you signed in (in the iPhone Keychain) until you sign out. After `npm run reset-dev` it asks you to sign in again, because the old session is gone.
+
+```bash
+npm run clean-up   # the daily clean-up, by hand: expires old invitations, deletes members removed over 30 days ago
+npm test           # checks sign in and the admin area on a throwaway database; caro.db is not touched
+```
+
+The server runs the clean-up by itself when it starts and every 24 hours. To see what it would do 31 days from now: `DEV_TODAY=2026-12-15 npm run clean-up`.
+
 ## What is in here
 
 | Path | What it is | Who reads it |
@@ -48,7 +65,7 @@ To pretend it is another day, put `DEV_TODAY=2026-10-30` in `server/.env`, or ru
 | `app/` | The iPhone app: Swift and SwiftUI, opened with `app/Caro.xcodeproj`. | Both |
 | `server/` | The server: Node, Express, SQLite. | Both |
 | `CLAUDE.md` | Standing instructions for Claude Code: how we work, design rules, server rules. Read automatically at the start of every session. | Claude Code |
-| `docs/PRD.md` | The spec (v1.2), with the build plan and tickets in section 17. | Both |
+| `docs/PRD.md` | The spec (v1.3), with the build plan and tickets in section 17. | Both |
 | `docs/FIRST_PROMPT.md` | The first message to paste into Claude Code. | You |
 | `docs/BENCHMARK.md` | The other wardrobe apps, and how Caro differs. | Both |
 | `design/screens/` | The designed screens, exported from the canvas, plus a README mapping each to its ticket. | Claude Code |

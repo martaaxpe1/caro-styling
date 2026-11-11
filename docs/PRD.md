@@ -1,4 +1,4 @@
-# Caro Styling: Product requirements (v1.2, ready to build)
+# Caro Styling: Product requirements (v1.3, ready to build)
 
 The spec for building Caro Styling. It folds in every decision from the drafts (v0.2 to v0.10) and from the design round on the canvas. Where this file and the screens in `design/` disagree on layout, colour, type or copy, the screens win. Where they disagree on behaviour, this file wins. Changes are listed at the end.
 
@@ -73,13 +73,14 @@ Installing:
 Accounts:
 - **Sign in with your email and a code, no password.** Enter your email, receive a 6-digit code, type it in (the iPhone offers to fill it from Mail). You stay signed in until you sign out.
 - **Invite only.** The admin adds a person by name and email. Caro emails them the TestFlight link and how to sign in. Signing in with an invited email for the first time starts onboarding. Invitations expire after 14 days.
+- **Refused plainly.** Any other email, or one whose access was removed, gets "This email does not have access to Caro." at the email step, and no code. Each email can ask for at most 5 codes an hour; a new code replaces the one before.
 - **Your data is yours.** Every member can download everything and delete their account, which deletes all their photos.
 
 Admin area:
 - **Members.** Name, email, place, joined, last active, AI actions this month.
 - **Add person.** Name and email, then **Send invitation**.
-- **Invitations.** Pending ones, with resend and cancel.
-- **Remove access.** The person can no longer sign in. Their data is kept for 30 days in case it was a mistake; the admin can restore access in that time. After 30 days everything is deleted, photos included.
+- **Invitations.** Pending ones, with resend and cancel. Resend sends it again and opens it for another 14 days. Expired and cancelled ones are not listed: to invite that person again, add them again.
+- **Remove access.** The person is signed out at once and can no longer sign in. Their data is kept for 30 days in case it was a mistake; the admin can restore access in that time. After 30 days everything is deleted, photos included, along with their invitation and sign-in codes. The admin's own access cannot be removed.
 
 ## 5. Onboarding
 
@@ -192,7 +193,7 @@ Designed screens are in `design/screens/` (source from the design canvas). Scree
 ### Settings and admin
 
 - **S5 Settings.** Steps 1 to 5 of onboarding, download everything, delete account, sign out. Admin area for the admin.
-- **S3 Admin.** Members, add person, invitations (section 4).
+- **S3 Admin.** Members, add person, invitations (section 4). Until Settings (S5) is built in T4, it is reached from a small settings sheet behind the profile button: your name and email, Admin (admin only), Sign out.
 
 ## 8. Functional requirements
 
@@ -279,7 +280,8 @@ Limits: a monthly allowance of AI actions per member keeps costs predictable. Th
 ## 11. Rules that must hold on the server
 
 - Every request is scoped to the signed-in member. A member never reads or changes another member's data. The admin sees totals, never photos.
-- Only invited, active emails can sign in. Codes are stored hashed, expire after 15 minutes, and allow 5 attempts.
+- Admin routes are checked on the server, not only hidden in the app.
+- Only invited, active emails can sign in. Codes are stored hashed, expire after 15 minutes, and allow 5 attempts. At most 5 codes per email per hour. Session tokens are stored hashed too.
 - Photos are private: served only to their owner through signed-in requests, never through public links. Location data is stripped before storing.
 - The Claude API key lives only on the server, never in the app.
 - There is no endpoint that generates or proposes looks.
@@ -383,7 +385,7 @@ Done when: the seed prints the admin and the invitation, and the tables can be o
 - The session kept in the iPhone Keychain. Sign out.
 - Only invited, active emails can sign in.
 - Admin area: members, add person, invitations (send, resend, cancel, 14-day expiry), remove access and restore within 30 days, the daily clean-up job.
-- Screens S1, S2, S3.
+- Screens S1, S2, S3. Until S5 (T4), the admin area is reached from a temporary settings sheet behind the profile button.
 Done when: Marta signs in with the code from the terminal; adds a test person; that email signs in and lands in onboarding; any other email is refused; a removed person cannot sign in, and restoring them works.
 
 **T4. Onboarding: set up.**
@@ -508,3 +510,4 @@ Not in version one. A short onboarding step to help a member see their own patte
 - **v1.0.** Ready to build. Screen index linked to the design files, rules that must hold on the server, the design system, the stack, tickets T0 to T11 with what to check, defaults for the last open decisions.
 - **v1.1.** From the T1 spike. Seven chapters with short names (Knitwear, Tops, Trousers, Dresses and skirts, Accessories) and kinds as a filter. Fixed lists for the details. A stricter close. Store search on the whole store website, in the sections each member chooses in onboarding (women's, men's, unisex). Your year from Claude's memory and a rule. Models per action. An allowance of 300. Cut-outs stay on the phone, with the photo itself as the fallback. The chapter names change on screens 07, 08 and 10, and screen 04 gets the section chips above the store list.
 - **v1.2.** From T2. The database tables use the app's words: `pieces`, `looks`, `to_find`. Section 12 matches the tables as built: the fixed lists as tables, the allowance as one setting for every member, store domains, store sections as three yes or no choices, months per season, sign-in codes kept by email, last searched on To find, prices in cents.
+- **v1.3.** From T3. A refused email is told plainly at the email step; at most 5 codes per email per hour. Resend opens an invitation for another 14 days; only pending invitations are listed. Removing access signs the person out at once; the admin's own access cannot be removed; after 30 days the invitation and codes for that email go too. Admin routes are checked on the server. Until S5, the admin area is reached from a temporary settings sheet.
