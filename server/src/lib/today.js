@@ -39,4 +39,9 @@ function now() {
   return new Date(`${devToday}T${real.toISOString().slice(11)}`);
 }
 
-module.exports = { now, iso, devToday };
+// Lengths of time in milliseconds, to add to a date: new Date(now().getTime() + 15 * MINUTE).
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+module.exports = { now, iso, devToday, MINUTE, HOUR, DAY };
