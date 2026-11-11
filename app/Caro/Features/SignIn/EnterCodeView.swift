@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// S2 Enter code: the 6 digits from the email. It signs in by itself once all 6 are there.
+/// S2 Enter code: the 6 digits from the email. It signs in by itself once all 6 are there;
+/// until then a note under the field says how many are typed ("5 of 6 digits.").
 /// The iPhone offers to fill the code from Mail, because the field is marked as a one-time code.
 struct EnterCodeView: View {
     let email: String
@@ -47,6 +48,12 @@ struct EnterCodeView: View {
                     Text(errorMessage)
                         .font(.caroNote)
                         .foregroundStyle(Color.terracotta)
+                        .padding(.top, 8)
+                } else if (1..<6).contains(code.count) {
+                    // Sign in waits for all 6 digits, so say how many are there.
+                    Text("\(code.count) of 6 digits.")
+                        .font(.caroNote)
+                        .foregroundStyle(Color.muted)
                         .padding(.top, 8)
                 }
 
