@@ -1,4 +1,4 @@
-# Caro Styling: Product requirements (v1.3, ready to build)
+# Caro Styling: Product requirements (v1.4, ready to build)
 
 The spec for building Caro Styling. It folds in every decision from the drafts (v0.2 to v0.10) and from the design round on the canvas. Where this file and the screens in `design/` disagree on layout, colour, type or copy, the screens win. Where they disagree on behaviour, this file wins. Changes are listed at the end.
 
@@ -84,14 +84,14 @@ Admin area:
 
 ## 5. Onboarding
 
-Designed for a new person the app knows nothing about. Every step is a check, not an assumption: the app proposes, the member confirms or changes. One step per screen, with "Step N of 6" and a progress line. Onboarding can be left and resumed where you stopped.
+Designed for a new person the app knows nothing about. Every step is a check, not an assumption: the app proposes, the member confirms or changes. One step per screen, with "Step N of 6" and a progress line. Onboarding can be left and resumed: the app opens at the furthest step reached, with the earlier steps behind the back arrow. Choosing another city in onboarding takes you back to Your year, since the year must be confirmed again.
 
 1. **Welcome.** After the first sign-in. The CARO wordmark, what Caro is in one line, who invited you, your name (prefilled from the invitation), and the privacy note: your photos are private, an AI service recognises your pieces in them, and it never styles you.
-2. **Where you live.** Search for your city. The app shows what it works out from it: country, currency, date and size formats. **Looks right** or **Change**.
+2. **Where you live.** Search for your city. The app shows what it works out from it: country, currency, date and size formats. **Looks right** or **Change**. Change corrects the currency, dates and sizes; the country follows the city, because store websites depend on it.
 3. **Your year.** The app proposes your seasons from your city's typical weather, shown as 12 months with their typical high. Choose four seasons, two, or none; tap a month to move it to another season; rename a season. A line like "Now: hot and rainy, until the end of October" helps check it. For example:
    - The Netherlands: four seasons. Spring March to May, summer June to August, autumn September to November, winter December to February.
    - Miami: two seasons. Hot and rainy May to October, mild and dry November to April.
-4. **Your stores.** First, which sections of the stores you shop in: **Women's**, **Men's**, **Unisex**, one or more. Nothing is chosen until you pick, and you pick at least one. This is about what you shop for, not about who you are. Then type the stores you shop at. For each, the app finds its website for your country and shows it to confirm. A store with no online shop in your country says so. Remove any. **Skip for now** is allowed; stores and sections are only needed for the store search.
+4. **Your stores.** First, which sections of the stores you shop in: **Women's**, **Men's**, **Unisex**, one or more. Nothing is chosen until you pick, and you pick at least one. This is about what you shop for, not about who you are. The sections are saved as you tap them. Then type the stores you shop at. For each, when you press return (each look-up is an AI action, so not while typing), the app finds its website for your country and shows it to confirm. A store with no online shop in your country, or one Caro cannot confirm, says so and is not searched. Remove any. **Skip for now** is allowed; stores and sections are only needed for the store search. **Continue** needs at least one section. Both go to step 5.
 5. **Occasions.** The four, explained: Office, Working from home, Night out, Day out. The same four for everyone in version one.
 6. **Your wardrobe.** The last and longest step, required before Looks and Get the look open.
    - How to photograph a piece: one piece per photo, flat or on a hanger, plain background, daylight.
@@ -193,7 +193,7 @@ Designed screens are in `design/screens/` (source from the design canvas). Scree
 ### Settings and admin
 
 - **S5 Settings.** Steps 1 to 5 of onboarding, download everything, delete account, sign out. Admin area for the admin.
-- **S3 Admin.** Members, add person, invitations (section 4). Until Settings (S5) is built in T4, it is reached from a small settings sheet behind the profile button: your name and email, Admin (admin only), Sign out.
+- **S3 Admin.** Members, add person, invitations (section 4). Reached from Settings (S5), for the admin only.
 
 ## 8. Functional requirements
 
@@ -241,7 +241,7 @@ Store search:
 
 Onboarding, settings and admin:
 - **Unlock rule.** 20 confirmed pieces, with at least one top, one bottom or one-piece, and one pair of shoes. Pieces skipped in the review queue do not count; pieces marked maybe do. Once open, Looks and Get the look stay open, even if pieces are removed later.
-- Changing where you live in settings proposes a new year and new store websites. Nothing changes until you confirm.
+- Changing where you live in settings proposes a new year and new store websites. Nothing changes until you confirm: the new place and its year are saved together when you confirm the year, and each store keeps its old website, marked with the country it was found for, until you confirm its new one. The store search skips a store not checked for your country.
 - If you change your seasons (for example from four to two), the app proposes new seasons for your pieces from their warmth, and you confirm them in one batch.
 - Invitations expire after 14 days. Removed members cannot sign in. A daily job deletes the data of members removed more than 30 days ago.
 
@@ -251,6 +251,8 @@ Onboarding, settings and admin:
 - **Your year is proposed from your city's weather,** from its typical monthly temperatures (and rain, where it matters more than cold). Southern hemisphere places work the same way.
   - The typical daily high and rain for each month come from Claude's memory (Sonnet), checked against Open-Meteo's 1991 to 2020 data. If the two differ by more than 3 °C in any month, Open-Meteo's numbers are used. Each city is looked up once and kept.
   - A rule in code, not the AI, proposes the seasons. Four meteorological seasons when the typical highs vary by 10 °C or more over the year, shifted by six months in the southern hemisphere. Otherwise two, when most of the rain falls in six months in a row, named from the temperature and rain ("Hot and rainy", "Mild and dry"). Otherwise none.
+  - Each of the three can still be chosen. Where rain does not split the year, two seasons are the warmer and the cooler six months ("Warm" and "Cool").
+  - With the same number of seasons, renaming a season or moving a month keeps its pieces and looks. With another number, the seasons are replaced (section 8).
 - **Warmth connects pieces to seasons.** Warmth (light, medium, warm) means the same everywhere. A light linen shirt becomes spring and summer in the Netherlands, and both seasons in Miami.
 - **The current season is a default filter.** It never hides pieces.
 - **Stores are a personal list,** chosen by every member in onboarding. No shared catalogue. Marta's examples (Arket, COS, Uniqlo, Zara, Ganni, Bimba y Lola, Samsøe Samsøe) are sample content.
@@ -275,7 +277,7 @@ Does not:
 
 Models, chosen in T1 (`docs/SPIKE.md`): Sonnet 5.5 for piece details, looks from a photo and inspirations; Haiku 5.5 for store websites and store search. The prompts start from the ones in `server/spike/`.
 
-Limits: a monthly allowance of AI actions per member keeps costs predictable. The admin sets it. It starts at 300 a month; each piece, look, inspiration or search counts as one. A typical month costs about 3 dollars per member.
+Limits: a monthly allowance of AI actions per member keeps costs predictable. The admin sets it. It starts at 300 a month; each piece, look, inspiration or search counts as one, and so do finding a store's website and recalling a city's weather (once per city, then kept). Every AI call is counted in `ai_usage` from T4; the allowance is enforced from T11. A typical month costs about 3 dollars per member.
 
 ## 11. Rules that must hold on the server
 
@@ -300,17 +302,18 @@ Lives on the server, in SQLite. Built in T2 by the numbered migrations in `serve
 
 Tables:
 - Fixed lists, the same for everyone: `chapters`, `kinds` (chapter, slot), `colours`, `patterns`, `materials`, `occasions` (sections 6 and 8). `settings`: the monthly AI allowance, one number for every member.
-- `users`: email, name, role (member, admin), status (onboarding, active, removed), onboarding step, city, country, currency, store sections (women's, men's, unisex, each yes or no, all no until chosen), unlocked at, removed at, created, last active. `login_codes`: email, hashed code, expires, attempts, used. `sessions`: hashed token, created, last used.
+- `users`: email, name, role (member, admin), status (onboarding, active, removed), onboarding step, city (and its row in `cities`), country, currency, date order (30 Oct or Oct 30), size system (EU, US, UK, AU), store sections (women's, men's, unisex, each yes or no, all no until chosen), unlocked at, removed at, created, last active. Finishing step 5 makes a member active at step 6. `login_codes`: email, hashed code, expires, attempts, used. `sessions`: hashed token, created, last used.
 - `invitations`: name, email, invited by, status (pending, accepted, cancelled, expired), sent, expires. One pending invitation per email.
 - `seasons`: name, order. `season_months`: the season each month belongs to. A month is in one season at most, so seasons never overlap. Four, two or none per member.
-- `stores`: name, domain (such as cos.com), the page for the member's country, sells online in the country (yes or no), order.
+- `stores`: name, domain (such as cos.com), the page for the member's country, sells online in the country (yes or no), the country it was checked for, order.
+- `cities` and `city_weather` (T4): each city chosen from the city search (GeoNames id, region, country, coordinates, time zone, where its weather came from) and its typical high and rain for each month. Public facts kept once per city, not a member's data, so no `user_id`.
 - `pieces`: name, kind (the chapter and slot follow from it), pattern, material, warmth, formality, brand, size, size system, price paid and its currency, notes, status (pending review, confirmed, maybe), photo paths (original, cut-out, thumbnail; no cut-out when nothing lifted). `piece_colours` (up to three, main first), `piece_occasions`, `piece_seasons`.
 - `looks`: number, source (built, photo, inspired), note. `look_pieces` (with slot: one piece per slot, several accessories). `look_occasions`, `look_seasons`. `look_photos`: photo, added.
 - `inspirations`: photo, link, note. `inspiration_pieces`: pin number, description, kind, matched piece, match (yours, close, missing), key.
 - `to_find`: from inspiration piece, status (considering, bought, dropped), last searched (empty means not searched yet). `store_results`: store, name, price, currency, link, image, found at.
 - `ai_usage`: action, date.
 
-To add with the ticket that needs it: the typical weather kept for each city (T4, section 9), an occasion on inspirations (T10, screen 14 shows one), pin positions on the inspiration photo (T10).
+To add with the ticket that needs it: an occasion on inspirations (T10, screen 14 shows one), pin positions on the inspiration photo (T10).
 
 ## 13. Notifications
 
@@ -511,3 +514,4 @@ Not in version one. A short onboarding step to help a member see their own patte
 - **v1.1.** From the T1 spike. Seven chapters with short names (Knitwear, Tops, Trousers, Dresses and skirts, Accessories) and kinds as a filter. Fixed lists for the details. A stricter close. Store search on the whole store website, in the sections each member chooses in onboarding (women's, men's, unisex). Your year from Claude's memory and a rule. Models per action. An allowance of 300. Cut-outs stay on the phone, with the photo itself as the fallback. The chapter names change on screens 07, 08 and 10, and screen 04 gets the section chips above the store list.
 - **v1.2.** From T2. The database tables use the app's words: `pieces`, `looks`, `to_find`. Section 12 matches the tables as built: the fixed lists as tables, the allowance as one setting for every member, store domains, store sections as three yes or no choices, months per season, sign-in codes kept by email, last searched on To find, prices in cents.
 - **v1.3.** From T3. A refused email is told plainly at the email step; at most 5 codes per email per hour. Resend opens an invitation for another 14 days; only pending invitations are listed. Removing access signs the person out at once; the admin's own access cannot be removed; after 30 days the invitation and codes for that email go too. Admin routes are checked on the server. Until S5, the admin area is reached from a temporary settings sheet.
+- **v1.4.** From T4. Change on Where you live corrects currency, dates and sizes; the country follows the city. Resume at the furthest step; another city in onboarding goes back to Your year. Stores are looked up on return, sections saved on each tap, Continue needs a section, Skip for now and Continue go to step 5, and a store Caro cannot confirm is not searched. In settings, a new place is saved with its year, and stores keep their old site until confirmed. Every option of the year can be chosen. Store websites and city weather count as AI actions. Section 12: city, formats and checked country added, with the `cities` and `city_weather` tables.

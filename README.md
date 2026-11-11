@@ -58,6 +58,24 @@ npm test           # checks sign in and the admin area on a throwaway database; 
 
 The server runs the clean-up by itself when it starts and every 24 hours. To see what it would do 31 days from now: `DEV_TODAY=2026-12-15 npm run clean-up`.
 
+## Onboarding and settings (T4)
+
+A new member goes through five steps: welcome and name, where you live, your year, your stores, occasions. The app remembers the furthest step reached, so closing it and opening it again returns to the same step. Settings (the profile button) repeats the five steps.
+
+To try it as the test Sara, with a pretend date so the "Now:" line reads hot and rainy:
+
+1. In `server/.env`, add `DEV_TODAY=2026-10-30`. Stop `npm run dev` (Control C) and start it again, so it reads the new line.
+2. If Sara has already signed in before, `npm run reset-dev` gives a fresh invitation for sara@example.com (it deletes your local database).
+3. In the app, sign in as sara@example.com with the code from the terminal.
+
+Two steps ask Claude, using the key in `server/.env`:
+- **Your year** asks for a city's typical weather the first time anyone chooses that city (less than a cent), checks it against Open-Meteo, and keeps it in the `city_weather` table.
+- **Your stores** looks up each store's website for your country when you press return (about 2 cents, a few seconds).
+
+Each call is counted in the `ai_usage` table, which the admin area shows as "AI actions this month". `npm test` replaces both with fakes, so it costs nothing.
+
+For testing against a second copy of the server (another port and database), a debug build can be launched with `-serverURL http://localhost:3100`, as an argument in Xcode (Product, Scheme, Edit Scheme, Run, Arguments) or with `xcrun simctl launch`. Without it, the app uses port 3000 as before.
+
 ## What is in here
 
 | Path | What it is | Who reads it |
