@@ -142,9 +142,10 @@ struct APIClient {
         try await send("POST", "me/onboarding/skip-stores")
     }
 
-    /// POST /me/onboarding/finish: after the occasions, set-up is done.
-    func finishOnboarding() async throws -> Setup {
-        try await send("POST", "me/onboarding/finish")
+    /// PUT /me/occasions: the member's own list, one to eight. In onboarding this is the
+    /// last step of set-up.
+    func saveOccasions(_ occasions: [Occasion]) async throws -> Setup {
+        try await send("PUT", "me/occasions", body: ["occasions": occasions])
     }
 
     /// POST /me/stores/find: Caro looks the store up for the member's country (an AI action).

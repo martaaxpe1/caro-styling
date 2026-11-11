@@ -105,7 +105,7 @@ struct SettingsView: View {
             row("Where you live", placeText(setup.place), .place)
             row("Your year", SeasonCount(count: setup.seasons.count).label, .year)
             row("Your stores", storesText(setup), .stores)
-            row("Occasions", OccasionsView.occasions.map(\.0).joined(separator: ", ").capitalizedFirstOnly, .occasions)
+            row("Occasions", setup.occasions.map(\.name).joined(separator: ", "), .occasions)
         }
     }
 
@@ -176,7 +176,7 @@ struct SettingsView: View {
         case .stores:
             StoresView(step: nil)
         case .occasions:
-            OccasionsView(step: nil)
+            OccasionsView(step: nil, onDone: back)
         case .admin:
             AdminView()
         }
@@ -186,13 +186,6 @@ struct SettingsView: View {
         if !path.isEmpty {
             path.removeLast()
         }
-    }
-}
-
-private extension String {
-    /// "Office, working from home, night out, day out": sentence case for a list of names.
-    var capitalizedFirstOnly: String {
-        prefix(1) + dropFirst().lowercased()
     }
 }
 

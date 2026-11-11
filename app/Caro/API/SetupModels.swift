@@ -14,6 +14,10 @@ struct Setup: Decodable {
     let seasons: [Season]
     let sections: Sections
     let stores: [Store]
+    /// The member's own occasions, in order.
+    let occasions: [Occasion]
+    /// Caro's four, with their explanations, to add back after removing one.
+    let proposedOccasions: [Occasion]
     /// The server's today, like 2026-10-30. DEV_TODAY changes it while testing.
     let today: String
 }
@@ -92,6 +96,15 @@ struct Sections: Codable, Equatable {
             .compactMap { $0 }
             .joined(separator: ", ")
     }
+}
+
+/// One of the member's occasions, or one Caro proposes.
+struct Occasion: Codable, Equatable, Hashable {
+    /// Empty for an occasion added on this screen and not saved yet, and for proposals.
+    var id: Int?
+    var name: String
+    /// The one-line explanation of Caro's four. Empty for the member's own.
+    var description: String?
 }
 
 /// One of the member's stores.
