@@ -1,5 +1,7 @@
 // Small rules about members, shared by the routes and the clean-up job.
 
+const db = require('../db');
+
 // A removed member's data is kept this long, so the admin can restore access, then deleted.
 const KEEP_REMOVED_DAYS = 30;
 
@@ -17,10 +19,22 @@ function memberJSON(user) {
 }
 
 // The status a member gets back when the admin restores access: onboarding if they had
-// not finished set-up (steps 1 to 5), active otherwise. T4 moves a member to active at step 6,
-// so keep this in step with it.
+// not finished set-up (steps 1 to 5), active otherwise. Finishing step 5 moves a member to
+// active at step 6 (advanceOnboarding below), so the two stay in step.
 function statusAfterRestore(user) {
   return user.onboarding_step < 6 ? 'onboarding' : 'active';
 }
 
-module.exports = { KEEP_REMOVED_DAYS, memberJSON, statusAfterRestore };
+// Onboarding moves on one step at a time: saving step N moves a member from step N to N + 1.
+// A member who is further on stays there, and one who is not at step N yet does not move,
+// so no step can be skipped by calling the server directly.
+// Reaching step 6 means set-up is done: the member becomes active and builds their wardrobe.
+// Members who are already active (changing things in Settings) never move.
+function advanceOnboarding(userId, toStep) {
+  db.prepare(
+    `UPDATE users SET onboarding_step = ?, status = CASE WHEN ? >= 6 THEN 'active' ELSE status END
+     WHERE id = ? AND status = 'onboarding' AND onboarding_step = ?`
+  ).run(toStep, toStep, userId, toStep - 1);
+}
+
+module.exports = { KEEP_REMOVED_DAYS, memberJSON, statusAfterRestore, advanceOnboarding };
