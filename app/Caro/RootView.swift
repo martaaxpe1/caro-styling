@@ -3,8 +3,16 @@ import SwiftUI
 /// The first view in the window. It chooses what to show from who is signed in:
 /// sign in, onboarding, or the app.
 struct RootView: View {
-    // @State: the root owns the one Session. .environment() below hands it to every screen.
-    @State private var session = Session()
+    // @State: the root owns the one Session and the one SetupStore (the member's set-up).
+    // .environment() below hands them to every screen.
+    @State private var session: Session
+    @State private var setupStore: SetupStore
+
+    init() {
+        let session = Session()
+        _session = State(initialValue: session)
+        _setupStore = State(initialValue: SetupStore(session: session))
+    }
 
     // Whether the app is in front, in the background, or briefly covered.
     @Environment(\.scenePhase) private var scenePhase
@@ -22,13 +30,14 @@ struct RootView: View {
                 SignInFlow()
             case .signedIn(let member):
                 if member.status == .onboarding {
-                    OnboardingPlaceholderView(member: member)
+                    OnboardingFlow(member: member)
                 } else {
                     HomePlaceholderView(member: member)
                 }
             }
         }
         .environment(session)
+        .environment(setupStore)
         .task {
             await session.start()
         }

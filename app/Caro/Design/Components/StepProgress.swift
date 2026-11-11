@@ -12,16 +12,54 @@ struct StepProgress: View {
                 .caroLabelStyle()
                 .frame(height: 32)
 
-            HStack(spacing: 4) {
-                ForEach(1...total, id: \.self) { segment in
-                    Rectangle()
-                        .fill(segment <= step ? Color.ink : Color.hairline)
-                        .frame(height: 2)
-                }
+            StepSegments(step: step, total: total)
+        }
+    }
+}
+
+/// The progress line on its own, for screens where "Step N of 6" sits in the navigation bar,
+/// next to the back arrow (screens 02 to 05).
+struct StepSegments: View {
+    let step: Int
+    var total = 6
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(1...total, id: \.self) { segment in
+                Rectangle()
+                    .fill(segment <= step ? Color.ink : Color.hairline)
+                    .frame(height: 2)
             }
-            .accessibilityHidden(true)
         }
         .padding(.horizontal, CaroLayout.pageMargin)
+        .accessibilityHidden(true)
+    }
+}
+
+extension View {
+    /// The top of an onboarding step: "Step N of 6" in the navigation bar and the progress line
+    /// under it. With no step (the same screen in Settings), neither shows.
+    func onboardingStep(_ step: Int?) -> some View {
+        self
+            .toolbar {
+                if let step {
+                    ToolbarItem(placement: .principal) {
+                        Text("Step \(step) of 6")
+                            .caroLabelStyle()
+                    }
+                }
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if let step {
+                    StepSegments(step: step)
+                        .padding(.top, 6)
+                        .padding(.bottom, 4)
+                        .background(Color.paper)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.paper, for: .navigationBar)
+            .background(Color.paper)
     }
 }
 

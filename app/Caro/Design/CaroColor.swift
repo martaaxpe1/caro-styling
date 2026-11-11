@@ -14,9 +14,21 @@ extension Color {
     static let terracotta = Color(hex: 0x9A5E48)  // Missing pieces, Find it, warnings, small links
     static let onInk = Color(hex: 0xF7F2E9)       // Text on ink buttons and chips
 
-    // Season swatches, decorative only.
+    // Season swatches, decorative only. Two seasons use terracotta and sand (screen 03).
+    // Four seasons add brown and indigo, from Sara Caro's palette (design/tokens.json, brandPalette).
     static let seasonTerracotta = Color(hex: 0xB4765F)
     static let seasonSand = Color(hex: 0xD9B986)
+    static let seasonBrown = Color(hex: 0x917057)
+    static let seasonIndigo = Color(hex: 0x3C5387)
+
+    /// The swatch for a season, by its place in the year. Spring sand, summer terracotta,
+    /// autumn brown, winter indigo; with two seasons, terracotta then sand.
+    static func season(_ index: Int, of count: Int) -> Color {
+        let swatches: [Color] = count == 4
+            ? [.seasonSand, .seasonTerracotta, .seasonBrown, .seasonIndigo]
+            : [.seasonTerracotta, .seasonSand]
+        return swatches.indices.contains(index) ? swatches[index] : .outline
+    }
 
     /// Makes a colour from a hex value, written like in the design: 0xF7F2E9.
     init(hex: UInt32) {

@@ -82,6 +82,92 @@ struct APIClient {
         let _: AdminMemberResponse = try await send("POST", "admin/members/\(memberID)/restore")
     }
 
+    // MARK: Set-up (onboarding steps 1 to 5, and Settings)
+
+    /// Calls that ask Claude or a weather service can take a while the first time.
+    private static let slowTimeout: TimeInterval = 75
+
+    /// GET /me/setup: everything the five steps and Settings show.
+    func setup() async throws -> Setup {
+        try await send("GET", "me/setup")
+    }
+
+    /// PUT /me/name: step 1.
+    func saveName(_ name: String) async throws -> Setup {
+        try await send("PUT", "me/name", body: ["name": name])
+    }
+
+    /// GET /places?q=: city search for step 2.
+    func searchCities(_ query: String) async throws -> [City] {
+        let response: CitiesResponse = try await send("GET", "places", query: [URLQueryItem(name: "q", value: query)])
+        return response.cities
+    }
+
+    /// PUT /me/place: step 2. In Settings, a new city goes with its new year.
+    func savePlace(_ choice: PlaceChoice, seasons: [Season]? = nil) async throws -> Setup {
+        let body = PlaceBody(
+            cityId: choice.city.id,
+            currency: choice.currency,
+            dateOrder: choice.dateOrder,
+            sizeSystem: choice.sizeSystem,
+            seasons: seasons
+        )
+        return try await send("PUT", "me/place", body: body)
+    }
+
+    /// GET /me/year: the typical weather and the proposed years, for the member's city
+    /// or for a city they are moving to.
+    func year(cityID: Int? = nil) async throws -> YearProposal {
+        let query = cityID.map { [URLQueryItem(name: "cityId", value: String($0))] } ?? []
+        return try await send("GET", "me/year", query: query, timeout: Self.slowTimeout)
+    }
+
+    /// PUT /me/year: step 3.
+    func saveYear(_ seasons: [Season]) async throws -> Setup {
+        try await send("PUT", "me/year", body: ["seasons": seasons])
+    }
+
+    /// PUT /me/sections: step 4, saved on each tap.
+    func saveSections(_ sections: Sections) async throws -> Setup {
+        try await send("PUT", "me/sections", body: sections)
+    }
+
+    /// POST /me/onboarding/stores-done: Continue on step 4, with at least one section.
+    func storesDone() async throws -> Setup {
+        try await send("POST", "me/onboarding/stores-done")
+    }
+
+    /// POST /me/onboarding/skip-stores: Skip for now.
+    func skipStores() async throws -> Setup {
+        try await send("POST", "me/onboarding/skip-stores")
+    }
+
+    /// POST /me/onboarding/finish: after the occasions, set-up is done.
+    func finishOnboarding() async throws -> Setup {
+        try await send("POST", "me/onboarding/finish")
+    }
+
+    /// POST /me/stores/find: Caro looks the store up for the member's country (an AI action).
+    func findStore(name: String) async throws -> FoundStore {
+        let response: FoundStoreResponse = try await send("POST", "me/stores/find", body: ["name": name], timeout: Self.slowTimeout)
+        return response.store
+    }
+
+    /// POST /me/stores: add what was found, after the member confirms it.
+    func addStore(_ store: FoundStore) async throws -> Setup {
+        try await send("POST", "me/stores", body: store)
+    }
+
+    /// PUT /me/stores/:id: the store's site for the member's new country.
+    func replaceWebsite(of storeID: Int, with found: FoundStore) async throws -> Setup {
+        try await send("PUT", "me/stores/\(storeID)", body: found)
+    }
+
+    /// DELETE /me/stores/:id
+    func removeStore(id: Int) async throws -> Setup {
+        try await send("DELETE", "me/stores/\(id)")
+    }
+
     // MARK: Sending
 
     private struct OK: Decodable {}
@@ -89,6 +175,17 @@ struct APIClient {
     private struct MemberResponse: Decodable { let member: Member }
     private struct InvitationResponse: Decodable { let invitation: Invitation }
     private struct AdminMemberResponse: Decodable { let member: AdminMember }
+    private struct CitiesResponse: Decodable { let cities: [City] }
+    private struct FoundStoreResponse: Decodable { let store: FoundStore }
+
+    private struct PlaceBody: Encodable {
+        let cityId: Int
+        let currency: String
+        let dateOrder: DateOrder
+        let sizeSystem: SizeSystem
+        /// Left out when empty, so the server keeps the year as it is.
+        let seasons: [Season]?
+    }
 
     /// The server's dates are text like 2026-11-10T21:30:00Z.
     private static let decoder: JSONDecoder = {
@@ -98,10 +195,21 @@ struct APIClient {
     }()
 
     /// Sends one request and turns the answer into `Response`, or throws an APIError.
-    private func send<Response: Decodable>(_ method: String, _ path: String, body: [String: String]? = nil) async throws -> Response {
-        var request = URLRequest(url: baseURL.appending(path: path))
+    /// `body` is any data that can be written as JSON; `query` goes after the ? in the address.
+    private func send<Response: Decodable>(
+        _ method: String,
+        _ path: String,
+        body: (any Encodable)? = nil,
+        query: [URLQueryItem] = [],
+        timeout: TimeInterval = 10
+    ) async throws -> Response {
+        var url = baseURL.appending(path: path)
+        if !query.isEmpty {
+            url.append(queryItems: query)
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = method
-        request.timeoutInterval = 10
+        request.timeoutInterval = timeout
 
         if let token = Keychain.readToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")

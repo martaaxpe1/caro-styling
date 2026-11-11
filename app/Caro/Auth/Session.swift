@@ -51,6 +51,12 @@ final class Session {
         }
     }
 
+    /// After a save that changed the member, like a new name or set-up done.
+    func update(_ member: Member) {
+        guard case .signedIn = state else { return }
+        state = .signedIn(member)
+    }
+
     /// After a right code: the token goes into the Keychain, so it is remembered.
     func signedIn(token: String, member: Member) {
         Keychain.saveToken(token)
