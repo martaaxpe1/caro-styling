@@ -85,6 +85,10 @@ final class WardrobeStore {
     /// Set by "Style your first look" on screen 09: the app opens on Looks.
     var openLooksNext = false
 
+    /// A look to show next, on Looks: the one just saved from a photo, or the one a new look
+    /// turned out to be the same as. MainView opens it and sets this back to nil.
+    var lookToOpen: Int?
+
     // MARK: The review (screen 07)
 
     /// The fixed lists for the detail pickers. Loaded once.

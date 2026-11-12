@@ -3,7 +3,10 @@ import SwiftUI
 /// S8, a look (to design, in the style of the piece page): "No. 12" with its source, the flat lay
 /// large, its occasions and seasons, and its pieces as numbered credits that open each piece.
 /// Edit opens the styling table with the look on it; Delete is a small link at the bottom and
-/// asks first. Photos of you wearing it come with T9 (looks from a photo).
+/// asks first.
+///
+/// T9: "Your photos", the photos of you wearing it, in a row under the flat lay. Tap one to see
+/// it large, with Remove photo (asks first). Add a photo takes or chooses one; no AI.
 struct LookView: View {
     let lookID: Int
 
@@ -14,6 +17,8 @@ struct LookView: View {
     @State private var editing: StyleStart?
     @State private var confirmingDelete = false
     @State private var working = false
+    @State private var askingForPhoto = false
+    @State private var shownPhoto: Look.Photo?
 
     var body: some View {
         Group {
@@ -49,13 +54,21 @@ struct LookView: View {
                 Task { await load() }
             }
         }
+        .lookPhotoSource(isAsking: $askingForPhoto, title: "A photo of you wearing it") { data in
+            Task { await addPhoto(data) }
+        }
+        .fullScreenCover(item: $shownPhoto) { photo in
+            LookPhotoViewer(photo: photo, number: page?.look.number ?? 0) {
+                Task { await removePhoto(photo) }
+            }
+        }
         .alert("Delete look No. \(page?.look.number ?? 0)?", isPresented: $confirmingDelete) {
             Button("Delete", role: .destructive) {
                 Task { await delete() }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Its pieces stay in your edit.")
+            Text(page?.look.photos.isEmpty == false ? "Its pieces stay in your edit. Your photos of it are deleted." : "Its pieces stay in your edit.")
         }
     }
 
@@ -78,6 +91,9 @@ struct LookView: View {
                     .padding(.top, 14)
                     .accessibilityElement()
                     .accessibilityLabel("Look \(look.number): " + look.pieces.compactMap(\.name).joined(separator: ", "))
+
+                photos(look)
+                    .padding(.top, 18)
 
                 VStack(spacing: 0) {
                     DetailRow(label: "Occasions", value: names(look.occasions, in: page.occasions))
@@ -118,6 +134,54 @@ struct LookView: View {
             .padding(.horizontal, CaroLayout.pageMargin)
             .padding(.top, 10)
             .padding(.bottom, 24)
+        }
+    }
+
+    /// "Your photos": the photos of you wearing it, then a dashed spot to add one.
+    private func photos(_ look: Look) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Your photos")
+                .font(.caroSectionTitle)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(look.photos) { photo in
+                        Button {
+                            shownPhoto = photo
+                        } label: {
+                            LookPhotoImage(path: photo.thumb)
+                                .frame(width: 96, height: 128)
+                                .clipShape(RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Your photo wearing look \(look.number)")
+                    }
+                    Button {
+                        askingForPhoto = true
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: "plus")
+                                .iconFont(18, weight: .light)
+                                .accessibilityHidden(true)
+                            Text("Add a photo")
+                                .font(.caroMeta)
+                        }
+                        .foregroundStyle(Color.ink)
+                        .frame(width: 96, height: 128)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: CaroLayout.tileRadius)
+                                .strokeBorder(Color.emptySlot, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+                        )
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(working)
+                }
+            }
+            if working {
+                Text("Adding your photo")
+                    .font(.caroMeta)
+                    .foregroundStyle(Color.muted)
+            }
         }
     }
 
@@ -173,6 +237,28 @@ struct LookView: View {
         }
     }
 
+    private func addPhoto(_ data: Data) async {
+        working = true
+        defer { working = false }
+        do {
+            let look = try await store.addLookPhoto(lookID, photo: data)
+            if let page { self.page = LookPage(look: look, occasions: page.occasions, seasons: page.seasons) }
+            errorMessage = nil
+        } catch {
+            errorMessage = store.message(for: error)
+        }
+    }
+
+    private func removePhoto(_ photo: Look.Photo) async {
+        do {
+            let look = try await store.removeLookPhoto(lookID, photoID: photo.id)
+            if let page { self.page = LookPage(look: look, occasions: page.occasions, seasons: page.seasons) }
+            errorMessage = nil
+        } catch {
+            errorMessage = store.message(for: error)
+        }
+    }
+
     private func delete() async {
         working = true
         defer { working = false }
@@ -181,6 +267,83 @@ struct LookView: View {
             dismiss()
         } catch {
             errorMessage = store.message(for: error)
+        }
+    }
+}
+
+/// A photo of you wearing a look, filling its frame. Loaded with the session token.
+struct LookPhotoImage: View {
+    let path: String
+    var fill = true
+
+    @State private var image: UIImage?
+
+    var body: some View {
+        ZStack {
+            // The placeholder colour while it loads, in a thumbnail; nothing behind a large photo.
+            if fill { Color.photo }
+            if let image {
+                if fill {
+                    Image(uiImage: image).resizable().scaledToFill()
+                } else {
+                    Image(uiImage: image).resizable().scaledToFit()
+                }
+            }
+        }
+        .task(id: path) {
+            image = await ImageCache.shared.image(for: path)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// One photo large, on ink, with Done and Remove photo (asks first).
+private struct LookPhotoViewer: View {
+    let photo: Look.Photo
+    let number: Int
+    let remove: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var confirmingRemove = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button("Done") { dismiss() }
+                    .font(.text(15, weight: .medium, relativeTo: .body))
+                    .frame(minHeight: CaroLayout.minTouchTarget)
+                Spacer()
+                // The label style, in paper on ink.
+                Text("No. \(number)")
+                    .font(.caroLabel)
+                    .textCase(.uppercase)
+                    .tracking(11 * 0.16)
+                    .foregroundStyle(Color.onInk)
+                Spacer()
+                Button("Remove photo") { confirmingRemove = true }
+                    .font(.caroLink)
+                    .frame(minHeight: CaroLayout.minTouchTarget)
+            }
+            .foregroundStyle(Color.onInk)
+            .padding(.horizontal, CaroLayout.pageMargin)
+
+            LookPhotoImage(path: photo.photo, fill: false)
+                .background(Color.ink)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityElement()
+                .accessibilityLabel("Your photo wearing look \(number)")
+        }
+        .background(Color.ink.ignoresSafeArea())
+        // Light status bar text on ink.
+        .preferredColorScheme(.dark)
+        .alert("Remove this photo?", isPresented: $confirmingRemove) {
+            Button("Remove", role: .destructive) {
+                remove()
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The look stays.")
         }
     }
 }

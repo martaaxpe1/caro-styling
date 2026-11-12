@@ -68,6 +68,14 @@ struct Look: Decodable, Identifiable, Hashable {
         var hasCutout: Bool { images.cutout != nil }
     }
 
+    /// A photo of the member wearing the look (T9). Addresses on the server, fetched with the
+    /// session token like piece pictures.
+    struct Photo: Decodable, Identifiable, Hashable {
+        let id: Int
+        let photo: String
+        let thumb: String
+    }
+
     let id: Int
     let number: Int
     let source: Source
@@ -76,6 +84,17 @@ struct Look: Decodable, Identifiable, Hashable {
     let seasons: [Int]
     /// In slot order: outer layer, top, bottom, dress, shoes, bag, accessories.
     let pieces: [LookPiece]
+    /// Oldest first.
+    let photos: [Photo]
+
+    /// The same look rule (PRD section 8), as the server checks it: two looks are the same
+    /// when their outer layer, top, bottom or dress, and shoes are the same pieces. Bag and
+    /// accessories can change. Used on S9 to say so before saving; the server decides.
+    static let mainSlots: Set<String> = ["outer layer", "top", "bottom", "one-piece", "shoes"]
+
+    var mainPieces: Set<Int> {
+        Set(pieces.filter { Self.mainSlots.contains($0.slot) }.map(\.id))
+    }
 }
 
 /// GET /me/looks: the looks, newest first, with the member's occasions and seasons by name.
@@ -107,6 +126,36 @@ struct LookDraft: Encodable {
     var pieces: [Int]
     var occasions: [Int]
     var seasons: [Int]
+}
+
+/// POST /me/looks/spot: the member's own pieces Claude saw in the photo, best first.
+/// A sure piece comes ticked; a less sure one, or a second one for a slot, is asked about.
+struct SpottedLook: Decodable {
+    struct Spotted: Decodable, Identifiable {
+        let piece: Piece
+        let certainty: String
+        let ticked: Bool
+
+        var id: Int { piece.id }
+    }
+
+    /// Something in the photo that is not in the edit, like "Blue straight jeans".
+    struct Other: Decodable, Hashable {
+        let kind: String?
+        let description: String
+    }
+
+    let spotted: [Spotted]
+    let notInWardrobe: [Other]
+    /// clear, partly hidden, too dark or blurry.
+    let photoQuality: String?
+}
+
+/// What saving a look from a photo answers: the look, and whether the photo went to a look
+/// the member already had.
+struct PhotoLookSaved: Decodable {
+    let look: Look
+    let addedTo: Bool
 }
 
 /// Words for occasions in a sentence: "A look for the office".

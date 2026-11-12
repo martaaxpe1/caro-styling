@@ -8,6 +8,8 @@ enum APIError: Error {
     case signedOut
     /// The server said no, with its own words, like "That code is not right. 4 tries left."
     case refused(String)
+    /// The same look rule: "You already have this look: No. 12.", with that look.
+    case sameLook(String, lookID: Int, number: Int)
 
     var message: String {
         switch self {
@@ -19,7 +21,7 @@ enum APIError: Error {
             #endif
         case .signedOut:
             "You are signed out. Sign in again."
-        case .refused(let message):
+        case .refused(let message), .sameLook(let message, _, _):
             message
         }
     }
@@ -328,6 +330,34 @@ struct APIClient {
         let _: OK = try await send("DELETE", "me/looks/\(lookID)")
     }
 
+    // MARK: Looks from a photo (S9) and a look's photos (S8)
+
+    /// POST /me/looks/spot: which of your pieces Claude sees in the photo. Nothing is stored.
+    /// Claude looks at the whole wardrobe, so this can take half a minute or more.
+    func spotPieces(photo: Data) async throws -> SpottedLook {
+        try await send("POST", "me/looks/spot", body: LookPhotoBody(photo: photo.base64EncodedString()), timeout: 150)
+    }
+
+    /// POST /me/looks/photo: saves the look with its photo, or adds the photo to the same look.
+    func saveLookFromPhoto(_ draft: LookDraft, photo: Data) async throws -> PhotoLookSaved {
+        let body = PhotoLookBody(photo: photo.base64EncodedString(), pieces: draft.pieces, occasions: draft.occasions, seasons: draft.seasons)
+        return try await send("POST", "me/looks/photo", body: body, timeout: Self.uploadTimeout)
+    }
+
+    /// POST /me/looks/:id/photos: adds a photo of you wearing it.
+    func addLookPhoto(_ lookID: Int, photo: Data) async throws -> Look {
+        let response: LookResponse = try await send(
+            "POST", "me/looks/\(lookID)/photos", body: LookPhotoBody(photo: photo.base64EncodedString()), timeout: Self.uploadTimeout
+        )
+        return response.look
+    }
+
+    /// DELETE /me/looks/:id/photos/:photoID: removes the photo and its files.
+    func removeLookPhoto(_ lookID: Int, photoID: Int) async throws -> Look {
+        let response: LookResponse = try await send("DELETE", "me/looks/\(lookID)/photos/\(photoID)")
+        return response.look
+    }
+
     /// A piece's picture, from an address the server gave, like /me/pieces/12/thumb?v=ab12.
     /// A plain request with the session token: the photos are private.
     func imageRequest(for path: String) -> URLRequest? {
@@ -353,6 +383,19 @@ struct APIClient {
     private struct PieceResponse: Decodable { let piece: Piece }
     private struct LookResponse: Decodable { let look: Look }
     private struct RemovedResponse: Decodable { let progress: WardrobeProgress }
+    private struct LookPhotoBody: Encodable { let photo: String }
+    private struct PhotoLookBody: Encodable {
+        let photo: String
+        let pieces: [Int]
+        let occasions: [Int]
+        let seasons: [Int]
+    }
+    private struct SameLookResponse: Decodable {
+        struct Match: Decodable { let id: Int; let number: Int }
+        let error: String
+        let look: Match
+    }
+
     private struct PhotoBody: Encodable {
         let photo: String
         let cutout: String?
@@ -419,6 +462,9 @@ struct APIClient {
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         if status == 401 {
             throw APIError.signedOut
+        }
+        if status == 409, let same = try? Self.decoder.decode(SameLookResponse.self, from: data) {
+            throw APIError.sameLook(same.error, lookID: same.look.id, number: same.look.number)
         }
         guard (200..<300).contains(status) else {
             let message = (try? Self.decoder.decode(ErrorResponse.self, from: data))?.error

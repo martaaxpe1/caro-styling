@@ -10,6 +10,9 @@ struct Masthead: View {
     var add: (() -> Void)?
     /// What the plus says to VoiceOver: "Add pieces" on the edit, "Style a look" on Looks.
     var addLabel = "Add pieces"
+    /// When there is more than one way to add, the plus opens a menu of them instead (Looks:
+    /// Style a look, From a photo).
+    var addChoices: [(title: String, systemImage: String, action: () -> Void)] = []
     let openProfile: () -> Void
 
     var body: some View {
@@ -26,12 +29,19 @@ struct Masthead: View {
 
                     Spacer()
 
-                    if let add {
+                    if !addChoices.isEmpty {
+                        Menu {
+                            ForEach(addChoices.indices, id: \.self) { index in
+                                Button(addChoices[index].title, systemImage: addChoices[index].systemImage, action: addChoices[index].action)
+                            }
+                        } label: {
+                            plus
+                        }
+                        .accessibilityLabel(addLabel)
+                        .accessibilityShowsLargeContentViewer()
+                    } else if let add {
                         Button(action: add) {
-                            Image(systemName: "plus")
-                                .iconFont(20, weight: .light)
-                                .frame(width: 44, height: 44, alignment: .trailing)
-                                .contentShape(Rectangle())
+                            plus
                         }
                         .accessibilityLabel(addLabel)
                         .accessibilityShowsLargeContentViewer()
@@ -63,6 +73,13 @@ struct Masthead: View {
         }
         .foregroundStyle(Color.ink)
         .padding(.horizontal, CaroLayout.pageMargin)
+    }
+
+    private var plus: some View {
+        Image(systemName: "plus")
+            .iconFont(20, weight: .light)
+            .frame(width: 44, height: 44, alignment: .trailing)
+            .contentShape(Rectangle())
     }
 }
 

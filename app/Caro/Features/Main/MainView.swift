@@ -61,6 +61,16 @@ struct MainView: View {
             editPath = NavigationPath()
             tab = .looks
         }
+        // A look saved from a photo, or "Open No. 12" after the same look rule: show its page.
+        .onChange(of: store.lookToOpen, initial: true) { _, lookID in
+            guard let lookID else { return }
+            store.lookToOpen = nil
+            editPath = NavigationPath()
+            tab = .looks
+            var path = NavigationPath()
+            path.append(WardrobeRoute.look(id: lookID))
+            looksPath = path
+        }
     }
 
     @ViewBuilder

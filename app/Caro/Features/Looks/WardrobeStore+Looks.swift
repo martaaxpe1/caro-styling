@@ -27,4 +27,26 @@ extension WardrobeStore {
         try await api.deleteLook(lookID)
         Task { await load() }
     }
+
+    // MARK: Looks from a photo (T9)
+
+    /// Which of the member's pieces Claude sees in the photo. One AI action.
+    func spotPieces(photo: Data) async throws -> SpottedLook {
+        try await api.spotPieces(photo: photo)
+    }
+
+    /// Saves the look with its photo, or adds the photo to the look with the same main pieces.
+    func saveLookFromPhoto(_ draft: LookDraft, photo: Data) async throws -> PhotoLookSaved {
+        let saved = try await api.saveLookFromPhoto(draft, photo: photo)
+        Task { await load() }
+        return saved
+    }
+
+    func addLookPhoto(_ lookID: Int, photo: Data) async throws -> Look {
+        try await api.addLookPhoto(lookID, photo: photo)
+    }
+
+    func removeLookPhoto(_ lookID: Int, photoID: Int) async throws -> Look {
+        try await api.removeLookPhoto(lookID, photoID: photoID)
+    }
 }

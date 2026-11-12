@@ -40,6 +40,8 @@ struct StyleLookView: View {
     @State private var loadError: String?
     @State private var saveError: String?
     @State private var saving = false
+    /// The same look rule: the look this one would copy, to open it instead.
+    @State private var sameLookID: Int?
 
     private static let rail: [Slot] = [.outerLayer, .top, .bottom, .onePiece, .shoes, .bag, .accessories]
 
@@ -120,10 +122,21 @@ struct StyleLookView: View {
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 6) {
                 if let saveError {
-                    Text(saveError)
-                        .font(.caroNote)
-                        .foregroundStyle(Color.terracotta)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(saveError)
+                            .font(.caroNote)
+                            .foregroundStyle(Color.terracotta)
+                        Spacer(minLength: 8)
+                        if let sameLookID {
+                            Button("Open it") {
+                                store.lookToOpen = sameLookID
+                                dismiss()
+                            }
+                            .font(.caroLink)
+                            .underline()
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 Button(saving ? "Saving" : "Save look") {
                     Task { await save() }
@@ -338,6 +351,7 @@ struct StyleLookView: View {
     /// takes the bottom's place, and a bottom the dress's.
     private func toggle(_ piece: Piece) {
         saveError = nil
+        sameLookID = nil
         if let index = picked.firstIndex(of: piece.id) {
             picked.remove(at: index)
             return
@@ -409,6 +423,9 @@ struct StyleLookView: View {
             let look = try await store.saveLook(draft, lookID: lookID)
             onSaved(look)
             dismiss()
+        } catch APIError.sameLook(let message, let id, _) {
+            saveError = message
+            sameLookID = id
         } catch {
             saveError = store.message(for: error)
         }

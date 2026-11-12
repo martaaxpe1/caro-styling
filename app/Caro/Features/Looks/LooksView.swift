@@ -4,6 +4,8 @@ import SwiftUI
 /// as a row of words (All first), Style a look, and the saved looks as flat lays, each with its
 /// number, occasion and source.
 ///
+/// T9 adds From a photo: a second outlined card under Style a look, and the plus asks which.
+///
 /// Added to the design: "Your looks will show here." before the first look, and "No looks for
 /// the office yet." for an occasion with none, each in a dashed empty spot as tall as a look,
 /// like an open slot on the styling table.
@@ -17,6 +19,9 @@ struct LooksView: View {
     @State private var occasion: Int?
     @State private var styling: StyleStart?
     @State private var showingSettings = false
+    /// From a photo: asking Take a photo or Choose from library, then the photo for S9.
+    @State private var askingForPhoto = false
+    @State private var lookPhoto: LookPhoto?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,7 +30,11 @@ struct LooksView: View {
                 dateline: "Looks",
                 datelineRight: page.map { countText($0.looks.count, "look", "looks") } ?? "",
                 add: { styling = .empty },
-                addLabel: "Style a look"
+                addLabel: "Add a look",
+                addChoices: [
+                    (title: "Style a look", systemImage: "square.grid.2x2", action: { styling = .empty }),
+                    (title: "From a photo", systemImage: "camera", action: { askingForPhoto = true }),
+                ]
             ) {
                 showingSettings = true
             }
@@ -38,8 +47,15 @@ struct LooksView: View {
                             .padding(.top, 18)
                     }
 
-                    styleALook
-                        .padding(.top, 18)
+                    VStack(spacing: 10) {
+                        card("Style a look", "From scratch, or start from a piece", systemImage: "arrow.right") {
+                            styling = .empty
+                        }
+                        card("From a photo", "You wearing it, Caro finds your pieces", systemImage: "camera") {
+                            askingForPhoto = true
+                        }
+                    }
+                    .padding(.top, 18)
 
                     if let page {
                         looks(page)
@@ -64,6 +80,12 @@ struct LooksView: View {
             StyleLookView(start: start) { _ in
                 Task { await load() }
             }
+        }
+        .fullScreenCover(item: $lookPhoto) { photo in
+            LookFromPhotoView(photo: photo.data)
+        }
+        .lookPhotoSource(isAsking: $askingForPhoto, title: "A photo of you wearing the look") { data in
+            lookPhoto = LookPhoto(data: data)
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView(member: member)
@@ -106,21 +128,19 @@ struct LooksView: View {
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
-    /// The outlined card: "Style a look", "From scratch, or start from a piece".
-    private var styleALook: some View {
-        Button {
-            styling = .empty
-        } label: {
+    /// An outlined card: "Style a look", "From scratch, or start from a piece"; "From a photo".
+    private func card(_ title: String, _ line: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Style a look")
+                    Text(title)
                         .font(.caroChapterName)
-                    Text("From scratch, or start from a piece")
+                    Text(line)
                         .font(.caroMeta)
                         .foregroundStyle(Color.muted)
                 }
                 Spacer()
-                Image(systemName: "arrow.right")
+                Image(systemName: systemImage)
                     .iconFont(18, weight: .light)
                     .accessibilityHidden(true)
             }
@@ -154,6 +174,12 @@ struct LooksView: View {
             errorMessage = store.message(for: error)
         }
     }
+}
+
+/// A photo chosen for S9, so it can open the full-screen cover.
+struct LookPhoto: Identifiable {
+    let id = UUID()
+    let data: Data
 }
 
 /// Looks in two columns, each a flat lay with "No. 34", its occasion and its source.

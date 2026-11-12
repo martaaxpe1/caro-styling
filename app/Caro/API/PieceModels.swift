@@ -303,6 +303,9 @@ struct SavedPiece: Decodable {
 
 /// Words for chapters: "dresses and skirts" shows as "Dresses and skirts", number 1 as "01".
 enum ChapterWords {
+    /// The seven chapters in the edit's order, 01 to 07 (PRD section 6).
+    static let order = ["outerwear", "knitwear", "tops", "trousers", "dresses and skirts", "shoes", "accessories"]
+
     static func title(_ name: String) -> String {
         name.prefix(1).uppercased() + name.dropFirst()
     }
