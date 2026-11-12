@@ -87,6 +87,12 @@ function imageBlock(base64) {
 // The message: the wardrobe first (the same for every photo of this member, so a second
 // photo soon after reads it from Anthropic's cache at a discount), then the photo.
 async function promptFor(wardrobe, photoBase64) {
+  return [...(await wardrobeBlocks(wardrobe)), imageBlock(photoBase64), { type: 'text', text: INSTRUCTIONS }];
+}
+
+// The wardrobe as Claude sees it: one line and one small picture per piece. Also used for
+// inspirations (T10), so both read the same cached wardrobe.
+async function wardrobeBlocks(wardrobe) {
   const blocks = [{ type: 'text', text: `These are the ${wardrobe.length} pieces in my wardrobe.` }];
   for (const entry of wardrobe) {
     blocks.push({ type: 'text', text: pieceLine(entry) });
@@ -94,8 +100,6 @@ async function promptFor(wardrobe, photoBase64) {
     if (thumb) blocks.push(imageBlock(thumb));
   }
   blocks[blocks.length - 1].cache_control = { type: 'ephemeral' };
-  blocks.push(imageBlock(photoBase64));
-  blocks.push({ type: 'text', text: INSTRUCTIONS });
   return blocks;
 }
 
@@ -208,4 +212,4 @@ async function spot(userId, photoBase64) {
   return checked(answer, wardrobe);
 }
 
-module.exports = { remote, spot, checked, wardrobeOf };
+module.exports = { SYSTEM, remote, spot, checked, wardrobeOf, wardrobeBlocks, imageBlock, shortName };

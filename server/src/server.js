@@ -3,6 +3,7 @@ const app = require('./app');
 const { startDailyCleanUp } = require('./jobs/clean-up');
 const { startNightlyBackup } = require('./jobs/backup');
 const pieceQueue = require('./jobs/piece-queue');
+const inspirationQueue = require('./jobs/inspiration-queue');
 
 const port = process.env.PORT || 3000;
 
@@ -37,4 +38,6 @@ app.listen(port, (err) => {
   if (process.env.NODE_ENV === 'production') startNightlyBackup();
   // Reads the details of pieces that were still waiting when the server last stopped.
   pieceQueue.start();
+  // And the inspirations still waiting for Claude.
+  inspirationQueue.start();
 });

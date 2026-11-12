@@ -82,21 +82,31 @@ async function savePiecePhotos(userId, { photo, cutout }) {
 // as JPEG, and a 600 pixel thumbnail as WebP. Like piece photos, no location data is kept.
 // Returns { photo, thumb }, relative to DATA_DIR.
 async function saveLookPhoto(userId, base64) {
-  const bytes = decode(base64);
-  if (!bytes) throw new PhotoError('The photo did not arrive. Try again.');
+  return savePhotoAndThumb(userId, decode(base64), 'look');
+}
+
+// Saves an inspiration's photo (T10), the same way as a look photo. `image` is base64 from
+// the app, or the bytes of an image the server fetched from a Pinterest link.
+async function saveInspirationPhoto(userId, image) {
+  return savePhotoAndThumb(userId, Buffer.isBuffer(image) ? image : decode(image), 'inspiration');
+}
+
+// A photo and its thumbnail, named "<random>-<label>.jpg" and "<random>-<label>-thumb.webp".
+async function savePhotoAndThumb(userId, bytes, label) {
+  if (!bytes || bytes.length === 0) throw new PhotoError('The photo did not arrive. Try again.');
   const name = crypto.randomBytes(12).toString('hex');
   const folder = memberFolder(userId);
   fs.mkdirSync(absolute(folder), { recursive: true });
   const files = {
-    photo: path.join(folder, `${name}-look.jpg`),
-    thumb: path.join(folder, `${name}-look-thumb.webp`),
+    photo: path.join(folder, `${name}-${label}.jpg`),
+    thumb: path.join(folder, `${name}-${label}-thumb.webp`),
   };
   try {
     await sharp(bytes).rotate().resize(fitInside(PHOTO_SIZE)).jpeg({ quality: 85, mozjpeg: true }).toFile(absolute(files.photo));
     await sharp(bytes).rotate().resize(fitInside(THUMB_SIZE)).webp({ quality: 80 }).toFile(absolute(files.thumb));
   } catch (error) {
     removeFiles(files);
-    console.error(`A look photo could not be saved: ${error.message}`);
+    console.error(`A ${label} photo could not be saved: ${error.message}`);
     throw new PhotoError('Caro could not read this photo. Try another one.');
   }
   return files;
@@ -167,6 +177,7 @@ module.exports = {
   absolute,
   savePiecePhotos,
   saveLookPhoto,
+  saveInspirationPhoto,
   sentPhotoForClaude,
   rotatePiecePhotos,
   photoForClaude,

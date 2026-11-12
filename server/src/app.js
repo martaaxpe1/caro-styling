@@ -9,14 +9,16 @@ const pieceRoutes = require('./routes/pieces');
 const wardrobeRoutes = require('./routes/wardrobe');
 const listRoutes = require('./routes/lists');
 const lookRoutes = require('./routes/looks');
+const inspirationRoutes = require('./routes/inspirations');
 
 const app = express();
 
 app.disable('x-powered-by');
 // A new piece carries its photo and cut-out (about 5 MB as base64), and a look from a photo
-// its photo, so those routes read larger requests. Everything else keeps the usual small limit.
+// its photo, and an inspiration its image, so those routes read larger requests. Everything else keeps the usual small limit.
 app.use('/me/pieces', express.json({ limit: '25mb' }));
 app.use('/me/looks', express.json({ limit: '25mb' }));
+app.use('/me/inspirations', express.json({ limit: '25mb' }));
 app.use(express.json());
 
 // Open to anyone.
@@ -28,6 +30,7 @@ app.use('/me/stores', storeRoutes);
 app.use('/me/pieces', pieceRoutes);
 app.use('/me/wardrobe', wardrobeRoutes);
 app.use('/me/looks', lookRoutes);
+app.use('/me/inspirations', inspirationRoutes);
 app.use('/me', meRoutes);
 app.use('/places', placeRoutes);
 app.use('/lists', listRoutes);

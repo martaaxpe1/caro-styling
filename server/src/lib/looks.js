@@ -184,7 +184,7 @@ function checkLook(body, userId) {
 
 // Saves a new look (lookId null) or changes one, in one go. A new look takes the number after
 // the highest the member ever had, so numbers are never reused. Returns the look's id.
-// source is 'built' or 'photo'; a look that is changed keeps the source it had.
+// source is 'built', 'photo' or 'inspired'; a look that is changed keeps the source it had.
 function saveLook(userId, lookId, details, source = 'built') {
   return db.transaction(() => {
     let id = lookId;
