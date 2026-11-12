@@ -17,7 +17,7 @@ const db = require('../src/db');
 const app = require('../src/app');
 const email = require('../src/lib/email');
 const { cleanUp } = require('../src/jobs/clean-up');
-const { now, iso, DAY } = require('../src/lib/today');
+const { now, iso, DAY, HOUR } = require('../src/lib/today');
 
 // The last code and invitation "sent" to each email.
 const codes = {};
@@ -130,6 +130,16 @@ test('at most 5 codes per email per hour', async () => {
   await askCode(ADMIN);
   const sixth = await askCode(ADMIN);
   assert.equal(sixth.status, 429);
+  db.prepare('DELETE FROM login_codes WHERE email = ?').run(ADMIN);
+});
+
+test('with DEV_TODAY, codes from other real days do not count towards the hour', async () => {
+  // DEV_TODAY keeps the date, so yesterday evening's codes look like later today.
+  const later = iso(new Date(now().getTime() + 3 * HOUR));
+  const add = db.prepare(`INSERT INTO login_codes (email, code_hash, created_at, expires_at, used_at) VALUES (?, 'x', ?, ?, ?)`);
+  for (let i = 0; i < 5; i++) add.run(ADMIN, later, later, later);
+  const asked = await askCode(ADMIN);
+  assert.equal(asked.status, 200, asked.body.error);
   db.prepare('DELETE FROM login_codes WHERE email = ?').run(ADMIN);
 });
 

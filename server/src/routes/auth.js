@@ -45,10 +45,12 @@ router.post('/code', (req, res) => {
     return res.status(403).json({ error: NO_ACCESS });
   }
 
+  // Codes from the last hour, up to now. With DEV_TODAY the date stays the same every day,
+  // so a code asked for on another real day can carry a later time of day: it does not count.
   const lastHour = db
-    .prepare('SELECT COUNT(*) FROM login_codes WHERE email = ? AND created_at > ?')
+    .prepare('SELECT COUNT(*) FROM login_codes WHERE email = ? AND created_at > ? AND created_at <= ?')
     .pluck()
-    .get(address, iso(new Date(at.getTime() - HOUR)));
+    .get(address, iso(new Date(at.getTime() - HOUR)), iso(at));
   if (lastHour >= CODES_PER_HOUR) {
     return res.status(429).json({ error: 'Too many codes for this email. Try again in an hour.' });
   }
