@@ -5,7 +5,8 @@ import SwiftUI
 /// number, occasion and source.
 ///
 /// Added to the design: "Your looks will show here." before the first look, and "No looks for
-/// the office yet." for an occasion with none.
+/// the office yet." for an occasion with none, each in a dashed empty spot as tall as a look,
+/// like an open slot on the styling table.
 struct LooksView: View {
     let member: Member
 
@@ -137,13 +138,9 @@ struct LooksView: View {
     private func looks(_ page: LooksPage) -> some View {
         let shown = page.looks.filter { occasion == nil || $0.occasions.contains(occasion!) }
         if page.looks.isEmpty {
-            Text("Your looks will show here.")
-                .font(.caroBody)
-                .foregroundStyle(Color.muted)
+            EmptyLookSpot(text: "Your looks will show here.")
         } else if shown.isEmpty, let name = page.occasions.first(where: { $0.id == occasion })?.name {
-            Text("No looks for \(OccasionWords.phrase(name)) yet.")
-                .font(.caroBody)
-                .foregroundStyle(Color.muted)
+            EmptyLookSpot(text: "No looks for \(OccasionWords.phrase(name)) yet.")
         } else {
             LooksGrid(looks: shown, occasions: page.occasions, preferredOccasion: occasion)
         }
@@ -161,6 +158,25 @@ struct LooksView: View {
 
 /// Looks in two columns, each a flat lay with "No. 34", its occasion and its source.
 /// Used on Looks and on "See all" from a piece.
+/// Where looks will be: one dashed spot as tall as a look in the grid (the emptySlot style in
+/// design/tokens.json), with the words inside it.
+private struct EmptyLookSpot: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.caroBody)
+            .foregroundStyle(Color.muted)
+            .multilineTextAlignment(.center)
+            .padding(16)
+            .frame(maxWidth: .infinity, minHeight: 170)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(Color.emptySlot, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+            )
+    }
+}
+
 struct LooksGrid: View {
     let looks: [Look]
     let occasions: [NamedItem]
