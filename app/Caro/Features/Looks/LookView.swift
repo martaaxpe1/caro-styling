@@ -103,11 +103,6 @@ struct LookView: View {
                     .accessibilityElement()
                     .accessibilityLabel("Look \(look.number): " + look.pieces.compactMap(\.name).joined(separator: ", "))
 
-                if let source = look.inspiration {
-                    inspiration(source)
-                        .padding(.top, 18)
-                }
-
                 photos(look)
                     .padding(.top, 18)
 
@@ -158,42 +153,6 @@ struct LookView: View {
         }
     }
 
-    /// "Your inspiration": the image this look was saved from, which opens your version, and its
-    /// link, which opens in Safari.
-    private func inspiration(_ source: Look.FromInspiration) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Your inspiration")
-                .font(.caroSectionTitle)
-            HStack(alignment: .top, spacing: 14) {
-                NavigationLink(value: WardrobeRoute.inspiration(id: source.id)) {
-                    LookPhotoImage(path: source.thumb)
-                        .frame(width: 96, height: 128)
-                        .clipShape(RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Your inspiration")
-                VStack(alignment: .leading, spacing: 6) {
-                    NavigationLink(value: WardrobeRoute.inspiration(id: source.id)) {
-                        Text("See your version")
-                            .font(.caroLink)
-                            .underline()
-                            .frame(minHeight: 32)
-                    }
-                    .buttonStyle(.plain)
-                    if let link = source.link, let url = URL(string: link) {
-                        Link(destination: url) {
-                            Text("Open on \(source.source ?? "the web")")
-                                .font(.caroLink)
-                                .underline()
-                                .frame(minHeight: 32)
-                        }
-                    }
-                }
-                .foregroundStyle(Color.ink)
-            }
-        }
-    }
-
     /// "To find": the inspiration's pieces still missing in this look, and their state.
     private func toFind(_ look: Look) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -224,13 +183,36 @@ struct LookView: View {
         }
     }
 
-    /// "Your photos": the photos of you wearing it, then a dashed spot to add one.
+    /// "Your photos": the photos of you wearing it, then a dashed spot to add one. A look saved
+    /// from an inspiration (T10) shows that inspiration first, in the same row ("Your inspiration
+    /// and photos"); tapping it opens it in Get the look.
     private func photos(_ look: Look) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Your photos")
+            Text(look.inspiration == nil ? "Your photos" : "Your inspiration and photos")
                 .font(.caroSectionTitle)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
+                    if let source = look.inspiration {
+                        Button {
+                            store.inspirationToOpen = source.id
+                        } label: {
+                            LookPhotoImage(path: source.thumb)
+                                .frame(width: 96, height: 128)
+                                .clipShape(RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
+                                .overlay(alignment: .bottomLeading) {
+                                    Text("Inspiration")
+                                        .font(.text(10, weight: .medium, relativeTo: .caption2))
+                                        .foregroundStyle(Color.ink)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 3)
+                                        .background(Color.paper.opacity(0.9), in: RoundedRectangle(cornerRadius: 2))
+                                        .padding(6)
+                                }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Your inspiration")
+                        .accessibilityHint("Opens it in Get the look")
+                    }
                     ForEach(look.photos) { photo in
                         Button {
                             shownPhoto = photo

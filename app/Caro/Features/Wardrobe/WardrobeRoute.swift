@@ -24,8 +24,6 @@ enum WardrobeRoute: Hashable {
     case look(id: Int)
     /// "See all" from a piece: every look it is in.
     case looksWith(pieceID: Int, name: String)
-    /// An inspiration and your version of it (screen 15), from a look or the overview (T10).
-    case inspiration(id: Int)
 }
 
 extension EnvironmentValues {

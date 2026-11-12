@@ -74,6 +74,15 @@ struct MainView: View {
             editPath = NavigationPath()
             tab = .looks
         }
+        // An inspiration from a look's page or the overview: show it in Get the look.
+        .onChange(of: store.inspirationToOpen, initial: true) { _, inspirationID in
+            guard let inspirationID else { return }
+            store.inspirationToOpen = nil
+            tab = .getTheLook
+            var path = NavigationPath()
+            path.append(GetTheLookRoute.inspiration(id: inspirationID))
+            getPath = path
+        }
         // A look saved from a photo, or "Open No. 12" after the same look rule: show its page.
         .onChange(of: store.lookToOpen, initial: true) { _, lookID in
             guard let lookID else { return }
@@ -123,8 +132,6 @@ struct WardrobeDestination: View {
             LookView(lookID: id)
         case .looksWith(let pieceID, let name):
             PieceLooksView(pieceID: pieceID, name: name)
-        case .inspiration(let id):
-            InspirationView(inspirationID: id)
         case .addPieces:
             EmptyView()
         }

@@ -3,7 +3,7 @@ import SwiftUI
 /// S7, the wardrobe overview (designed here, in the style of screens 10 and 11): what you have,
 /// as facts. Counts by chapter, main colour, season and occasion. Once there is a first look,
 /// the pieces in no look yet and the occasions with fewer than three looks. Never advice.
-/// T10: To find, the missing pieces you marked as key, each opening its inspiration.
+/// T10: To find, the missing pieces you marked as key, each opening its inspiration in Get the look.
 struct OverviewView: View {
     @Environment(WardrobeStore.self) private var store
     @State private var overview: Overview?
@@ -128,7 +128,9 @@ struct OverviewView: View {
         if let toFind = overview.toFind, !toFind.isEmpty {
             section("To find", note: countText(toFind.count, "piece", "pieces")) {
                 ForEach(toFind) { item in
-                    NavigationLink(value: WardrobeRoute.inspiration(id: item.inspiration)) {
+                    Button {
+                        store.inspirationToOpen = item.inspiration
+                    } label: {
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.description)

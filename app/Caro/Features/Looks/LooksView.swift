@@ -220,7 +220,7 @@ struct LooksGrid: View {
     var preferredOccasion: Int?
 
     var body: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 16) {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12, alignment: .top), GridItem(.flexible(), spacing: 12, alignment: .top)], spacing: 16) {
             ForEach(looks) { look in
                 NavigationLink(value: WardrobeRoute.look(id: look.id)) {
                     VStack(alignment: .leading, spacing: 6) {

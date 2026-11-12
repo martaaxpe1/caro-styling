@@ -169,7 +169,8 @@ struct GetTheLookView: View {
                     .font(.caroBody)
                     .foregroundStyle(Color.muted)
             } else {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), alignment: .leading, spacing: 14) {
+                // Each tile's words start right under its picture, with or without an occasion line.
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: 3), alignment: .leading, spacing: 14) {
                     ForEach(page.inspirations) { inspiration in
                         Button {
                             open(inspiration.id)

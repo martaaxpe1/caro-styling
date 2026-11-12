@@ -30,6 +30,10 @@ struct InspirationView: View {
     @State private var draft = ""
     /// A change or a save the server refused, shown in an alert.
     @State private var actionError: String?
+    /// Your version folds open and closed.
+    @State private var versionOpen = true
+    /// The piece whose pin was tapped, shown on the photo.
+    @State private var shownPin: Int?
 
     var body: some View {
         Group {
@@ -117,7 +121,8 @@ struct InspirationView: View {
                 InspirationPhoto(
                     path: inspiration.photo,
                     pins: inspiration.pieces.filter { !$0.removed },
-                    caption: inspiration.source.map { "Saved from \($0)" }
+                    caption: inspiration.source.map { "Saved from \($0)" },
+                    selected: $shownPin
                 )
                 .padding(.top, 4)
 
@@ -131,6 +136,7 @@ struct InspirationView: View {
                     }
                     details(inspiration, table)
                         .padding(.top, 22)
+                    takenOut(inspiration)
 
                     Button("Delete inspiration") { confirmingDelete = true }
                         .font(.caroLink)
@@ -173,21 +179,36 @@ struct InspirationView: View {
         }
     }
 
-    /// "Your *version*", "4 of 5 from your wardrobe", and the credits.
+    /// "Your *version*", "4 of 5 from your wardrobe", and the credits. The title folds the
+    /// credits open and closed.
     @ViewBuilder
     private func version(_ inspiration: Inspiration) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text("Your \(Text("version").italic())")
-                .font(.display(28, relativeTo: .title))
-                .caroTitleTracking()
-            Spacer(minLength: 8)
-            Text("\(inspiration.owned) of \(inspiration.total) from your wardrobe")
-                .font(.caroMeta)
-                .foregroundStyle(Color.muted)
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) { versionOpen.toggle() }
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Your \(Text("version").italic())")
+                    .font(.display(28, relativeTo: .title))
+                    .caroTitleTracking()
+                Image(systemName: "chevron.down")
+                    .iconFont(14, weight: .light)
+                    .rotationEffect(.degrees(versionOpen ? 0 : -90))
+                    .accessibilityHidden(true)
+                Spacer(minLength: 8)
+                Text("\(inspiration.owned) of \(inspiration.total) from your wardrobe")
+                    .font(.caroMeta)
+                    .foregroundStyle(Color.muted)
+            }
+            .foregroundStyle(Color.ink)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityHint(versionOpen ? "Folds the pieces away" : "Shows the pieces")
 
         let kept = inspiration.pieces.filter { !$0.removed }
-        if inspiration.pieces.isEmpty {
+        if !versionOpen {
+            EmptyView()
+        } else if inspiration.pieces.isEmpty {
             Text("Caro found no pieces in this image.")
                 .font(.caroBody)
                 .foregroundStyle(Color.muted)
@@ -200,7 +221,11 @@ struct InspirationView: View {
             }
             .padding(.top, 12)
         }
+    }
 
+    /// "Taken out: grey blazer", with Put back. Under the details.
+    @ViewBuilder
+    private func takenOut(_ inspiration: Inspiration) -> some View {
         let removed = inspiration.pieces.filter(\.removed)
         if !removed.isEmpty {
             VStack(alignment: .leading, spacing: 0) {
@@ -219,20 +244,7 @@ struct InspirationView: View {
                     .frame(minHeight: CaroLayout.minTouchTarget)
                 }
             }
-            .padding(.top, 6)
-        }
-
-        if let look = inspiration.look, let number = look.number {
-            Button {
-                store.lookToOpen = look.id
-            } label: {
-                Text("Saved as No. \(number). \(Text("Open it").underline())")
-                    .font(.caroNote)
-                    .foregroundStyle(Color.ink)
-                    .frame(minHeight: CaroLayout.minTouchTarget)
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 6)
+            .padding(.top, 10)
         }
     }
 
@@ -365,9 +377,25 @@ struct InspirationView: View {
         .accessibilityHint(piece.key ? "Takes it off To find" : "Puts it on To find")
     }
 
-    /// Occasion, seasons, link and note.
+    /// Your look (once saved), occasion, seasons, link and note.
     private func details(_ inspiration: Inspiration, _ table: StylingTable) -> some View {
         VStack(spacing: 0) {
+            if let look = inspiration.look, let number = look.number {
+                DetailRow(label: "Your look") {
+                    Button {
+                        store.lookToOpen = look.id
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(inProgress(inspiration) ? "No. \(number) · In progress" : "No. \(number)")
+                                .foregroundStyle(Color.ink)
+                            Image(systemName: "chevron.right")
+                                .iconFont(12, weight: .light)
+                                .foregroundStyle(Color.muted)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                }
+            }
             DetailRow(label: "Occasion") {
                 Menu {
                     Picker("Occasion", selection: Binding(
@@ -425,6 +453,11 @@ struct InspirationView: View {
         }
         .buttonStyle(.plain)
         .overlay(alignment: .bottom) { Rectangle().fill(Color.hairline).frame(height: 1) }
+    }
+
+    /// Pieces still missing in your version: the look is in progress.
+    private func inProgress(_ inspiration: Inspiration) -> Bool {
+        inspiration.pieces.contains { !$0.removed && $0.isMissing }
     }
 
     private func menuValue(_ text: String?) -> some View {

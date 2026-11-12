@@ -88,6 +88,8 @@ final class WardrobeStore {
     /// A look to show next, on Looks: the one just saved from a photo, or the one a new look
     /// turned out to be the same as. MainView opens it and sets this back to nil.
     var lookToOpen: Int?
+    /// An inspiration to show in Get the look (T10), from a look's page or the overview.
+    var inspirationToOpen: Int?
 
     // MARK: The review (screen 07)
 

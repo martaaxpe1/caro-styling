@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// The inspiration as large as the page allows, with a numbered ink pin on each piece Caro
+/// The inspiration as large as the page allows, with a numbered terracotta pin on each piece Caro
 /// described (screen 15). Claude gives each piece's centre in percent of the photo, so the pins
-/// are placed on the photo itself, wherever it sits in its frame.
+/// are placed on the photo itself, wherever it sits in its frame. Tapping a pin shows that piece
+/// in a small card on the photo; tapping it again, or the card, closes it.
 ///
 /// The whole photo is shown, never cropped, on the photo colour. A very tall photo is limited
 /// to a little taller than it is wide, so the credits stay near.
@@ -11,6 +12,8 @@ struct InspirationPhoto: View {
     let pins: [InspirationPiece]
     /// "Saved from Pinterest"
     var caption: String?
+    /// The number of the pin whose piece is shown.
+    @Binding var selected: Int?
 
     @State private var image: UIImage?
 
@@ -34,7 +37,7 @@ struct InspirationPhoto: View {
                         .frame(width: geo.size.width, height: geo.size.height)
                 }
                 ForEach(pins.filter { $0.pin != nil }) { piece in
-                    pin(piece.number)
+                    pin(piece)
                         .position(
                             x: clamp(frame.minX + frame.width * piece.pin!.x / 100, frame.minX + 14, frame.maxX - 14),
                             y: clamp(frame.minY + frame.height * piece.pin!.y / 100, frame.minY + 14, frame.maxY - 14)
@@ -43,7 +46,14 @@ struct InspirationPhoto: View {
             }
         }
         .aspectRatio(ratio, contentMode: .fit)
-        .overlay(alignment: .bottomLeading) {
+        .overlay(alignment: .bottom) {
+            if let number = selected, let piece = pins.first(where: { $0.number == number }) {
+                card(piece)
+                    .padding(12)
+                    .transition(.opacity)
+            }
+        }
+        .overlay(alignment: .topLeading) {
             if let caption {
                 Text(caption)
                     .font(.text(11, relativeTo: .caption))
@@ -62,13 +72,71 @@ struct InspirationPhoto: View {
         .accessibilityLabel("Inspiration photo with \(pins.count) numbered pieces")
     }
 
-    private func pin(_ number: Int) -> some View {
-        Text("\(number)")
-            .font(.text(12, weight: .semibold, relativeTo: .caption))
-            .foregroundStyle(Color.onInk)
-            .frame(width: 24, height: 24)
-            .background(Circle().fill(Color.ink))
-            .dynamicTypeSize(...DynamicTypeSize.xLarge)
+    /// A terracotta pin; the one shown is ink. 24 points, inside a 44 point tap area.
+    private func pin(_ piece: InspirationPiece) -> some View {
+        let on = selected == piece.number
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) { selected = on ? nil : piece.number }
+        } label: {
+            Text("\(piece.number)")
+                .font(.text(12, weight: .semibold, relativeTo: .caption))
+                .foregroundStyle(Color.onInk)
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(on ? Color.ink : Color.terracotta))
+                .overlay(Circle().strokeBorder(Color.paper, lineWidth: 1.5))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
+        .accessibilityLabel("Piece \(piece.number), \(piece.description)")
+    }
+
+    /// The piece of a tapped pin: theirs, and yours for it, or that it is missing.
+    private func card(_ piece: InspirationPiece) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) { selected = nil }
+        } label: {
+            HStack(spacing: 10) {
+                Text("\(piece.number)")
+                    .font(.display(18, relativeTo: .title3))
+                Group {
+                    if let own = piece.piece {
+                        PieceImage(path: own.images.thumb, isCutout: own.hasCutout)
+                            .padding(4)
+                            .background(Color.tile, in: RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
+                    } else {
+                        RoundedRectangle(cornerRadius: CaroLayout.tileRadius)
+                            .strokeBorder(Color.terracotta, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+                    }
+                }
+                .frame(width: 44, height: 44)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(piece.description)
+                        .font(.text(14, weight: .medium, relativeTo: .body))
+                        .foregroundStyle(piece.isMissing ? Color.terracotta : Color.ink)
+                    Text(cardLine(piece))
+                        .font(.caroMeta)
+                        .foregroundStyle(Color.muted)
+                }
+                .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+            }
+            .padding(10)
+            .background(Color.paper, in: RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
+            .shadow(color: Color.shadowBrown.opacity(0.18), radius: 8, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Closes it")
+    }
+
+    /// "Yours: navy wool trousers", "Close: black tank top", "Not in your wardrobe · key".
+    private func cardLine(_ piece: InspirationPiece) -> String {
+        guard let own = piece.piece?.name else {
+            return piece.key ? "Not in your wardrobe · key" : "Not in your wardrobe"
+        }
+        let name = own.prefix(1).lowercased() + own.dropFirst()
+        return piece.match == "close" ? "Close: \(name)" : "Yours: \(name)"
     }
 
     /// Where the photo sits inside its frame once scaled to fit.
