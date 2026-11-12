@@ -7,6 +7,9 @@ import UIKit
 /// photos were taken. Hiding the usual controls is Apple's way of taking several photos
 /// without leaving the camera. Each photo goes into the line at once, so cutting out and
 /// reading start while the member keeps photographing.
+///
+/// The camera is a UIKit screen, so its bar is built from plain UIKit buttons (CameraBarView),
+/// laid on the camera in a see-through layer that only covers the bottom.
 struct CameraView: UIViewControllerRepresentable {
     /// Retake takes one photo and closes; adding pieces takes as many as the member likes.
     var single = false
@@ -28,76 +31,85 @@ struct CameraView: UIViewControllerRepresentable {
 
         let coordinator = context.coordinator
         coordinator.picker = picker
-        let bar = UIHostingController(rootView: CameraBar(model: coordinator.model, single: single) {
-            coordinator.shutter()
-        } done: {
-            coordinator.finish()
-        })
-        bar.view.backgroundColor = .clear
-        bar.view.frame = UIScreen.main.bounds
+
+        // The camera stretches its overlay over the whole screen. So the overlay is a see-through
+        // layer, and Caro's bar sits in it, pinned to the bottom: the camera's picture shows above.
+        let screen = UIScreen.main.bounds
+        let overlay = PassThroughView(frame: screen)
+        overlay.backgroundColor = .clear
+        overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+        let bar = CameraBarView(
+            frame: CGRect(x: 0, y: screen.height - CameraBarView.height, width: screen.width, height: CameraBarView.height),
+            doneTitle: single ? "Cancel" : "Done"
+        )
+        bar.autoresizingMask = [.flexibleWidth, .flexibleTopMargin]
+        bar.doneButton.addAction(UIAction { [weak coordinator] _ in coordinator?.finish() }, for: .touchUpInside)
+        bar.shutterButton.addAction(UIAction { [weak coordinator] _ in coordinator?.shutter() }, for: .touchUpInside)
+        overlay.addSubview(bar)
         coordinator.bar = bar
-        // The bar's screen belongs to the camera's screen, so its buttons get the taps.
-        picker.addChild(bar)
-        picker.cameraOverlayView = bar.view
-        bar.didMove(toParent: picker)
+        picker.cameraOverlayView = overlay
 
         // The camera's picture is 4 by 3 at the top of the screen: move it down, between the
         // top of the screen and Caro's bar.
-        let screen = UIScreen.main.bounds
         let previewHeight = screen.width * 4 / 3
-        let space = screen.height - CameraBar.height - previewHeight
+        let space = screen.height - CameraBarView.height - previewHeight
         picker.cameraViewTransform = CGAffineTransform(translationX: 0, y: max(space / 2, 0))
         return picker
     }
 
     func updateUIViewController(_ picker: UIImagePickerController, context: Context) {}
 
-    /// What the bar shows: the photos taken so far, and whether the camera is busy with one.
-    @Observable
-    final class Model {
-        var count = 0
-        var last: UIImage?
-        var busy = false
-    }
-
     final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
         let parent: CameraView
-        let model = Model()
         weak var picker: UIImagePickerController?
-        var bar: UIHostingController<CameraBar>?
+        weak var bar: CameraBarView?
+        private var count = 0
+        private var last: UIImage?
+        private var busy = false {
+            didSet { showOnBar() }
+        }
 
         init(parent: CameraView) {
             self.parent = parent
         }
 
         func shutter() {
-            guard !model.busy else { return }
-            model.busy = true
+            guard !busy else { return }
+            busy = true
+            bar?.flashShutter()
             picker?.takePicture()
             // If the camera never answers (it happens when it is still starting), the shutter
             // works again after a moment.
             Task {
                 try? await Task.sleep(for: .seconds(3))
-                model.busy = false
+                busy = false
             }
         }
 
         func finish() {
-            parent.done(model.count)
+            parent.done(count)
+        }
+
+        private func showOnBar() {
+            bar?.update(count: count, last: last, busy: busy)
         }
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             guard let image = info[.originalImage] as? UIImage else {
-                model.busy = false
+                busy = false
                 return
             }
             Task {
                 // Made small at once, so many photos in a row do not fill the iPhone's memory.
                 let file = await PhotoPrep.photoFile(from: image)
-                model.busy = false
-                guard let file else { return }
-                model.count += 1
-                model.last = PhotoPrep.resized(image, maxSide: 200, opaque: true)
+                guard let file else {
+                    busy = false
+                    return
+                }
+                count += 1
+                last = PhotoPrep.resized(image, maxSide: 200, opaque: true)
+                busy = false
                 parent.took(file)
                 if parent.single {
                     finish()
@@ -111,75 +123,110 @@ struct CameraView: UIViewControllerRepresentable {
     }
 }
 
-/// Caro's camera bar: ink, with Done on the left, the shutter in the middle and the last photo
-/// with the count on the right.
-struct CameraBar: View {
+/// Caro's camera bar at the bottom of the camera: ink, with Done on the left, the shutter in the
+/// middle and the last photo with the count on the right.
+final class CameraBarView: UIView {
     static let height: CGFloat = 170
 
-    let model: CameraView.Model
-    let single: Bool
-    let shutter: () -> Void
-    let done: () -> Void
+    let doneButton = UIButton(type: .system)
+    let shutterButton = UIButton(type: .custom)
+    private let countLabel = UILabel()
+    private let lastPhoto = UIImageView()
 
-    @State private var flash = false
+    init(frame: CGRect, doneTitle: String) {
+        super.init(frame: frame)
+        backgroundColor = UIColor(Color.ink)
+        let onInk = UIColor(Color.onInk)
+        let font = Self.inter(15, weight: .medium)
 
-    var body: some View {
-        VStack(spacing: 0) {
-            // The camera's picture shows through here.
-            Color.clear
-                .overlay {
-                    Color.black.opacity(flash ? 0.6 : 0)
-                        .allowsHitTesting(false)
-                }
+        doneButton.setTitle(doneTitle, for: .normal)
+        doneButton.setTitleColor(onInk, for: .normal)
+        doneButton.titleLabel?.font = font
+        doneButton.contentHorizontalAlignment = .leading
 
-            HStack {
-                Button(single ? "Cancel" : "Done", action: done)
-                    .font(.caroButton)
-                    .foregroundStyle(Color.onInk)
-                    .frame(width: 80, height: 44, alignment: .leading)
+        // The shutter: a filled circle inside a ring.
+        let ring = CAShapeLayer()
+        ring.path = UIBezierPath(ovalIn: CGRect(x: 1.5, y: 1.5, width: 69, height: 69)).cgPath
+        ring.fillColor = UIColor.clear.cgColor
+        ring.strokeColor = onInk.cgColor
+        ring.lineWidth = 3
+        let dot = CAShapeLayer()
+        dot.path = UIBezierPath(ovalIn: CGRect(x: 7, y: 7, width: 58, height: 58)).cgPath
+        dot.fillColor = onInk.cgColor
+        shutterButton.layer.addSublayer(ring)
+        shutterButton.layer.addSublayer(dot)
+        shutterButton.accessibilityLabel = "Take photo"
 
-                Spacer()
+        countLabel.textColor = onInk
+        countLabel.font = font
+        lastPhoto.contentMode = .scaleAspectFill
+        lastPhoto.clipsToBounds = true
+        lastPhoto.layer.cornerRadius = CaroLayout.tileRadius
+        lastPhoto.isAccessibilityElement = false
 
-                Button {
-                    withAnimation(.easeOut(duration: 0.08)) { flash = true }
-                    withAnimation(.easeIn(duration: 0.25).delay(0.08)) { flash = false }
-                    shutter()
-                } label: {
-                    Circle()
-                        .fill(Color.onInk)
-                        .frame(width: 62, height: 62)
-                        .padding(5)
-                        .overlay(Circle().strokeBorder(Color.onInk, lineWidth: 3))
-                        .opacity(model.busy ? 0.5 : 1)
-                }
-                .disabled(model.busy)
-                .accessibilityLabel("Take photo")
-
-                Spacer()
-
-                HStack(spacing: 8) {
-                    if let last = model.last {
-                        Image(uiImage: last)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 40, height: 40)
-                            .clipShape(RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
-                    }
-                    if model.count > 0 {
-                        Text("\(model.count)")
-                            .font(.caroButton)
-                            .foregroundStyle(Color.onInk)
-                            .accessibilityLabel(model.count == 1 ? "1 photo taken" : "\(model.count) photos taken")
-                    }
-                }
-                .frame(width: 80, alignment: .trailing)
-            }
-            .padding(.horizontal, CaroLayout.pageMargin)
-            .padding(.bottom, 24)
-            .frame(height: Self.height)
-            .background(Color.ink)
+        for view in [doneButton, shutterButton, countLabel, lastPhoto] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(view)
         }
-        .ignoresSafeArea()
+        NSLayoutConstraint.activate([
+            shutterButton.centerXAnchor.constraint(equalTo: centerXAnchor),
+            shutterButton.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -12),
+            shutterButton.widthAnchor.constraint(equalToConstant: 72),
+            shutterButton.heightAnchor.constraint(equalToConstant: 72),
+
+            doneButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: CaroLayout.pageMargin),
+            doneButton.centerYAnchor.constraint(equalTo: shutterButton.centerYAnchor),
+            doneButton.heightAnchor.constraint(greaterThanOrEqualToConstant: CaroLayout.minTouchTarget),
+            doneButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 64),
+
+            countLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -CaroLayout.pageMargin),
+            countLabel.centerYAnchor.constraint(equalTo: shutterButton.centerYAnchor),
+            lastPhoto.trailingAnchor.constraint(equalTo: countLabel.leadingAnchor, constant: -8),
+            lastPhoto.centerYAnchor.constraint(equalTo: shutterButton.centerYAnchor),
+            lastPhoto.widthAnchor.constraint(equalToConstant: 40),
+            lastPhoto.heightAnchor.constraint(equalToConstant: 40),
+        ])
+        update(count: 0, last: nil, busy: false)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("CameraBarView is made in code.")
+    }
+
+    func update(count: Int, last: UIImage?, busy: Bool) {
+        countLabel.text = count > 0 ? "\(count)" : nil
+        countLabel.accessibilityLabel = count == 1 ? "1 photo taken" : "\(count) photos taken"
+        lastPhoto.image = last
+        lastPhoto.isHidden = last == nil
+        shutterButton.isEnabled = !busy
+        shutterButton.alpha = busy ? 0.5 : 1
+    }
+
+    /// A short press of the shutter, so the member sees the photo was taken.
+    func flashShutter() {
+        UIView.animate(withDuration: 0.08, animations: {
+            self.shutterButton.transform = CGAffineTransform(scaleX: 0.88, y: 0.88)
+        }, completion: { _ in
+            UIView.animate(withDuration: 0.15) { self.shutterButton.transform = .identity }
+        })
+    }
+
+    /// Inter, the app's text font, at a weight.
+    private static func inter(_ size: CGFloat, weight: UIFont.Weight) -> UIFont {
+        let descriptor = UIFontDescriptor(fontAttributes: [
+            .family: "Inter",
+            .traits: [UIFontDescriptor.TraitKey.weight: weight],
+        ])
+        return UIFont(descriptor: descriptor, size: size)
+    }
+}
+
+/// A see-through layer: touches on it go to whatever is under it; only its own content
+/// (Caro's bar) takes them.
+final class PassThroughView: UIView {
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        let hit = super.hitTest(point, with: event)
+        return hit === self ? nil : hit
     }
 }
 
