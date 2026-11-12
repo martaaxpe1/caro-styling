@@ -3,7 +3,9 @@ import SwiftUI
 /// The inspiration as large as the page allows, with a numbered terracotta pin on each piece Caro
 /// described (screen 15). Claude gives each piece's centre in percent of the photo, so the pins
 /// are placed on the photo itself, wherever it sits in its frame. Tapping a pin shows that piece
-/// in a small card on the photo; tapping it again, or the card, closes it.
+/// in a small see-through callout beside its pin, on the side with more room (the space beside
+/// the picture too), like on a map. The pins stay on top, so each can be tapped. Tapping the
+/// pin again, or the callout, closes it.
 ///
 /// The whole photo is shown, never cropped, on the photo colour. A very tall photo is limited
 /// to a little taller than it is wide, so the credits stay near.
@@ -36,23 +38,28 @@ struct InspirationPhoto: View {
                         .scaledToFit()
                         .frame(width: geo.size.width, height: geo.size.height)
                 }
+                // The callout first, so the pins stay on top of it and can always be tapped.
+                if let number = selected, let piece = pins.first(where: { $0.number == number }), piece.pin != nil {
+                    let at = point(piece, in: frame)
+                    let width = min(Self.calloutWidth, geo.size.width - 16)
+                    // On the side of the pin with more room: the space beside the picture too.
+                    let right = at.x < geo.size.width / 2
+                    card(piece)
+                        .frame(width: width)
+                        .position(
+                            x: clamp(right ? at.x + 20 + width / 2 : at.x - 20 - width / 2, width / 2 + 8, geo.size.width - width / 2 - 8),
+                            y: clamp(at.y, 44, geo.size.height - 44)
+                        )
+                        .transition(.opacity)
+                        .id(number)
+                }
                 ForEach(pins.filter { $0.pin != nil }) { piece in
                     pin(piece)
-                        .position(
-                            x: clamp(frame.minX + frame.width * piece.pin!.x / 100, frame.minX + 14, frame.maxX - 14),
-                            y: clamp(frame.minY + frame.height * piece.pin!.y / 100, frame.minY + 14, frame.maxY - 14)
-                        )
+                        .position(point(piece, in: frame))
                 }
             }
         }
         .aspectRatio(ratio, contentMode: .fit)
-        .overlay(alignment: .bottom) {
-            if let number = selected, let piece = pins.first(where: { $0.number == number }) {
-                card(piece)
-                    .padding(12)
-                    .transition(.opacity)
-            }
-        }
         .overlay(alignment: .topLeading) {
             if let caption {
                 Text(caption)
@@ -68,8 +75,19 @@ struct InspirationPhoto: View {
         .task(id: path) {
             image = await ImageCache.shared.image(for: path)
         }
-        .accessibilityElement()
+        .accessibilityElement(children: .contain)
         .accessibilityLabel("Inspiration photo with \(pins.count) numbered pieces")
+    }
+
+    private static let calloutWidth: CGFloat = 210
+
+    /// Where a piece's pin sits: its centre on the photo, kept inside the photo's edges.
+    private func point(_ piece: InspirationPiece, in frame: CGRect) -> CGPoint {
+        guard let pin = piece.pin else { return .zero }
+        return CGPoint(
+            x: clamp(frame.minX + frame.width * pin.x / 100, frame.minX + 14, frame.maxX - 14),
+            y: clamp(frame.minY + frame.height * pin.y / 100, frame.minY + 14, frame.maxY - 14)
+        )
     }
 
     /// A terracotta pin; the one shown is ink. 24 points, inside a 44 point tap area.
@@ -97,9 +115,7 @@ struct InspirationPhoto: View {
         Button {
             withAnimation(.easeInOut(duration: 0.15)) { selected = nil }
         } label: {
-            HStack(spacing: 10) {
-                Text("\(piece.number)")
-                    .font(.display(18, relativeTo: .title3))
+            HStack(spacing: 8) {
                 Group {
                     if let own = piece.piece {
                         PieceImage(path: own.images.thumb, isCutout: own.hasCutout)
@@ -110,10 +126,10 @@ struct InspirationPhoto: View {
                             .strokeBorder(Color.terracotta, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
                     }
                 }
-                .frame(width: 44, height: 44)
+                .frame(width: 36, height: 36)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(piece.description)
-                        .font(.text(14, weight: .medium, relativeTo: .body))
+                        .font(.text(13, weight: .medium, relativeTo: .subheadline))
                         .foregroundStyle(piece.isMissing ? Color.terracotta : Color.ink)
                     Text(cardLine(piece))
                         .font(.caroMeta)
@@ -122,8 +138,9 @@ struct InspirationPhoto: View {
                 .multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
             }
-            .padding(10)
-            .background(Color.paper, in: RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
+            .padding(8)
+            // See-through, so the photo stays visible around it.
+            .background(Color.paper.opacity(0.88), in: RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
             .shadow(color: Color.shadowBrown.opacity(0.18), radius: 8, x: 0, y: 4)
         }
         .buttonStyle(.plain)
