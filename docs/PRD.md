@@ -1,4 +1,4 @@
-# Caro Styling: Product requirements (v1.7, ready to build)
+# Caro Styling: Product requirements (v1.8, ready to build)
 
 The spec for building Caro Styling. It folds in every decision from the drafts (v0.2 to v0.10) and from the design round on the canvas. Where this file and the screens in `design/` disagree on layout, colour, type or copy, the screens win. Where they disagree on behaviour, this file wins. Changes are listed at the end.
 
@@ -68,13 +68,13 @@ Non-goals for version one:
 - **First testers.** Marta, in the Netherlands, and Sara, in Miami.
 
 Installing:
-- The app is shared through **TestFlight**, Apple's app for installing apps before they are in the App Store. Anyone with the TestFlight link can install it, but only invited emails can sign in.
+- The app is shared through **TestFlight**, Apple's app for installing apps before they are in the App Store. Members are internal testers (T8): the admin adds each one to the App Store Connect team and its testing group, and Apple emails them the TestFlight invitation. No Apple review is needed, and up to 100 people can test. Only invited emails can sign in.
 
 Accounts:
 - **Sign in with your email and a code, no password.** Enter your email, receive a 6-digit code, type it in (the iPhone offers to fill it from Mail). Until all 6 digits are in, a note under the field counts them ("5 of 6 digits."). You stay signed in until you sign out.
-- **Invite only.** The admin adds a person by name and email. Caro emails them the TestFlight link and how to sign in. Signing in with an invited email for the first time starts onboarding. Invitations expire after 14 days.
+- **Invite only.** The admin adds a person by name and email. Caro emails them how to install (Apple sends the TestFlight invitation) and how to sign in. Signing in with an invited email for the first time starts onboarding. Invitations expire after 14 days.
 - **Refused plainly.** Any other email, or one whose access was removed, gets "This email does not have access to Caro." at the email step, and no code. Each email can ask for at most 5 codes an hour; a new code replaces the one before.
-- **Your data is yours.** Every member can download everything and delete their account, which deletes all their photos.
+- **Your data is yours.** Every member can download everything (a zip of their data and photos) and delete their account, which deletes everything at once, photos included. The admin's own account cannot be deleted, as their access cannot be removed (T8).
 
 Admin area:
 - **Members.** Name, email, place, joined, last active, AI actions this month.
@@ -197,7 +197,7 @@ Designed screens are in `design/screens/` (source from the design canvas). Scree
 
 ### Settings and admin
 
-- **S5 Settings.** Steps 1 to 5 of onboarding, download everything, delete account, sign out. Admin area for the admin.
+- **S5 Settings.** Steps 1 to 5 of onboarding, download everything, delete account, sign out. Admin area for the admin. (T8: a Your data section under the set-up: **Download everything** opens the iPhone's share sheet with the zip; **Delete account** is a small terracotta link that asks first, not shown to the admin.)
 - **S3 Admin.** Members, add person, invitations (section 4). Reached from Settings (S5), for the admin only.
 
 ## 8. Functional requirements
@@ -327,7 +327,7 @@ To add with the ticket that needs it: an occasion on inspirations (T10, screen 1
 
 ## 13. Notifications
 
-Email only, through Resend: sign-in codes and invitations. In development, emails are printed in the terminal instead of being sent. No reminders or push notifications.
+Email only, through Resend: sign-in codes and invitations, sent from a domain Marta owns and verified in Resend. In development, emails are printed in the terminal instead of being sent. If Resend fails, the app says the email did not go out; an invitation stays saved, to resend. No reminders or push notifications.
 
 ## 14. Non-functional and privacy
 
@@ -336,7 +336,7 @@ Email only, through Resend: sign-in codes and invitations. In development, email
 - Photos of you wearing looks show people, so treat them as personal data.
 - A short privacy note in the welcome step, saying plainly that photos are sent to an AI service to be analysed.
 - Download everything (a zip of data and photos) and delete account.
-- Nightly backup of the database and photos. This data lives for years.
+- Nightly backup of the database and photos. This data lives for years. (T8: a zip in `DATA_DIR/backups/` once a day, the last 3 kept, plus Render's own daily disk snapshots. A copy off Render is for later.)
 - A `DEV_TODAY` setting on the server to pretend it is another date, so seasons can be tested.
 - Running costs: the Apple Developer Program (99 US dollars a year, needed for TestFlight from T8), a small server with a disk, and AI usage.
 - TestFlight builds expire after 90 days, so a new build goes out at least every three months.
@@ -358,7 +358,7 @@ Claude Code confirms or adjusts this in T0.
 
 - **iPhone app.** Swift and SwiftUI in Xcode, iOS 17 or later. Vision for cut-outs, PhotosPicker and the camera, a share extension for inspirations (T10), the Keychain for the session.
 - **Server.** Node 22, Express, SQLite (better-sqlite3), sharp for images, Resend for email, the Anthropic SDK for the Claude API. The same family as the Unspoken Diary, now answering the app with JSON instead of rendering pages.
-- **Hosting.** Render, with a persistent disk for the database and photos. Secrets in Render's environment settings.
+- **Hosting.** Render, with a persistent disk for the database and photos. Secrets in Render's environment settings. (T8: `render.yaml`, Frankfurt, Starter plan, a 5 GB disk at `/var/data`.)
 - **Distribution.** TestFlight.
 - **Repository.** One Git repository with two folders: `app/` and `server/`. GitHub for history.
 
@@ -441,6 +441,7 @@ Done when: from the camel coat's page, Marta taps **Style a look with it**, adds
 - The app pointing at the online server. The app icon, from the wordmark.
 - Apple Developer Program, the first TestFlight build. Invite Sara.
 Done when: Marta signs in on her iPhone against the online server with an emailed code. Sara receives the invitation, installs from TestFlight in Miami, and onboards. A backup file exists. Download everything gives a zip.
+(T8: TestFlight builds use the online server, builds run from Xcode use the Mac. Sara is an internal tester. The icon comes from the PNG wordmark until the vector arrives.)
 
 ### Phase 2: looks from a photo
 
@@ -488,13 +489,13 @@ Decided in T1 (see `docs/SPIKE.md`):
 - The allowance starts at 300 AI actions a month (section 10).
 
 Needed from Sara:
-- The vector file of the wordmark, before T8 (app icon).
+- The vector file of the wordmark. T8 made the app icon from the small PNG; it is remade from the vector when it arrives (`design/scripts/make-app-icon.swift`).
 
 Decided:
 - Caro is wardrobe management and look creation. No daily log, no timeline, no wear statistics.
 - Spread is the design, with Studio's styling table as the look builder. Three sections: The edit, Looks, Get the look; the wishlist lives inside Get the look as To find.
 - Building the wardrobe is part of onboarding. Looks and Get the look unlock at 20 confirmed pieces with a top, a bottom or one-piece, and shoes.
-- A native iPhone app, shared through TestFlight. Both testers are on iPhone.
+- A native iPhone app, shared through TestFlight. Both testers are on iPhone. Members install as internal testers, so no Apple review (T8).
 - No reminders or push notifications for now.
 - Invite only; the admin adds people and manages invitations. Removed members' data kept 30 days, restorable, then deleted.
 - Any place; onboarding proposes where you live and your seasons, and the member confirms. Seasons per member: four, two or none.
@@ -528,3 +529,4 @@ Not in version one. A short onboarding step to help a member see their own patte
 - **v1.5.** From T5. Take photos takes several in a row; Choose from library needs no permission (the photo picker shares only what you pick). The review queue: Skip leaves a piece waiting, Remove, Retake keeps the details; screen 07 adds Pattern, Formality, Remove and Retake. The edit shows the pieces to review; until T6 a simple chapter list lets a piece be opened, changed and saved, or removed. Any piece's pictures can be turned a quarter turn. Seasons from warmth: the warm half and the cool half of the member's year. Changing the number of seasons proposes new ones at once; the batch confirmation comes in T6. Details are read in the background; a piece Claude could not read waits for the member to fill in. Section 12: details status on pieces, photo files under `DATA_DIR/photos/`. `npm run seed-wardrobe`.
 - **v1.6.** From T6. The edit's dateline names the current season. The chapter page's filters, the piece page with Brand and Notes in Edit, Mark as maybe and Remove as links, and the overview from a row under the contents. "Not styled yet", the looks a piece is in and the overview's looks facts wait for the first look; Style a look with it comes with T7; the Size row waits until size can be filled in. New seasons after a change of year are checked in one batch, by warmth. Section 12: seasons to check on pieces.
 - **v1.7.** From T7. Looks have no name, only a number that is never reused. The styling table: Dress in the rail (a dress takes the bottom's place), several occasions ticked in the title, the season chip ordering the tray, Save at two pieces. Looks open only after the unlock, checked on the server. S8 as built, with numbered credits, Edit and Delete. See all from the piece page. Section 12: looks numbered by `users.looks_numbered`; a look left empty is removed. `seed-wardrobe -- --open`.
+- **v1.8.** From T8. Online on Render (Frankfurt, a disk, HTTPS) with secrets in Render; emails through Resend from Marta's domain. Members install as internal TestFlight testers, so Apple emails the TestFlight invitation and no review is needed. Download everything is a zip of the member's own data and photos, shared from Settings; Delete account deletes everything at once and is not offered to the admin. Nightly backups keep the last 3, next to Render's daily snapshots. The app icon comes from the PNG wordmark until Sara's vector arrives.
