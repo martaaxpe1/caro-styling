@@ -76,7 +76,7 @@ struct LookView: View {
         let look = page.look
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text(look.source.title)
+                Text(look.inProgress ? "\(look.source.title) · In progress" : look.source.title)
                     .caroLabelStyle()
 
                 Text("No. \(look.number)")
@@ -84,13 +84,29 @@ struct LookView: View {
                     .caroTitleTracking()
                     .padding(.top, 4)
 
-                FlatLay(items: look.pieces.map { FlatLayItem($0, large: true) }, shadow: .large)
+                Group {
+                    if look.pieces.isEmpty {
+                        Text("None of your pieces yet. Fill them in on your version.")
+                            .font(.caroBody)
+                            .foregroundStyle(Color.muted)
+                            .multilineTextAlignment(.center)
+                            .padding(24)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        FlatLay(items: look.pieces.map { FlatLayItem($0, large: true) }, shadow: .large)
+                    }
+                }
                     .aspectRatio(FlatLay.table.width / FlatLay.table.height, contentMode: .fit)
                     .background(Color.tile, in: RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
                     .clipShape(RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
                     .padding(.top, 14)
                     .accessibilityElement()
                     .accessibilityLabel("Look \(look.number): " + look.pieces.compactMap(\.name).joined(separator: ", "))
+
+                if let source = look.inspiration {
+                    inspiration(source)
+                        .padding(.top, 18)
+                }
 
                 photos(look)
                     .padding(.top, 18)
@@ -105,6 +121,11 @@ struct LookView: View {
                     Rectangle().fill(Color.hairline).frame(height: 1)
                 }
                 .padding(.top, 16)
+
+                if !look.toFind.isEmpty {
+                    toFind(look)
+                        .padding(.top, 22)
+                }
 
                 Text("The pieces")
                     .font(.caroSectionTitle)
@@ -134,6 +155,72 @@ struct LookView: View {
             .padding(.horizontal, CaroLayout.pageMargin)
             .padding(.top, 10)
             .padding(.bottom, 24)
+        }
+    }
+
+    /// "Your inspiration": the image this look was saved from, which opens your version, and its
+    /// link, which opens in Safari.
+    private func inspiration(_ source: Look.FromInspiration) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Your inspiration")
+                .font(.caroSectionTitle)
+            HStack(alignment: .top, spacing: 14) {
+                NavigationLink(value: WardrobeRoute.inspiration(id: source.id)) {
+                    LookPhotoImage(path: source.thumb)
+                        .frame(width: 96, height: 128)
+                        .clipShape(RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Your inspiration")
+                VStack(alignment: .leading, spacing: 6) {
+                    NavigationLink(value: WardrobeRoute.inspiration(id: source.id)) {
+                        Text("See your version")
+                            .font(.caroLink)
+                            .underline()
+                            .frame(minHeight: 32)
+                    }
+                    .buttonStyle(.plain)
+                    if let link = source.link, let url = URL(string: link) {
+                        Link(destination: url) {
+                            Text("Open on \(source.source ?? "the web")")
+                                .font(.caroLink)
+                                .underline()
+                                .frame(minHeight: 32)
+                        }
+                    }
+                }
+                .foregroundStyle(Color.ink)
+            }
+        }
+    }
+
+    /// "To find": the inspiration's pieces still missing in this look, and their state.
+    private func toFind(_ look: Look) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("To find")
+                .font(.caroSectionTitle)
+            VStack(spacing: 0) {
+                ForEach(look.toFind) { piece in
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: CaroLayout.tileRadius)
+                            .strokeBorder(Color.terracotta, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+                            .frame(width: 40, height: 40)
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(piece.description)
+                                .font(.text(14, weight: .medium, relativeTo: .body))
+                                .foregroundStyle(Color.terracotta)
+                            Text(piece.key ? "Key · " + ToFindWords.status(searchedAt: piece.searchedAt).lowercased() : "Not in your wardrobe")
+                                .font(.caroMeta)
+                                .foregroundStyle(Color.muted)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 8)
+                    .overlay(alignment: .top) { Rectangle().fill(Color.hairline).frame(height: 1) }
+                    .accessibilityElement(children: .combine)
+                }
+            }
         }
     }
 

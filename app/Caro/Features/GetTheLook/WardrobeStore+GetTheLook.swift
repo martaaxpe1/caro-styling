@@ -16,6 +16,11 @@ extension WardrobeStore {
         try await api.addInspiration(photo: photo, link: nil, note: nil)
     }
 
+    /// A new inspiration from a Pinterest link: the server takes the pin's image.
+    func addInspiration(link: String) async throws -> Inspiration {
+        try await api.addInspiration(photo: nil, link: link, note: nil)
+    }
+
     func updateInspiration(_ inspiration: Inspiration, link: String?, note: String?, occasion: Int?) async throws -> Inspiration {
         try await api.updateInspiration(inspiration.id, link: link, note: note, occasion: occasion)
     }

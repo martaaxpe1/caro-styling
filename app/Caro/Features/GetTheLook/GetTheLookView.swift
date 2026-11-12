@@ -5,6 +5,9 @@ import SwiftUI
 /// dashed Add an inspiration card (or share an image from Pinterest into Caro), your
 /// inspirations with how much of each you own ("4 of 5 yours"), and the To find list.
 ///
+/// Add an inspiration and the plus are a native menu: Choose from library, or Paste a Pinterest
+/// link (Caro takes the pin's image). An image needs no link.
+///
 /// Added to the design: an inspiration Caro is still reading says "Reading"; one it could not
 /// read says so. All inspirations show in the grid, so there is no See all yet. Find it on a
 /// To find piece comes with T11; until then the row says "Not searched yet".
@@ -22,6 +25,8 @@ struct GetTheLookView: View {
     @State private var item: PhotosPickerItem?
     @State private var adding = false
     @State private var addError: String?
+    @State private var askingForLink = false
+    @State private var linkDraft = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,7 +35,11 @@ struct GetTheLookView: View {
                 dateline: "Get the look",
                 datelineRight: page.map { countText($0.inspirations.count, "inspiration", "inspirations") } ?? "",
                 add: { showingLibrary = true },
-                addLabel: "Add an inspiration"
+                addLabel: "Add an inspiration",
+                addChoices: [
+                    (title: "Choose from library", systemImage: "photo.on.rectangle", action: { chooseFromLibrary() }),
+                    (title: "Paste a Pinterest link", systemImage: "link", action: { pasteLink() }),
+                ]
             ) {
                 showingSettings = true
             }
@@ -88,6 +97,27 @@ struct GetTheLookView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView(member: member)
         }
+        .alert("Pinterest link", isPresented: $askingForLink) {
+            TextField("https://pin.it/...", text: $linkDraft)
+                .keyboardType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            Button("Add") { Task { await add(link: linkDraft) } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Paste the link of a pin. Caro takes its image.")
+        }
+    }
+
+    private func chooseFromLibrary() {
+        addError = nil
+        showingLibrary = true
+    }
+
+    private func pasteLink() {
+        addError = nil
+        linkDraft = ""
+        askingForLink = true
     }
 
     private var isReading: Bool {
@@ -97,10 +127,11 @@ struct GetTheLookView: View {
     // MARK: Parts
 
     /// "Add an inspiration", "Or share an image from Instagram or Pinterest", in a dashed card.
+    /// A native menu: Choose from library, Paste a Pinterest link.
     private var addCard: some View {
-        Button {
-            addError = nil
-            showingLibrary = true
+        Menu {
+            Button("Choose from library", systemImage: "photo.on.rectangle") { chooseFromLibrary() }
+            Button("Paste a Pinterest link", systemImage: "link") { pasteLink() }
         } label: {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
@@ -125,7 +156,7 @@ struct GetTheLookView: View {
         }
         .buttonStyle(.plain)
         .disabled(adding)
-        .accessibilityHint("Chooses an image from your library")
+        .accessibilityHint("Choose an image from your library, or paste a Pinterest link")
     }
 
     @ViewBuilder
@@ -248,11 +279,7 @@ struct GetTheLookView: View {
 
     /// "In 3 inspirations · not searched yet"
     private func statusText(_ item: ToFindItem) -> String {
-        let state = item.status == "bought" ? "bought" : (item.searchedAt == nil ? "not searched yet" : "searched")
-        if let count = item.inspirations {
-            return "In \(count) inspirations · \(state)"
-        }
-        return state.prefix(1).uppercased() + state.dropFirst()
+        ToFindWords.status(searchedAt: item.searchedAt, bought: item.status == "bought", inspirations: item.inspirations)
     }
 
     // MARK: Server
@@ -263,6 +290,21 @@ struct GetTheLookView: View {
             errorMessage = nil
         } catch {
             errorMessage = store.message(for: error)
+        }
+    }
+
+    /// Sends a Pinterest link: the server takes the pin's image. Then opens its page.
+    private func add(link: String) async {
+        let link = link.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !link.isEmpty else { return }
+        adding = true
+        defer { adding = false }
+        do {
+            let inspiration = try await store.addInspiration(link: link)
+            await load()
+            open(inspiration.id)
+        } catch {
+            addError = store.message(for: error)
         }
     }
 

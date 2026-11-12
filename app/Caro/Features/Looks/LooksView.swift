@@ -224,10 +224,18 @@ struct LooksGrid: View {
             ForEach(looks) { look in
                 NavigationLink(value: WardrobeRoute.look(id: look.id)) {
                     VStack(alignment: .leading, spacing: 6) {
-                        FlatLay(items: look.pieces.map { FlatLayItem($0) })
-                            .frame(height: 170)
-                            .background(Color.tile, in: RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
-                            .clipShape(RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
+                        Group {
+                            if look.pieces.isEmpty, let source = look.inspiration {
+                                // In progress with none of your pieces yet: its inspiration.
+                                LookPhotoImage(path: source.thumb)
+                            } else {
+                                FlatLay(items: look.pieces.map { FlatLayItem($0) })
+                            }
+                        }
+                        .frame(height: 170)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.tile, in: RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
+                        .clipShape(RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
 
                         HStack(alignment: .firstTextBaseline) {
                             Text("No. \(look.number)")
@@ -238,7 +246,7 @@ struct LooksGrid: View {
                                 .foregroundStyle(Color.muted)
                                 .lineLimit(1)
                         }
-                        Text(look.source.title)
+                        Text(look.inProgress ? "\(look.source.title) · In progress" : look.source.title)
                             .font(.text(11, relativeTo: .caption))
                             .textCase(.uppercase)
                             .tracking(11 * 0.12)
@@ -249,7 +257,7 @@ struct LooksGrid: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel(["Look \(look.number)", occasionName(look), look.source.title].filter { !$0.isEmpty }.joined(separator: ", "))
+                .accessibilityLabel(["Look \(look.number)", occasionName(look), look.source.title, look.inProgress ? "In progress" : ""].filter { !$0.isEmpty }.joined(separator: ", "))
             }
         }
     }

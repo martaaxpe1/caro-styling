@@ -181,6 +181,8 @@ struct Overview: Decodable {
     /// Nil until the member has a first look.
     let notInALook: NotInALook?
     let occasionsFewLooks: [FewLooks]?
+    /// Missing pieces marked as key in Get the look (T10).
+    let toFind: [ToFindItem]?
 }
 
 /// GET /me/wardrobe/seasons-to-check: the pieces with new seasons, grouped by warmth.

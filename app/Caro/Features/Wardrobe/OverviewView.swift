@@ -3,6 +3,7 @@ import SwiftUI
 /// S7, the wardrobe overview (designed here, in the style of screens 10 and 11): what you have,
 /// as facts. Counts by chapter, main colour, season and occasion. Once there is a first look,
 /// the pieces in no look yet and the occasions with fewer than three looks. Never advice.
+/// T10: To find, the missing pieces you marked as key, each opening its inspiration.
 struct OverviewView: View {
     @Environment(WardrobeStore.self) private var store
     @State private var overview: Overview?
@@ -121,6 +122,34 @@ struct OverviewView: View {
                     .font(.caroNote)
                     .foregroundStyle(Color.muted)
                     .padding(.vertical, 10)
+            }
+        }
+
+        if let toFind = overview.toFind, !toFind.isEmpty {
+            section("To find", note: countText(toFind.count, "piece", "pieces")) {
+                ForEach(toFind) { item in
+                    NavigationLink(value: WardrobeRoute.inspiration(id: item.inspiration)) {
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.description)
+                                    .font(.caroBody)
+                                Text(ToFindWords.status(searchedAt: item.searchedAt, bought: item.status == "bought", inspirations: item.inspirations))
+                                    .font(.caroMeta)
+                                    .foregroundStyle(Color.muted)
+                            }
+                            Spacer(minLength: 8)
+                            Image(systemName: "chevron.right")
+                                .iconFont(13, weight: .light)
+                                .foregroundStyle(Color.muted)
+                                .accessibilityHidden(true)
+                        }
+                        .foregroundStyle(Color.ink)
+                        .padding(.vertical, 8)
+                        .overlay(alignment: .top) { Rectangle().fill(Color.hairline).frame(height: 1) }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }

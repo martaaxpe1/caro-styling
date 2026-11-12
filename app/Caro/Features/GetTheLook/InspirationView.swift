@@ -59,7 +59,7 @@ struct InspirationView: View {
                 Text("Get the look").caroLabelStyle()
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(working ? "Saving" : "Save") { Task { await save() } }
+                Button(working ? "Saving" : (inspiration?.look == nil ? "Save" : "Update")) { Task { await save() } }
                     .font(.text(15, weight: .semibold, relativeTo: .body))
                     .disabled(!canSave || working)
             }
@@ -450,10 +450,11 @@ struct InspirationView: View {
 
     // MARK: Server
 
-    /// Your version needs two of your pieces to be a look.
+    /// Your version can be saved as soon as Caro has read it, even with pieces still missing:
+    /// the look is then in progress.
     private var canSave: Bool {
-        guard let inspiration, !inspiration.isReading else { return false }
-        return Set(inspiration.pieces.filter { !$0.removed }.compactMap { $0.piece?.id }).count >= 2
+        guard let inspiration else { return false }
+        return inspiration.status == "ready"
     }
 
     private func load() async {

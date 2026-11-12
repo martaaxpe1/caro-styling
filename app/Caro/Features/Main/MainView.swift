@@ -123,6 +123,8 @@ struct WardrobeDestination: View {
             LookView(lookID: id)
         case .looksWith(let pieceID, let name):
             PieceLooksView(pieceID: pieceID, name: name)
+        case .inspiration(let id):
+            InspirationView(inspirationID: id)
         case .addPieces:
             EmptyView()
         }

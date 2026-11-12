@@ -37,6 +37,17 @@ struct ToFindItem: Decodable, Identifiable, Hashable {
     let inspirations: Int?
 }
 
+/// How a piece on To find is doing, in words: "In 3 inspirations · not searched yet".
+enum ToFindWords {
+    static func status(searchedAt: String?, bought: Bool = false, inspirations: Int? = nil) -> String {
+        let state = bought ? "bought" : (searchedAt == nil ? "not searched yet" : "searched")
+        if let count = inspirations {
+            return "In \(count) inspirations · \(state)"
+        }
+        return state.prefix(1).uppercased() + state.dropFirst()
+    }
+}
+
 /// One inspiration and your version of it (screen 15).
 struct Inspiration: Decodable, Identifiable {
     struct LookRef: Decodable, Hashable {

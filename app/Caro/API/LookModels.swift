@@ -87,6 +87,31 @@ struct Look: Decodable, Identifiable, Hashable {
     /// Oldest first.
     let photos: [Photo]
 
+    /// The inspiration a look was saved from (T10), for reference.
+    struct FromInspiration: Decodable, Hashable {
+        let id: Int
+        let thumb: String
+        let link: String?
+        /// "Pinterest", "Instagram" or the site's name.
+        let source: String?
+    }
+
+    /// A piece of that inspiration still missing in the look.
+    struct Missing: Decodable, Hashable, Identifiable {
+        let number: Int
+        let description: String
+        let key: Bool
+        let searchedAt: String?
+
+        var id: Int { number }
+    }
+
+    /// Only for a look saved from an inspiration.
+    let inspiration: FromInspiration?
+    let toFind: [Missing]
+    /// Saved from an inspiration with pieces still missing.
+    let inProgress: Bool
+
     /// The same look rule (PRD section 8), as the server checks it: two looks are the same
     /// when their outer layer, top, bottom or dress, and shoes are the same pieces. Bag and
     /// accessories can change. Used on S9 to say so before saving; the server decides.
