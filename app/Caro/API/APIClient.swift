@@ -86,6 +86,8 @@ struct APIClient {
 
     /// Calls that ask Claude or a weather service can take a while the first time.
     private static let slowTimeout: TimeInterval = 75
+    /// A photo and its cut-out are a few megabytes, which takes a moment on a slow connection.
+    private static let uploadTimeout: TimeInterval = 90
 
     /// GET /me/setup: everything the five steps and Settings show.
     func setup() async throws -> Setup {
@@ -169,6 +171,67 @@ struct APIClient {
         try await send("DELETE", "me/stores/\(id)")
     }
 
+    // MARK: The wardrobe (onboarding step 6 and the edit)
+
+    /// GET /me/wardrobe: progress, pieces waiting, chapters with counts.
+    func wardrobe() async throws -> Wardrobe {
+        try await send("GET", "me/wardrobe")
+    }
+
+    /// GET /me/pieces?status=pending: the review queue, oldest first.
+    func reviewQueue() async throws -> ReviewQueue {
+        try await send("GET", "me/pieces", query: [URLQueryItem(name: "status", value: "pending")])
+    }
+
+    /// GET /me/pieces?chapter=: the counted pieces of one chapter, newest first.
+    func pieces(inChapter chapter: String) async throws -> [Piece] {
+        let response: PiecesResponse = try await send("GET", "me/pieces", query: [URLQueryItem(name: "chapter", value: chapter)])
+        return response.pieces
+    }
+
+    /// GET /lists: the fixed lists for the details.
+    func lists() async throws -> PieceLists {
+        try await send("GET", "lists")
+    }
+
+    /// POST /me/pieces: a new piece, from the photo (JPEG) and the cut-out (PNG), if anything lifted.
+    /// The pictures travel as base64: the bytes of each file written as text, inside the JSON.
+    func addPiece(photo: Data, cutout: Data?) async throws -> Piece {
+        let body = PhotoBody(photo: photo.base64EncodedString(), cutout: cutout?.base64EncodedString())
+        let response: PieceResponse = try await send("POST", "me/pieces", body: body, timeout: Self.uploadTimeout)
+        return response.piece
+    }
+
+    /// PUT /me/pieces/:id/photo: retake. A new photo, the same details.
+    func retakePhoto(of pieceID: Int, photo: Data, cutout: Data?) async throws -> Piece {
+        let body = PhotoBody(photo: photo.base64EncodedString(), cutout: cutout?.base64EncodedString())
+        let response: PieceResponse = try await send("PUT", "me/pieces/\(pieceID)/photo", body: body, timeout: Self.uploadTimeout)
+        return response.piece
+    }
+
+    /// PUT /me/pieces/:id: confirm, or mark as maybe, with the details the member checked.
+    func savePiece(_ pieceID: Int, details: PieceDetails) async throws -> SavedPiece {
+        try await send("PUT", "me/pieces/\(pieceID)", body: details)
+    }
+
+    /// DELETE /me/pieces/:id: removes the piece and its photos.
+    func removePiece(_ pieceID: Int) async throws -> WardrobeProgress {
+        let response: RemovedResponse = try await send("DELETE", "me/pieces/\(pieceID)")
+        return response.progress
+    }
+
+    /// A piece's picture, from an address the server gave, like /me/pieces/12/thumb?v=ab12.
+    /// A plain request with the session token: the photos are private.
+    func imageRequest(for path: String) -> URLRequest? {
+        guard let url = URL(string: path, relativeTo: baseURL) else { return nil }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 30
+        if let token = Keychain.readToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        return request
+    }
+
     // MARK: Sending
 
     private struct OK: Decodable {}
@@ -178,6 +241,22 @@ struct APIClient {
     private struct AdminMemberResponse: Decodable { let member: AdminMember }
     private struct CitiesResponse: Decodable { let cities: [City] }
     private struct FoundStoreResponse: Decodable { let store: FoundStore }
+    private struct PiecesResponse: Decodable { let pieces: [Piece] }
+    private struct PieceResponse: Decodable { let piece: Piece }
+    private struct RemovedResponse: Decodable { let progress: WardrobeProgress }
+    private struct PhotoBody: Encodable {
+        let photo: String
+        let cutout: String?
+
+        // A missing cut-out is sent as null: nothing lifted.
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(photo, forKey: .photo)
+            try container.encode(cutout, forKey: .cutout)
+        }
+
+        private enum CodingKeys: String, CodingKey { case photo, cutout }
+    }
 
     private struct PlaceBody: Encodable {
         let cityId: Int

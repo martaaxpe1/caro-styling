@@ -54,8 +54,14 @@ router.get('/', (req, res) => {
   const userId = req.member.id;
   if (req.query.status === 'pending') {
     const pieces = db.prepare(`SELECT * FROM pieces WHERE user_id = ? AND status = 'pending' ORDER BY id`).all(userId);
-    // So the app can propose new seasons at once when the member changes a piece's warmth.
-    return res.json({ pieces: pieces.map(pieceJSON), seasonsByWarmth: seasonsByWarmth(userId) });
+    return res.json({
+      pieces: pieces.map(pieceJSON),
+      // So the app can propose new seasons at once when the member changes a piece's warmth.
+      seasonsByWarmth: seasonsByWarmth(userId),
+      // The member's own seasons and occasions, shown as chips.
+      seasons: db.prepare('SELECT id, name FROM seasons WHERE user_id = ? ORDER BY position').all(userId),
+      occasions: db.prepare('SELECT id, name FROM occasions WHERE user_id = ? ORDER BY position').all(userId),
+    });
   }
   if (typeof req.query.chapter === 'string') {
     const pieces = db

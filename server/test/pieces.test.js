@@ -535,6 +535,8 @@ test('the review queue lists the member\'s own pieces waiting for review, with t
   assert.equal(queue.pieces[0].name, 'Cream linen shirt');
   assert.equal(queue.pieces[0].seasons.length, 2, 'light in Miami: both seasons');
   assert.equal(queue.seasonsByWarmth.warm.length, 1);
+  assert.deepEqual(queue.seasons.map((season) => season.name), ['Hot and rainy', 'Mild and dry']);
+  assert.deepEqual(queue.occasions.map((occasion) => occasion.name), ['Office', 'Working from home', 'Night out', 'Day out']);
 
   const chapter = (await call('GET', '/me/pieces?chapter=shoes', { token: owner.token })).body;
   assert.deepEqual(chapter.pieces.map((p) => p.id), [first.id]);

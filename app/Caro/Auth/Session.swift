@@ -80,6 +80,8 @@ final class Session {
 
     private func endSession() {
         Keychain.deleteToken()
+        // The next person on this iPhone never sees this member's photos.
+        ImageCache.shared.removeAll()
         state = .signedOut
     }
 }

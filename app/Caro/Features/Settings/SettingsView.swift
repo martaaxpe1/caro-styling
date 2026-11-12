@@ -191,7 +191,7 @@ struct SettingsView: View {
 
 #Preview {
     let session = Session()
-    SettingsView(member: Member(id: 1, name: "Marta", email: "marta@example.com", role: .admin, status: .active, onboardingStep: 6, country: "NL"))
+    SettingsView(member: .preview)
         .environment(session)
         .environment(SetupStore(session: session))
 }

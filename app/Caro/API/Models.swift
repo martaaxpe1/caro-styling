@@ -19,11 +19,23 @@ struct Member: Decodable, Equatable {
     let status: Status
     let onboardingStep: Int
     let country: String?
+    /// Looks and Get the look are open: 20 pieces reached once (PRD section 5). Stays true.
+    let unlocked: Bool
+    /// The member has added pieces, so the app opens on the edit instead of step 6.
+    let wardrobeStarted: Bool
 
     var isAdmin: Bool { role == .admin }
 
+    /// Onboarding until set-up is done and the first pieces are added.
+    var showsOnboarding: Bool {
+        status == .onboarding || (!wardrobeStarted && !unlocked)
+    }
+
     /// For the profile button in the masthead: "M".
     var initial: String { String(name.prefix(1)).uppercased() }
+
+    /// For previews in Xcode.
+    static let preview = Member(id: 1, name: "Marta", email: "marta@example.com", role: .admin, status: .active, onboardingStep: 6, country: "NL", unlocked: false, wardrobeStarted: true)
 }
 
 /// POST /auth/verify: the session token, given once, and who it belongs to.
