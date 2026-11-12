@@ -24,6 +24,7 @@ const { findPiece, imageUrl, pieceJSON, checkDetails, saveDetails } = require('.
 const pieceQueue = require('../jobs/piece-queue');
 const wardrobe = require('../lib/wardrobe');
 const { seasonsByWarmth, currentSeason } = require('../lib/piece-seasons');
+const { removeEmptyLooks } = require('../lib/looks');
 
 const router = express.Router();
 router.use(requireMember);
@@ -220,6 +221,8 @@ router.delete('/:id', (req, res) => {
 
   // Its colours, seasons, occasions and places in looks go with it (ON DELETE CASCADE).
   db.prepare('DELETE FROM pieces WHERE id = ? AND user_id = ?').run(piece.id, req.member.id);
+  // A look left with no pieces goes too.
+  removeEmptyLooks(req.member.id);
   photos.removeFiles(photos.filesOf(piece));
   res.json({ removed: piece.id, progress: wardrobe.progress(req.member.id) });
 });

@@ -8,6 +8,7 @@ const adminRoutes = require('./routes/admin');
 const pieceRoutes = require('./routes/pieces');
 const wardrobeRoutes = require('./routes/wardrobe');
 const listRoutes = require('./routes/lists');
+const lookRoutes = require('./routes/looks');
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use('/auth', authRoutes);
 app.use('/me/stores', storeRoutes);
 app.use('/me/pieces', pieceRoutes);
 app.use('/me/wardrobe', wardrobeRoutes);
+app.use('/me/looks', lookRoutes);
 app.use('/me', meRoutes);
 app.use('/places', placeRoutes);
 app.use('/lists', listRoutes);

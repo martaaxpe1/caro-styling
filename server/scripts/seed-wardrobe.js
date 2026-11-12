@@ -1,5 +1,6 @@
 // npm run seed-wardrobe                     (Marta, from ADMIN_EMAIL in server/.env)
 // npm run seed-wardrobe -- sara@example.com  (another member who finished set-up)
+// npm run seed-wardrobe -- --open            (also 4 pairs of shoes: 23 pieces, Looks open; T7)
 //
 // For testing the unlock rule (PRD section 17, T5): replaces the member's pieces with 19
 // confirmed ones, with tops and bottoms but no shoes, and locks Looks and Get the look again.
@@ -14,7 +15,7 @@
 const db = require('../src/db');
 const photos = require('../src/lib/photos');
 const pieceSeasons = require('../src/lib/piece-seasons');
-const { progress } = require('../src/lib/wardrobe');
+const { progress, checkUnlock } = require('../src/lib/wardrobe');
 const { now, iso } = require('../src/lib/today');
 const sharp = require('sharp');
 
@@ -36,6 +37,8 @@ const SHAPES = {
   skirt: 'M36 14 L64 14 L78 88 L22 88 Z',
   dress: 'M39 6 L44 6 Q50 13 56 6 L61 6 L63 32 L76 92 L24 92 L37 32 Z',
   jumpsuit: 'M39 6 L44 6 Q50 13 56 6 L61 6 L63 40 L68 94 L54 94 L50 50 L46 94 L32 94 L37 40 Z',
+  shoe: 'M12 52 Q13 40 28 40 L52 42 Q68 44 84 51 Q91 54 89 60 L14 60 Q10 58 12 52 Z',
+  boot: 'M30 14 L52 14 L54 58 Q70 60 84 66 Q90 69 88 76 L24 76 Q22 70 26 62 Z',
   bag: 'M24 42 L76 42 L80 86 L20 86 Z M36 42 Q36 18 50 18 Q64 18 64 42 L60 42 Q60 23 50 23 Q40 23 40 42 Z',
 };
 
@@ -65,9 +68,17 @@ const PIECES = [
   ['Tan leather bag', 'bag', 'bag', '#A0703F', ['camel'], 'plain', 'leather', 'medium', 'smart casual', 'Office'],
 ];
 
+// With --open: shoes, so the styling table has a choice and Looks open (T7).
+const SHOES = [
+  ['Black leather loafers', 'loafers', 'shoe', '#22211F', ['black'], 'plain', 'leather', 'medium', 'smart', 'Office'],
+  ['Tan leather loafers', 'loafers', 'shoe', '#8A5A3C', ['camel'], 'plain', 'leather', 'medium', 'smart casual', 'Office'],
+  ['Cream trainers', 'trainers', 'shoe', '#F3ECE0', ['cream'], 'plain', 'canvas', 'light', 'casual', 'Day out'],
+  ['Brown suede ankle boots', 'ankle boots', 'boot', '#5A4033', ['brown'], 'plain', 'suede', 'warm', 'smart casual', 'Night out'],
+];
+
 // The cut-out (the shape on a transparent background) and a "photo" of it on the tile colour.
 async function drawn(shape, fill) {
-  const pale = ['#FBF9F4', '#F6F0E4', '#EDE3CF'].includes(fill);
+  const pale = ['#FBF9F4', '#F6F0E4', '#EDE3CF', '#F3ECE0'].includes(fill);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 100 100">` +
     `<path d="${SHAPES[shape]}" fill="${fill}" fill-rule="evenodd"${pale ? ` stroke="${OUTLINE}" stroke-width="1.2"` : ''}/></svg>`;
@@ -80,8 +91,11 @@ async function drawn(shape, fill) {
   return { photo: photo.toString('base64'), cutout: cutout.toString('base64') };
 }
 
+const args = process.argv.slice(2);
+const OPEN = args.includes('--open');
+
 function findMember() {
-  const email = (process.argv[2] || process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const email = (args.find((arg) => !arg.startsWith('--')) || process.env.ADMIN_EMAIL || '').trim().toLowerCase();
   if (!email.includes('@')) {
     console.error('Give an email, like npm run seed-wardrobe -- sara@example.com, or add ADMIN_EMAIL to server/.env.');
     process.exit(1);
@@ -101,7 +115,10 @@ function findMember() {
 async function main() {
   const member = findMember();
 
-  // Start from an empty wardrobe, locked again (only here: online, unlocked stays unlocked).
+  // Start from an empty wardrobe, with no looks, locked again (only here: online, unlocked
+  // stays unlocked).
+  db.prepare('DELETE FROM looks WHERE user_id = ?').run(member.id);
+  db.prepare('UPDATE users SET looks_numbered = 0 WHERE id = ?').run(member.id);
   const old = db.prepare('SELECT * FROM pieces WHERE user_id = ?').all(member.id);
   db.prepare('DELETE FROM pieces WHERE user_id = ?').run(member.id);
   old.forEach((piece) => photos.removeFiles(photos.filesOf(piece)));
@@ -120,9 +137,10 @@ async function main() {
   const addOccasion = db.prepare('INSERT INTO piece_occasions (user_id, piece_id, occasion_id) VALUES (?, ?, ?)');
 
   console.log(`\n${member.name}, ${member.email}`);
-  console.log(`  Removed ${old.length} ${old.length === 1 ? 'piece' : 'pieces'}. Adding 19:`);
+  const adding = OPEN ? [...PIECES, ...SHOES] : PIECES;
+  console.log(`  Removed ${old.length} ${old.length === 1 ? 'piece' : 'pieces'} and any looks. Adding ${adding.length}:`);
 
-  for (const [name, kind, shape, fill, colours, pattern, material, warmth, formality, occasion] of PIECES) {
+  for (const [name, kind, shape, fill, colours, pattern, material, warmth, formality, occasion] of adding) {
     const files = await photos.savePiecePhotos(member.id, await drawn(shape, fill));
     const at = iso(now());
     const pieceId = Number(
@@ -134,10 +152,11 @@ async function main() {
     console.log(`  ${name} (${kind})`);
   }
 
+  if (OPEN) checkUnlock(member.id);
   const p = progress(member.id);
   const check = (yes) => (yes ? 'yes' : 'no');
   console.log(`\n  ${p.pieces} of ${p.needed}. Top: ${check(p.top)}. Bottom or one-piece: ${check(p.bottomOrOnePiece)}. Shoes: ${check(p.shoes)}.`);
-  console.log(`  Looks and Get the look: ${p.unlocked ? 'open' : 'locked'}. Add a pair of shoes to open them.`);
+  console.log(`  Looks and Get the look: ${p.unlocked ? 'open' : 'locked. Add a pair of shoes to open them'}.`);
   if (rule.medium.length === 0) {
     console.log("  No seasons on these pieces: your city's typical weather is not known yet. It is looked up with your first photo.");
   }
