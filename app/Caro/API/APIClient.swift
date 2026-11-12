@@ -54,6 +54,48 @@ struct APIClient {
         let _: OK = try await send("POST", "auth/sign-out")
     }
 
+    // MARK: Your data (T8)
+
+    /// GET /me/export: Download everything. The server sends a zip of the member's data and
+    /// photos; it is saved in the app's temporary folder, and its address on the iPhone is returned.
+    func downloadEverything() async throws -> URL {
+        var request = URLRequest(url: baseURL.appending(path: "me/export"))
+        request.timeoutInterval = 120
+        if let token = Keychain.readToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let file: URL
+        let response: URLResponse
+        do {
+            (file, response) = try await URLSession.shared.download(for: request)
+        } catch {
+            throw APIError.notReachable
+        }
+
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        if status == 401 {
+            throw APIError.signedOut
+        }
+        guard (200..<300).contains(status) else {
+            let data = (try? Data(contentsOf: file)) ?? Data()
+            let message = (try? Self.decoder.decode(ErrorResponse.self, from: data))?.error
+            throw APIError.refused(message ?? "Something went wrong. Try again.")
+        }
+
+        // The download lands under a random name; give it the server's name, like caro-2026-11-12.zip.
+        let name = response.suggestedFilename ?? "caro.zip"
+        let saved = FileManager.default.temporaryDirectory.appending(path: name)
+        try? FileManager.default.removeItem(at: saved)
+        try FileManager.default.moveItem(at: file, to: saved)
+        return saved
+    }
+
+    /// DELETE /me: Delete account. Everything goes, photos included, and the session ends.
+    func deleteAccount() async throws {
+        let _: OK = try await send("DELETE", "me")
+    }
+
     // MARK: Admin
 
     /// GET /admin: members and pending invitations.

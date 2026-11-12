@@ -16,6 +16,10 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<!-- Caro uses only the iPhone's standard encryption (https), so App Store Connect does not
+	     ask about export rules for every TestFlight build. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<!-- The line the iPhone shows when it first asks for the camera (Take photos, T5).
 	     Choose from library needs no permission: the photo picker only shares what you pick. -->
 	<key>NSCameraUsageDescription</key>

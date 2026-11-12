@@ -69,6 +69,12 @@ final class Session {
         endSession()
     }
 
+    /// Delete account: the server deletes everything, then this iPhone forgets the session.
+    func deleteAccount() async throws {
+        try await api.deleteAccount()
+        endSession()
+    }
+
     /// For a screen whose request failed: the message to show. If the session has ended,
     /// it also goes back to sign in.
     func message(for error: Error) -> String {

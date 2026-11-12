@@ -2,8 +2,10 @@ import SwiftUI
 
 /// S5 Settings (to design, added in T4), opened from the profile button in the masthead.
 /// Your set-up, one row per onboarding step with its current value, each opening the same
-/// screen as in onboarding. The admin also sees the admin area. Sign out at the bottom.
-/// Download everything and Delete account come in T8.
+/// screen as in onboarding. Your data (T8): Download everything, a zip shared through the
+/// iPhone's share sheet, and Delete account, a small terracotta link that asks first (not for
+/// the admin, whose account cannot be deleted). The admin also sees the admin area. Sign out
+/// at the bottom.
 struct SettingsView: View {
     let member: Member
 
@@ -12,6 +14,18 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var path: [Page] = []
+    /// Download everything: the zip being prepared, and once ready, the file to share.
+    @State private var downloading = false
+    @State private var download: Download?
+    @State private var dataMessage: String?
+    @State private var confirmingDelete = false
+    @State private var deleting = false
+
+    /// A zip on the iPhone, ready for the share sheet.
+    struct Download: Identifiable {
+        let url: URL
+        var id: URL { url }
+    }
 
     /// The screens Settings opens.
     enum Page: Hashable {
@@ -60,6 +74,9 @@ struct SettingsView: View {
                             .padding(.top, 60)
                     }
 
+                    yourData
+                        .padding(.top, 40)
+
                     // Only the admin sees this. The server checks it again on every admin request.
                     if current.isAdmin {
                         sectionHeader("Admin")
@@ -93,6 +110,100 @@ struct SettingsView: View {
         .presentationBackground(Color.paper)
         .task {
             await store.load()
+        }
+        .sheet(item: $download) { download in
+            ShareSheet(items: [download.url])
+                .presentationDetents([.medium, .large])
+        }
+        .alert("Delete your account?", isPresented: $confirmingDelete) {
+            Button("Keep account", role: .cancel) {}
+            Button("Delete account", role: .destructive) {
+                Task { await deleteAccount() }
+            }
+        } message: {
+            Text("Your pieces, looks and photos are deleted and you are signed out. This cannot be undone. To keep a copy, use Download everything first.")
+        }
+    }
+
+    // MARK: Your data
+
+    private var yourData: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            sectionHeader("Your data")
+
+            Button {
+                Task { await downloadEverything() }
+            } label: {
+                HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Download everything")
+                            .font(.caroRowTitle)
+                        Text(downloading ? "Preparing your zip file" : "Your details, pieces, looks and photos, as a zip file")
+                            .font(.caroMeta)
+                            .foregroundStyle(Color.muted)
+                            .multilineTextAlignment(.leading)
+                    }
+                    Spacer()
+                    if downloading {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(Color.muted)
+                    }
+                }
+                .padding(.vertical, 10)
+                .frame(minHeight: 58)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(downloading || deleting)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(Color.hairline)
+                    .frame(height: 1)
+            }
+
+            if let dataMessage {
+                Text(dataMessage)
+                    .font(.caroNote)
+                    .foregroundStyle(Color.terracotta)
+                    .padding(.top, 12)
+            }
+
+            // The server refuses it for the admin too: Caro always keeps its admin.
+            if !current.isAdmin {
+                Button(deleting ? "Deleting your account" : "Delete account") {
+                    confirmingDelete = true
+                }
+                .font(.caroLink)
+                .foregroundStyle(Color.terracotta)
+                .disabled(downloading || deleting)
+                .padding(.top, 20)
+            }
+        }
+    }
+
+    private func downloadEverything() async {
+        dataMessage = nil
+        downloading = true
+        defer { downloading = false }
+        do {
+            download = Download(url: try await APIClient().downloadEverything())
+        } catch {
+            dataMessage = session.message(for: error)
+        }
+    }
+
+    private func deleteAccount() async {
+        dataMessage = nil
+        deleting = true
+        defer { deleting = false }
+        do {
+            // The session ends, and the app goes back to sign in.
+            try await session.deleteAccount()
+        } catch {
+            dataMessage = session.message(for: error)
         }
     }
 
@@ -187,6 +298,17 @@ struct SettingsView: View {
             path.removeLast()
         }
     }
+}
+
+/// The iPhone's share sheet, to save a file to Files, AirDrop it or send it.
+private struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 
 #Preview {
