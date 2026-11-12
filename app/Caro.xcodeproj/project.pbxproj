@@ -6,17 +6,70 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CA000000000000000000002B /* CaroShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000020 /* CaroShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CA000000000000000000002D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CA0000000000000000000024;
+			remoteInfo = CaroShare;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CA000000000000000000002C /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				CA000000000000000000002B /* CaroShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		CA0000000000000000000004 /* Caro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Caro.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA0000000000000000000020 /* CaroShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CaroShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		CA0000000000000000000006 /* Exceptions for "Caro" folder in "Caro" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Caro.entitlements,
 				Info.plist,
 			);
 			target = CA0000000000000000000007 /* Caro */;
+		};
+		CA0000000000000000000023 /* Exceptions for "Caro" folder in "CaroShare" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Auth/Keychain.swift,
+				Config/AppConfig.swift,
+				Design/CaroColor.swift,
+				Design/CaroFont.swift,
+				Design/CaroLayout.swift,
+				Design/Components/PillButton.swift,
+				"Resources/Fonts/Inter.ttf",
+				"Resources/Fonts/Newsreader-Italic.ttf",
+				"Resources/Fonts/Newsreader.ttf",
+			);
+			target = CA0000000000000000000024 /* CaroShare */;
+		};
+		CA0000000000000000000022 /* Exceptions for "CaroShare" folder in "CaroShare" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CaroShare.entitlements,
+				Info.plist,
+			);
+			target = CA0000000000000000000024 /* CaroShare */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -25,14 +78,30 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				CA0000000000000000000006 /* Exceptions for "Caro" folder in "Caro" target */,
+				CA0000000000000000000023 /* Exceptions for "Caro" folder in "CaroShare" target */,
 			);
 			path = Caro;
+			sourceTree = "<group>";
+		};
+		CA0000000000000000000021 /* CaroShare */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CA0000000000000000000022 /* Exceptions for "CaroShare" folder in "CaroShare" target */,
+			);
+			path = CaroShare;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		CA0000000000000000000009 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA0000000000000000000026 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -46,6 +115,7 @@
 			isa = PBXGroup;
 			children = (
 				CA0000000000000000000005 /* Caro */,
+				CA0000000000000000000021 /* CaroShare */,
 				CA0000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,6 +124,7 @@
 			isa = PBXGroup;
 			children = (
 				CA0000000000000000000004 /* Caro.app */,
+				CA0000000000000000000020 /* CaroShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -68,10 +139,12 @@
 				CA0000000000000000000008 /* Sources */,
 				CA0000000000000000000009 /* Frameworks */,
 				CA000000000000000000000A /* Resources */,
+				CA000000000000000000002C /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				CA000000000000000000002E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				CA0000000000000000000005 /* Caro */,
@@ -82,6 +155,28 @@
 			productName = Caro;
 			productReference = CA0000000000000000000004 /* Caro.app */;
 			productType = "com.apple.product-type.application";
+		};
+		CA0000000000000000000024 /* CaroShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA0000000000000000000028 /* Build configuration list for PBXNativeTarget "CaroShare" */;
+			buildPhases = (
+				CA0000000000000000000025 /* Sources */,
+				CA0000000000000000000026 /* Frameworks */,
+				CA0000000000000000000027 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CA0000000000000000000021 /* CaroShare */,
+			);
+			name = CaroShare;
+			packageProductDependencies = (
+			);
+			productName = CaroShare;
+			productReference = CA0000000000000000000020 /* CaroShare.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -94,6 +189,9 @@
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					CA0000000000000000000007 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					CA0000000000000000000024 = {
 						CreatedOnToolsVersion = 26.2;
 					};
 				};
@@ -113,12 +211,20 @@
 			projectRoot = "";
 			targets = (
 				CA0000000000000000000007 /* Caro */,
+				CA0000000000000000000024 /* CaroShare */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		CA000000000000000000000A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA0000000000000000000027 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -135,7 +241,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CA0000000000000000000025 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CA000000000000000000002E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CA0000000000000000000024 /* CaroShare */;
+			targetProxy = CA000000000000000000002D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		CA000000000000000000000D /* Debug */ = {
@@ -266,6 +387,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Caro/Caro.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2F4U6BQ2PH;
@@ -304,6 +426,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Caro/Caro.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2F4U6BQ2PH;
@@ -337,6 +460,76 @@
 			};
 			name = Release;
 		};
+		CA0000000000000000000029 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = CaroShare/CaroShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2F4U6BQ2PH;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CaroShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Caro;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.carostyling.app.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		CA000000000000000000002A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = CaroShare/CaroShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2F4U6BQ2PH;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CaroShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Caro;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.carostyling.app.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -354,6 +547,15 @@
 			buildConfigurations = (
 				CA000000000000000000000F /* Debug */,
 				CA0000000000000000000010 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CA0000000000000000000028 /* Build configuration list for PBXNativeTarget "CaroShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA0000000000000000000029 /* Debug */,
+				CA000000000000000000002A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

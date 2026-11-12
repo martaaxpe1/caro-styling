@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The fonts, shared with the app. -->
+	<key>UIAppFonts</key>
+	<array>
+		<string>Newsreader.ttf</string>
+		<string>Newsreader-Italic.ttf</string>
+		<string>Inter.ttf</string>
+	</array>
+	<!-- The shared Keychain group, as in the app's Info.plist. -->
+	<key>CaroKeychainGroup</key>
+	<string>$(AppIdentifierPrefix)com.carostyling.shared</string>
+	<!-- Plain http to the server on the Mac, in builds run from Xcode. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSExtension</key>
+	<dict>
+		<!-- Caro shows in the share sheet for one image, a web page, or text with a link in it
+		     (Pinterest and Instagram often share a link with some words). -->
+		<key>NSExtensionAttributes</key>
+		<dict>
+			<key>NSExtensionActivationRule</key>
+			<dict>
+				<key>NSExtensionActivationSupportsImageWithMaxCount</key>
+				<integer>1</integer>
+				<key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
+				<integer>1</integer>
+				<key>NSExtensionActivationSupportsText</key>
+				<true/>
+			</dict>
+		</dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.share-services</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>$(PRODUCT_MODULE_NAME).ShareViewController</string>
+	</dict>
+</dict>
+</plist>

@@ -31,6 +31,8 @@ final class Session {
         state = .starting
         do {
             state = .signedIn(try await api.me())
+            // The share extension reads the token from the shared Keychain group (T10).
+            Keychain.shareWithExtension()
         } catch APIError.signedOut {
             // The server no longer knows this token, for example after npm run reset-dev.
             endSession()

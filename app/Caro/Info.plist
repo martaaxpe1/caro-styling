@@ -27,6 +27,10 @@
 	<!-- The line the iPhone shows when it asks to use your local network. -->
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Caro connects to the server on your Mac while the app is being built.</string>
+	<!-- The Keychain group the app shares with its share extension (T10): the session token
+	     and the server address. Xcode fills in the team. Also in Caro.entitlements. -->
+	<key>CaroKeychainGroup</key>
+	<string>$(AppIdentifierPrefix)com.carostyling.shared</string>
 	<!-- The launch screen is plain paper, so the app opens without a white flash. -->
 	<key>UILaunchScreen</key>
 	<dict>
