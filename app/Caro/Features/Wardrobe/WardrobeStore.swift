@@ -55,6 +55,34 @@ final class WardrobeStore {
         session.message(for: error)
     }
 
+    // MARK: The review (screen 07)
+
+    /// The fixed lists for the detail pickers. Loaded once.
+    private(set) var lists: PieceLists?
+
+    func loadLists() async {
+        guard lists == nil else { return }
+        lists = try? await api.lists()
+    }
+
+    /// Confirms a piece (or marks it maybe). The answer says whether this opened Looks and
+    /// Get the look; the edit is updated in the background.
+    func save(_ pieceID: Int, details: PieceDetails) async throws -> SavedPiece {
+        let saved = try await api.savePiece(pieceID, details: details)
+        Task { await load() }
+        return saved
+    }
+
+    /// Retake: a new photo for a piece, cut out again on the iPhone. The details stay.
+    func retake(_ pieceID: Int, photoFile: Data) async throws -> Piece {
+        guard let prepared = await PhotoPrep.prepare(data: photoFile) else {
+            throw APIError.refused("Caro could not read this photo. Try another one.")
+        }
+        let piece = try await api.retakePhoto(of: pieceID, photo: prepared.photo, cutout: prepared.cutout)
+        ImageCache.shared.keep(prepared.preview, for: piece.images.thumb)
+        return piece
+    }
+
     /// A different member signed in on this iPhone: start from nothing.
     func forgetOtherMember() {
         guard memberID != session.member?.id else { return }

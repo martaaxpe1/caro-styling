@@ -71,11 +71,7 @@ struct WardrobeDestination: View {
         case .chapter(let name, let number):
             ChapterPiecesView(name: name, number: number)
         case .review:
-            // Built in the next step of T5.
-            Text("The review comes next.")
-                .font(.caroBody)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.paper)
+            ReviewView()
         case .addPieces:
             EmptyView()
         }
