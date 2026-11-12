@@ -14,12 +14,13 @@ const { now, iso } = require('../lib/today');
 const { requireMember } = require('../middleware/signed-in');
 const photos = require('../lib/photos');
 const { findPiece, pieceJSON } = require('../lib/pieces');
+const pieceQueue = require('../jobs/piece-queue');
 
 const router = express.Router();
 router.use(requireMember);
 
 // A new piece, from the photo (and cut-out) the app sends. It waits in the review queue
-// until the member confirms it.
+// until the member confirms it, while Claude reads its details (src/jobs/piece-queue.js).
 router.post('/', async (req, res, next) => {
   try {
     const files = await photos.savePiecePhotos(req.member.id, {
@@ -33,6 +34,8 @@ router.post('/', async (req, res, next) => {
       )
       .run(req.member.id, files.original, files.cutout, files.thumb, iso(now()));
 
+    // Claude reads its details in the background; the app asks later which pieces are ready.
+    pieceQueue.add(Number(id));
     res.status(201).json({ piece: pieceJSON(findPiece(req.member.id, id)) });
   } catch (error) {
     if (error instanceof photos.PhotoError) return res.status(400).json({ error: error.message });

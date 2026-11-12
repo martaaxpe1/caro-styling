@@ -5,6 +5,7 @@ const db = require('../db');
 const { now, iso } = require('./today');
 const { memberJSON } = require('./members');
 const occasions = require('./occasions');
+const pieceSeasons = require('./piece-seasons');
 
 const DATE_ORDERS = ['day month', 'month day'];
 const SIZE_SYSTEMS = ['EU', 'US', 'UK', 'AU'];
@@ -85,8 +86,8 @@ function setupJSON(userId) {
 }
 
 // Saves a year. With the same number of seasons, the seasons are updated in place, so a
-// renamed season keeps its pieces and looks. With another number, they are replaced.
-// T5: when that happens with pieces, propose their new seasons from their warmth (PRD section 8).
+// renamed season keeps its pieces and looks. With another number, they are replaced, and every
+// piece gets new seasons proposed from its warmth (PRD section 8).
 function saveSeasons(userId, seasons) {
   const existing = db.prepare('SELECT id FROM seasons WHERE user_id = ? ORDER BY position').pluck().all(userId);
   db.prepare('DELETE FROM season_months WHERE user_id = ?').run(userId);
@@ -106,6 +107,8 @@ function saveSeasons(userId, seasons) {
 
   const addMonth = db.prepare('INSERT INTO season_months (user_id, month, season_id) VALUES (?, ?, ?)');
   seasons.forEach((season, i) => season.months.forEach((month) => addMonth.run(userId, month, ids[i])));
+
+  if (existing.length !== seasons.length) pieceSeasons.proposeForAllPieces(userId);
 }
 
 function clearSeasons(userId) {

@@ -59,7 +59,7 @@ function parseJson(content) {
 
 // Asks one question and returns the filled-in form.
 //   model: 'sonnet' or 'haiku'
-//   system: the standing instructions; prompt: the question
+//   system: the standing instructions; prompt: the question, as text or as blocks (a photo and text)
 //   schema: the form to fill in
 //   tools: server tools, like web search, that run on Anthropic's side
 //   effort: how much the model thinks first; low was enough in the spike
@@ -74,11 +74,20 @@ async function ask({ model, system, prompt, schema, tools, effort = 'low' }) {
   };
   if (tools) request.tools = tools;
 
+  // Sonnet: if it ever declines (it never did in the spike), Anthropic answers the same
+  // request with another model inside the same call, so the member still gets an answer.
+  // Haiku has no such fallback.
+  const withFallback = model === 'sonnet';
+  if (withFallback) {
+    request.betas = ['server-side-fallback-2026-07-01'];
+    request.fallbacks = 'default';
+  }
+
   let response;
   try {
     // A long web search can pause; sending the answer so far back lets it carry on.
     for (let turn = 1; turn <= 5; turn++) {
-      response = await getClient().messages.create(request);
+      response = withFallback ? await getClient().beta.messages.create(request) : await getClient().messages.create(request);
       if (response.stop_reason !== 'pause_turn') break;
       messages.push({ role: 'assistant', content: response.content });
     }

@@ -1,6 +1,7 @@
 const { execFileSync } = require('child_process');
 const app = require('./app');
 const { startDailyCleanUp } = require('./jobs/clean-up');
+const pieceQueue = require('./jobs/piece-queue');
 
 const port = process.env.PORT || 3000;
 
@@ -31,4 +32,6 @@ app.listen(port, (err) => {
 
   // Expires old invitations and deletes members removed more than 30 days ago.
   startDailyCleanUp();
+  // Reads the details of pieces that were still waiting when the server last stopped.
+  pieceQueue.start();
 });
