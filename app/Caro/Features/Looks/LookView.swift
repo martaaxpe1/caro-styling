@@ -17,7 +17,7 @@ struct LookView: View {
     @State private var editing: StyleStart?
     @State private var confirmingDelete = false
     @State private var working = false
-    @State private var askingForPhoto = false
+    @State private var photoRequest: LookPhotoRequest?
     @State private var shownPhoto: Look.Photo?
 
     var body: some View {
@@ -54,7 +54,7 @@ struct LookView: View {
                 Task { await load() }
             }
         }
-        .lookPhotoSource(isAsking: $askingForPhoto, title: "A photo of you wearing it") { data in
+        .lookPhotoSource(request: $photoRequest) { data in
             Task { await addPhoto(data) }
         }
         .fullScreenCover(item: $shownPhoto) { photo in
@@ -155,8 +155,9 @@ struct LookView: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel("Your photo wearing look \(look.number)")
                     }
-                    Button {
-                        askingForPhoto = true
+                    // A native menu, opening where you tapped: Take a photo, Choose from library.
+                    Menu {
+                        LookPhotoMenu(request: $photoRequest)
                     } label: {
                         VStack(spacing: 6) {
                             Image(systemName: "plus")

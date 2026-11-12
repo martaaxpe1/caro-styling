@@ -19,8 +19,8 @@ struct LooksView: View {
     @State private var occasion: Int?
     @State private var styling: StyleStart?
     @State private var showingSettings = false
-    /// From a photo: asking Take a photo or Choose from library, then the photo for S9.
-    @State private var askingForPhoto = false
+    /// From a photo: the camera or the library, then the photo for S9.
+    @State private var photoRequest: LookPhotoRequest?
     @State private var lookPhoto: LookPhoto?
 
     var body: some View {
@@ -33,7 +33,8 @@ struct LooksView: View {
                 addLabel: "Add a look",
                 addChoices: [
                     (title: "Style a look", systemImage: "square.grid.2x2", action: { styling = .empty }),
-                    (title: "From a photo", systemImage: "camera", action: { askingForPhoto = true }),
+                    (title: "Take a photo", systemImage: "camera", action: { photoRequest = .camera }),
+                    (title: "Choose from library", systemImage: "photo.on.rectangle", action: { photoRequest = .library }),
                 ]
             ) {
                 showingSettings = true
@@ -48,12 +49,19 @@ struct LooksView: View {
                     }
 
                     VStack(spacing: 10) {
-                        card("Style a look", "From scratch, or start from a piece", systemImage: "arrow.right") {
+                        Button {
                             styling = .empty
+                        } label: {
+                            card("Style a look", "From scratch, or start from a piece", systemImage: "arrow.right")
                         }
-                        card("From a photo", "You wearing it, Caro finds your pieces", systemImage: "camera") {
-                            askingForPhoto = true
+                        .buttonStyle(.plain)
+                        // A native menu, opening where you tapped: Take a photo, Choose from library.
+                        Menu {
+                            LookPhotoMenu(request: $photoRequest)
+                        } label: {
+                            card("From a photo", "You wearing it, Caro finds your pieces", systemImage: "camera")
                         }
+                        .buttonStyle(.plain)
                     }
                     .padding(.top, 18)
 
@@ -84,7 +92,7 @@ struct LooksView: View {
         .fullScreenCover(item: $lookPhoto) { photo in
             LookFromPhotoView(photo: photo.data)
         }
-        .lookPhotoSource(isAsking: $askingForPhoto, title: "A photo of you wearing the look") { data in
+        .lookPhotoSource(request: $photoRequest) { data in
             lookPhoto = LookPhoto(data: data)
         }
         .sheet(isPresented: $showingSettings) {
@@ -129,8 +137,7 @@ struct LooksView: View {
     }
 
     /// An outlined card: "Style a look", "From scratch, or start from a piece"; "From a photo".
-    private func card(_ title: String, _ line: String, systemImage: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+    private func card(_ title: String, _ line: String, systemImage: String) -> some View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
@@ -150,8 +157,6 @@ struct LooksView: View {
             .frame(minHeight: 64)
             .overlay(RoundedRectangle(cornerRadius: CaroLayout.tileRadius).strokeBorder(Color.ink, lineWidth: 1))
             .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 
     @ViewBuilder

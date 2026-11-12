@@ -1,16 +1,30 @@
 import PhotosUI
 import SwiftUI
 
-/// One photo of you wearing a look: Take a photo or Choose from library, asked in a small menu
-/// from the bottom of the screen (a confirmation dialog). Used by From a photo on Looks and by
-/// Add a photo on a look's page.
+/// Where one photo of you wearing a look comes from. The buttons that ask for one are native
+/// menus (LookPhotoMenu), so the choice opens right where you tapped.
+enum LookPhotoRequest {
+    case camera, library
+}
+
+/// The two choices, for any menu: Take a photo, Choose from library.
+struct LookPhotoMenu: View {
+    @Binding var request: LookPhotoRequest?
+
+    var body: some View {
+        Button("Take a photo", systemImage: "camera") { request = .camera }
+        Button("Choose from library", systemImage: "photo.on.rectangle") { request = .library }
+    }
+}
+
+/// Opens the camera or the photo library for one photo of you wearing a look, and hands it on.
+/// Used by From a photo on Looks and by Add a photo on a look's page.
 ///
 /// The camera is the one adding pieces uses, taking one photo. The library is the iPhone's own
 /// photo picker, one photo, no permission needed. Either way the photo is drawn again upright
 /// and at most 2000 pixels as JPEG, so it carries no location or camera notes.
 struct LookPhotoSource: ViewModifier {
-    @Binding var isAsking: Bool
-    let title: String
+    @Binding var request: LookPhotoRequest?
     let chosen: (Data) -> Void
 
     @State private var showingLibrary = false
@@ -24,10 +38,13 @@ struct LookPhotoSource: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .confirmationDialog(title, isPresented: $isAsking, titleVisibility: .visible) {
-                Button("Take a photo") { Task { await openCamera() } }
-                Button("Choose from library") { showingLibrary = true }
-                Button("Cancel", role: .cancel) {}
+            .onChange(of: request) { _, wanted in
+                guard let wanted else { return }
+                request = nil
+                switch wanted {
+                case .camera: Task { await openCamera() }
+                case .library: showingLibrary = true
+                }
             }
             .photosPicker(isPresented: $showingLibrary, selection: $item, matching: .images, preferredItemEncoding: .compatible)
             .onChange(of: item) { _, picked in
@@ -89,7 +106,7 @@ struct LookPhotoSource: ViewModifier {
 }
 
 extension View {
-    func lookPhotoSource(isAsking: Binding<Bool>, title: String, chosen: @escaping (Data) -> Void) -> some View {
-        modifier(LookPhotoSource(isAsking: isAsking, title: title, chosen: chosen))
+    func lookPhotoSource(request: Binding<LookPhotoRequest?>, chosen: @escaping (Data) -> Void) -> some View {
+        modifier(LookPhotoSource(request: request, chosen: chosen))
     }
 }
