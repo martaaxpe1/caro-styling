@@ -156,7 +156,10 @@ test("spotting names only the member's own pieces; sure ones are ticked, a low o
       { piece: '999', certainty: 'high' },
       { piece: numberOf(marta.id, p.loafers), certainty: 'high' },
     ],
-    not_in_wardrobe: [{ kind: 'jeans', description: 'blue straight jeans' }],
+    not_in_wardrobe: [
+      { kind: 'jeans', description: 'blue straight jeans' },
+      { kind: 'dress', description: 'Long-sleeved leopard print mini dress with a pleated skirt, ruffled cuffs and a bow' },
+    ],
     photo_quality: 'clear',
   });
   const before = db.prepare(`SELECT COUNT(*) FROM ai_usage WHERE user_id = ? AND action = 'look from a photo'`).pluck().get(marta.id);
@@ -179,7 +182,10 @@ test("spotting names only the member's own pieces; sure ones are ticked, a low o
     ],
     'sure ones first, each piece once, an unknown number dropped, low not ticked'
   );
-  assert.deepEqual(res.body.notInWardrobe, [{ kind: 'jeans', description: 'Blue straight jeans' }]);
+  assert.deepEqual(res.body.notInWardrobe, [
+    { kind: 'jeans', description: 'Blue straight jeans' },
+    { kind: 'dress', description: 'Long-sleeved leopard print mini dress' },
+  ]);
   const after = db.prepare(`SELECT COUNT(*) FROM ai_usage WHERE user_id = ? AND action = 'look from a photo'`).pluck().get(marta.id);
   assert.equal(after, before + 1, 'one AI action');
   assert.equal(fs.existsSync(file(`photos/${marta.id}`)), false, 'nothing is stored by spotting');

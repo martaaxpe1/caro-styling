@@ -36,7 +36,7 @@ worn: each wardrobe piece you can see me wearing, best matches first, with how c
 - low: it could be, but you cannot tell
 Only list pieces you can see in the photo. Each piece in the photo matches at most one wardrobe piece.
 
-not_in_wardrobe: anything I am wearing that is not in my wardrobe, with its kind and a short description in sentence case, like "White cotton t-shirt".
+not_in_wardrobe: anything I am wearing that is not in my wardrobe, with its kind and a short name of 2 to 5 words in sentence case, like "White cotton t-shirt".
 
 photo_quality: how well the photo shows the clothes.`;
 
@@ -174,7 +174,7 @@ function checked(answer, wardrobe) {
   const notInWardrobe = (Array.isArray(answer?.not_in_wardrobe) ? answer.not_in_wardrobe : [])
     .map((item) => ({
       kind: kindByName.has(item?.kind) ? item.kind : null,
-      description: String(item?.description ?? '').trim().slice(0, 80),
+      description: shortName(item?.description),
     }))
     .filter((item) => item.description)
     .map((item) => ({ ...item, description: item.description[0].toUpperCase() + item.description.slice(1) }));
@@ -184,6 +184,16 @@ function checked(answer, wardrobe) {
     notInWardrobe: notInWardrobe.slice(0, 8),
     photoQuality: PHOTO_QUALITIES.includes(answer?.photo_quality) ? answer.photo_quality : null,
   };
+}
+
+// A short name for something not in the wardrobe: "Long-sleeved leopard print mini dress with a
+// pleated skirt, ruffled cuffs and a ..." becomes "Long-sleeved leopard print mini dress".
+// Cut at the first comma or "with", then at a whole word, never in the middle of one.
+const NAME_LENGTH = 48;
+function shortName(text) {
+  let name = String(text ?? '').trim().split(/,| with /)[0].trim();
+  if (name.length > NAME_LENGTH) name = name.slice(0, NAME_LENGTH + 1).replace(/\s+\S*$/, '');
+  return name.replace(/[\s.;:-]+$/, '');
 }
 
 // Spots the member's pieces in a photo they sent (base64). Nothing is stored: the photo is
