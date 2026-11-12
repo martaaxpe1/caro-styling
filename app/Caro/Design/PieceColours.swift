@@ -9,7 +9,7 @@ enum PieceWords {
 
     /// The swatch shown next to a colour. Pale ones get an outline, so they show on paper.
     static func swatch(_ colour: String) -> Color {
-        Color(hex: swatches[colour] ?? 0xB9AE9C)
+        swatches[colour].map { Color(hex: $0) } ?? .outline
     }
 
     static func isPale(_ colour: String) -> Bool {
