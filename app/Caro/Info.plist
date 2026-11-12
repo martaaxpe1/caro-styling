@@ -16,6 +16,10 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<!-- The line the iPhone shows when it first asks for the camera (Take photos, T5).
+	     Choose from library needs no permission: the photo picker only shares what you pick. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Caro uses the camera to photograph the pieces you keep.</string>
 	<!-- The line the iPhone shows when it asks to use your local network. -->
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Caro connects to the server on your Mac while the app is being built.</string>

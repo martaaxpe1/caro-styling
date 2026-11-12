@@ -22,6 +22,8 @@ struct ReviewView: View {
     @State private var showingRetakeLibrary = false
     @State private var showingRetakeCamera = false
     @State private var retakeItem: PhotosPickerItem?
+    @State private var retakeCameraOpen = false
+    @State private var showingCameraRefused = false
     /// Screen 09, after the confirm that opened Looks and Get the look.
     @State private var opened: WardrobeProgress?
     /// Style your first look (true) or Go to the edit (false), acted on once screen 09 has closed.
@@ -98,11 +100,25 @@ struct ReviewView: View {
             }
         }
         .onChange(of: showingRetakeCamera) { _, wanted in
-            if wanted && !UIImagePickerController.isSourceTypeAvailable(.camera) {
-                showingRetakeCamera = false
-                errorMessage = "This iPhone has no camera. Choose from library instead."
+            guard wanted else { return }
+            showingRetakeCamera = false
+            Task {
+                switch await CameraAccess.ask() {
+                case .allowed: retakeCameraOpen = true
+                case .refused: showingCameraRefused = true
+                case .noCamera: errorMessage = "This iPhone has no camera. Choose from library instead."
+                }
             }
         }
+        .fullScreenCover(isPresented: $retakeCameraOpen) {
+            CameraView(single: true) { file in
+                Task { await retake(with: file) }
+            } done: { _ in
+                retakeCameraOpen = false
+            }
+            .ignoresSafeArea()
+        }
+        .cameraRefusedAlert(isPresented: $showingCameraRefused)
     }
 
     // MARK: Layout
