@@ -31,7 +31,7 @@ struct RootView: View {
             case .signedOut:
                 SignInFlow()
             case .signedIn(let member):
-                if member.status == .onboarding {
+                if member.showsOnboarding {
                     OnboardingFlow(member: member)
                 } else {
                     MainView(member: member)

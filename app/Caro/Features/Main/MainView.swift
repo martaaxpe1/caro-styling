@@ -50,14 +50,34 @@ struct MainView: View {
     @ViewBuilder
     private func destination(_ route: WardrobeRoute) -> some View {
         switch route {
+        case .addPieces:
+            YourWardrobeView(showsStep: true) {
+                editPath.append(WardrobeRoute.adding)
+            }
+        default:
+            WardrobeDestination(route: route)
+        }
+    }
+}
+
+/// The screens of adding pieces, the same from onboarding and from the edit.
+struct WardrobeDestination: View {
+    let route: WardrobeRoute
+
+    var body: some View {
+        switch route {
+        case .adding:
+            AddingPiecesView()
         case .chapter(let name, let number):
             ChapterPiecesView(name: name, number: number)
-        case .addPieces, .adding, .review:
-            // Built in the next steps of T5.
-            Text("Adding pieces comes next.")
+        case .review:
+            // Built in the next step of T5.
+            Text("The review comes next.")
                 .font(.caroBody)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.paper)
+        case .addPieces:
+            EmptyView()
         }
     }
 }
