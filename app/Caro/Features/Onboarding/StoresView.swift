@@ -164,7 +164,7 @@ struct StoresView: View {
                                 .font(.caroRowTitle)
                             Text(foundNote(found))
                                 .font(.caroMeta)
-                                .foregroundStyle(found.sellsOnline == true ? Color.muted : Color.terracotta)
+                                .foregroundStyle(found.sellsOnline == true ? Color.muted : Color.terracottaOnTile)
                         }
                         Spacer()
                         Text(replacing == nil ? "Add" : "Use this site")

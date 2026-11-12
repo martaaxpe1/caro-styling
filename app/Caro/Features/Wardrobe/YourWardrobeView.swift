@@ -47,7 +47,7 @@ struct YourWardrobeView: View {
                 HStack(alignment: .top, spacing: 10) {
                     Tip(text: "One piece per photo") {
                         ClothingShape(path: ClothingShape.tee)
-                            .fill(Color(hex: 0x2E3A55))
+                            .fill(Color.drawingNavy)
                             .frame(width: 58, height: 58)
                             .smallShadow()
                     }

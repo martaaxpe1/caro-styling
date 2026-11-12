@@ -78,8 +78,7 @@ struct StyleLookView: View {
             HStack {
                 Button("Cancel") { dismiss() }
                     .font(.text(15, relativeTo: .body))
-                    .padding(.horizontal, 12)
-                    .frame(minHeight: CaroLayout.minTouchTarget)
+                    .topBarButtonStyle()
                 Spacer()
             }
         }

@@ -159,7 +159,7 @@ private struct DashedSpot: View {
                     .font(.text(11, weight: .semibold, relativeTo: .caption2))
                     .textCase(.uppercase)
                     .tracking(11 * 0.12)
-                    .foregroundStyle(Color.terracotta)
+                    .foregroundStyle(Color.terracottaOnTile)
                     .fixedSize()
                     .offset(x: 4, y: -20)
             }
@@ -172,7 +172,7 @@ private struct StartingTag: View {
     var body: some View {
         HStack(spacing: 6) {
             Circle()
-                .strokeBorder(Color(hex: 0xB9AE9C), lineWidth: 1)
+                .strokeBorder(Color.outline, lineWidth: 1)
                 .frame(width: 5, height: 5)
             Text("Your starting piece")
                 .font(.text(11, relativeTo: .caption2))
@@ -182,9 +182,9 @@ private struct StartingTag: View {
         .padding(.vertical, 4)
         .padding(.leading, 6)
         .padding(.trailing, 9)
-        .background(Color(hex: 0xFBF7F0), in: RoundedRectangle(cornerRadius: 3))
-        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color(hex: 0xD8CEBF), lineWidth: 1))
-        .shadow(color: Color(red: 70 / 255, green: 50 / 255, blue: 30 / 255).opacity(0.12), radius: 2, y: 2)
+        .background(Color.tagPaper, in: RoundedRectangle(cornerRadius: 3))
+        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.tagEdge, lineWidth: 1))
+        .shadow(color: Color.shadowBrown.opacity(0.12), radius: 2, y: 2)
         .rotationEffect(.degrees(-4))
         .accessibilityHidden(true)
     }

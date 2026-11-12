@@ -20,9 +20,10 @@ extension View {
     }
 }
 
-/// The light text shown in an empty field, like name@example.com.
+/// The example text shown in an empty field, like name@example.com: lighter than typed text,
+/// still easy to read (the placeholder colour, 4.5 to 1 on paper).
 func fieldPrompt(_ text: String) -> Text {
-    Text(text).foregroundStyle(Color.outline)
+    Text(text).foregroundStyle(Color.placeholder)
 }
 
 #Preview {

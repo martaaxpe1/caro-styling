@@ -161,13 +161,13 @@ private struct AddingTileView: View {
     private var background: Color {
         switch tile.state {
         case .ready: .tile
-        case .cuttingOut, .reading: Color(hex: 0xC9BFB0)
-        default: Color(hex: 0xD9D0C2)
+        case .cuttingOut, .reading: .addingWorking
+        default: .addingWaiting
         }
     }
 
     private var shadowColor: Color {
-        tile.state == .ready && tile.hasCutout ? Color(red: 70 / 255, green: 50 / 255, blue: 30 / 255).opacity(0.2) : .clear
+        tile.state == .ready && tile.hasCutout ? Color.shadowBrown.opacity(0.2) : .clear
     }
 
     private var label: String? {

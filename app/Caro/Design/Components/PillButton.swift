@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// Caro's pill buttons: 52 points high, full width.
-/// Primary is filled with ink, secondary is outlined. Faded while it cannot be pressed.
+/// Primary is filled with ink, secondary is outlined. While it cannot be pressed, either one is a
+/// hairline pill with muted words: warm, readable, and clearly not ready.
 /// Use: `Button("Continue") { ... }.buttonStyle(.pill)` or `.buttonStyle(.pillOutlined)`.
 struct PillButtonStyle: ButtonStyle {
     var filled: Bool
@@ -19,18 +20,28 @@ struct PillButtonStyle: ButtonStyle {
         var body: some View {
             configuration.label
                 .font(.caroButton)
-                .foregroundStyle(filled ? Color.onInk : Color.ink)
+                .foregroundStyle(textColour)
                 .frame(maxWidth: .infinity, minHeight: CaroLayout.buttonHeight)
-                .background(filled ? Color.ink : Color.clear, in: Capsule())
+                .background(fillColour, in: Capsule())
                 .overlay {
-                    if !filled {
+                    if !filled && isEnabled {
                         Capsule().strokeBorder(Color.ink, lineWidth: 1)
                     }
                 }
                 .contentShape(Capsule())
-                .opacity(!isEnabled ? 0.35 : configuration.isPressed ? 0.7 : 1)
-                // Paper behind the faded pill, so it stays solid and nothing shows through it.
+                .opacity(configuration.isPressed ? 0.7 : 1)
+                // Paper behind the pill, so it stays solid while pressed and nothing shows through it.
                 .background(Color.paper, in: Capsule())
+        }
+
+        private var textColour: Color {
+            if !isEnabled { return .muted }
+            return filled ? .onInk : .ink
+        }
+
+        private var fillColour: Color {
+            if !isEnabled { return .hairline }
+            return filled ? .ink : .clear
         }
     }
 }
