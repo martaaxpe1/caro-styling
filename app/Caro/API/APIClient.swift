@@ -358,6 +358,67 @@ struct APIClient {
         return response.look
     }
 
+    // MARK: Get the look (screens 14 and 15)
+
+    /// GET /me/inspirations: inspirations, To find, occasions.
+    func getTheLook() async throws -> GetTheLookPage {
+        try await send("GET", "me/inspirations")
+    }
+
+    /// POST /me/inspirations: a new inspiration from a photo (JPEG) or a Pinterest link.
+    /// The server answers at once; Claude reads it in the background.
+    func addInspiration(photo: Data?, link: String?, note: String?) async throws -> Inspiration {
+        let body = NewInspirationBody(photo: photo?.base64EncodedString(), link: link, note: note)
+        let response: InspirationResponse = try await send("POST", "me/inspirations", body: body, timeout: Self.uploadTimeout)
+        return response.inspiration
+    }
+
+    func inspiration(_ id: Int) async throws -> Inspiration {
+        let response: InspirationResponse = try await send("GET", "me/inspirations/\(id)")
+        return response.inspiration
+    }
+
+    /// PUT /me/inspirations/:id: its link, note and occasion.
+    func updateInspiration(_ id: Int, link: String?, note: String?, occasion: Int?) async throws -> Inspiration {
+        let body = InspirationDetailsBody(link: link, note: note, occasion: occasion)
+        let response: InspirationResponse = try await send("PUT", "me/inspirations/\(id)", body: body)
+        return response.inspiration
+    }
+
+    /// PUT /me/inspirations/:id/pieces/:number: your piece for it (nil: back to Caro's match).
+    func fillInspirationPiece(_ id: Int, number: Int, piece: Int?) async throws -> Inspiration {
+        let response: InspirationResponse = try await send("PUT", "me/inspirations/\(id)/pieces/\(number)", body: FillBody(piece: piece))
+        return response.inspiration
+    }
+
+    /// Takes a piece out of your version, or puts it back.
+    func removeInspirationPiece(_ id: Int, number: Int, removed: Bool) async throws -> Inspiration {
+        let response: InspirationResponse = try await send("PUT", "me/inspirations/\(id)/pieces/\(number)", body: ["removed": removed])
+        return response.inspiration
+    }
+
+    /// Marks a missing piece as key (it goes on To find), or takes the mark off.
+    func markInspirationPiece(_ id: Int, number: Int, key: Bool) async throws -> Inspiration {
+        let response: InspirationResponse = try await send("PUT", "me/inspirations/\(id)/pieces/\(number)", body: ["key": key])
+        return response.inspiration
+    }
+
+    /// POST /me/inspirations/:id/read: Try again, after Caro could not read it.
+    func readInspirationAgain(_ id: Int) async throws -> Inspiration {
+        let response: InspirationResponse = try await send("POST", "me/inspirations/\(id)/read")
+        return response.inspiration
+    }
+
+    func deleteInspiration(_ id: Int) async throws {
+        let _: OK = try await send("DELETE", "me/inspirations/\(id)")
+    }
+
+    /// POST /me/inspirations/:id/look: saves your version as a look, or changes the one saved before.
+    func saveInspirationLook(_ id: Int, occasions: [Int], seasons: [Int]) async throws -> Look {
+        let response: LookResponse = try await send("POST", "me/inspirations/\(id)/look", body: ["occasions": occasions, "seasons": seasons])
+        return response.look
+    }
+
     /// A piece's picture, from an address the server gave, like /me/pieces/12/thumb?v=ab12.
     /// A plain request with the session token: the photos are private.
     func imageRequest(for path: String) -> URLRequest? {
@@ -384,6 +445,38 @@ struct APIClient {
     private struct LookResponse: Decodable { let look: Look }
     private struct RemovedResponse: Decodable { let progress: WardrobeProgress }
     private struct LookPhotoBody: Encodable { let photo: String }
+    private struct InspirationResponse: Decodable { let inspiration: Inspiration }
+    private struct NewInspirationBody: Encodable {
+        let photo: String?
+        let link: String?
+        let note: String?
+    }
+    /// The three are always sent; nil is sent as null, which clears it.
+    private struct InspirationDetailsBody: Encodable {
+        let link: String?
+        let note: String?
+        let occasion: Int?
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(link, forKey: .link)
+            try container.encode(note, forKey: .note)
+            try container.encode(occasion, forKey: .occasion)
+        }
+
+        private enum CodingKeys: String, CodingKey { case link, note, occasion }
+    }
+    /// piece nil is sent as null: back to Caro's match.
+    private struct FillBody: Encodable {
+        let piece: Int?
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(piece, forKey: .piece)
+        }
+
+        private enum CodingKeys: String, CodingKey { case piece }
+    }
     private struct PhotoLookBody: Encodable {
         let photo: String
         let pieces: [Int]

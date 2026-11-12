@@ -525,10 +525,12 @@ struct LookFromPhotoView: View {
 }
 
 /// Add a piece: the chapters with how many pieces each has, then that chapter's pieces as
-/// cut-outs. Tapping one adds it to the look and closes.
-private struct AddPieceSheet: View {
+/// cut-outs. Tapping one adds it to the look and closes. Also used on Your version (T10).
+struct AddPieceSheet: View {
     let pieces: [Piece]
     let listed: Set<Int>
+    /// "Add a piece" on S9; "Choose your piece" on Your version.
+    var title = "Add a piece"
     let add: (Piece) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -567,7 +569,7 @@ private struct AddPieceSheet: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Color.paper)
-            .navigationTitle("Add a piece")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

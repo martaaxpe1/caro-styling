@@ -12,6 +12,8 @@ struct MainView: View {
     @State private var editPath = NavigationPath()
     /// The screens pushed on top of Looks: a look, its pieces.
     @State private var looksPath = NavigationPath()
+    /// The screens pushed on top of Get the look: an inspiration and your version of it.
+    @State private var getPath = NavigationPath()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -40,13 +42,24 @@ struct MainView: View {
                     }
                     .tint(Color.ink)
                 case .getTheLook:
-                    ComingView(member: member, tab: .getTheLook)
+                    NavigationStack(path: $getPath) {
+                        GetTheLookView(member: member) { id in
+                            getPath.append(GetTheLookRoute.inspiration(id: id))
+                        }
+                        .navigationDestination(for: GetTheLookRoute.self) { route in
+                            switch route {
+                            case .inspiration(let id):
+                                InspirationView(inspirationID: id)
+                            }
+                        }
+                    }
+                    .tint(Color.ink)
                 }
             }
             .frame(maxHeight: .infinity)
 
             // The tab bar shows on the first screen of each section, not over adding pieces.
-            if (tab == .edit && editPath.isEmpty) || (tab == .looks && looksPath.isEmpty) || tab == .getTheLook {
+            if (tab == .edit && editPath.isEmpty) || (tab == .looks && looksPath.isEmpty) || (tab == .getTheLook && getPath.isEmpty) {
                 TextTabBar(selection: $tab, unlocked: member.unlocked)
             }
         }
@@ -112,35 +125,6 @@ struct WardrobeDestination: View {
             PieceLooksView(pieceID: pieceID, name: name)
         case .addPieces:
             EmptyView()
-        }
-    }
-}
-
-/// Get the look, until T10 builds it.
-struct ComingView: View {
-    let member: Member
-    let tab: MainTab
-
-    @State private var showingSettings = false
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Masthead(initial: member.initial, dateline: tab.title) {
-                showingSettings = true
-            }
-            .padding(.top, 6)
-
-            Spacer()
-            Text("Get the look comes in T10.")
-                .font(.caroBody)
-                .foregroundStyle(Color.muted)
-            Spacer()
-        }
-        .foregroundStyle(Color.ink)
-        .frame(maxWidth: .infinity)
-        .background(Color.paper)
-        .sheet(isPresented: $showingSettings) {
-            SettingsView(member: member)
         }
     }
 }
