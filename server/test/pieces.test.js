@@ -588,3 +588,31 @@ test('the fixed lists for the app', async () => {
   assert.deepEqual(lists.warmth, ['light', 'medium', 'warm']);
   assert.equal((await call('GET', '/lists')).status, 401);
 });
+
+test('a photo taken sideways can be turned a quarter turn; only by its owner', async () => {
+  const owner = addMember('Owner');
+  const other = addMember('Other');
+  const piece = await addPiece(owner.token);
+  const before = pieceRow(piece.id);
+  const size = async (relative) => {
+    const { width, height } = await sharp(file(relative)).metadata();
+    return [width, height];
+  };
+  const [photoWidth, photoHeight] = await size(before.original_path);
+  const [cutWidth, cutHeight] = await size(before.cutout_path);
+
+  assert.equal((await call('POST', `/me/pieces/${piece.id}/rotate`, { token: other.token })).status, 404);
+
+  const turned = await call('POST', `/me/pieces/${piece.id}/rotate`, { token: owner.token });
+  assert.equal(turned.status, 200, turned.body.error);
+  assert.notEqual(turned.body.piece.images.thumb, piece.images.thumb, 'a new address, so the old copy is not shown');
+  assert.equal(turned.body.piece.name, 'Cream linen shirt', 'the details stay');
+
+  const after = pieceRow(piece.id);
+  assert.deepEqual(await size(after.original_path), [photoHeight, photoWidth]);
+  assert.deepEqual(await size(after.cutout_path), [cutHeight, cutWidth]);
+  assert.equal((await sharp(file(after.cutout_path)).metadata()).hasAlpha, true);
+  for (const old of [before.original_path, before.cutout_path, before.thumb_path]) {
+    assert.ok(!fs.existsSync(file(old)), `${old} deleted`);
+  }
+});

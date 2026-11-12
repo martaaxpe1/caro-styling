@@ -11,7 +11,7 @@ struct ChapterPiecesView: View {
     @State private var errorMessage: String?
     @State private var removing: Piece?
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 3)
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: 3)
 
     var body: some View {
         ScrollView {
@@ -20,7 +20,7 @@ struct ChapterPiecesView: View {
                     .font(.caroScreenTitle)
                     .caroTitleTracking()
 
-                Text("Touch and hold a piece to remove it.")
+                Text("Tap a piece to change its details. Touch and hold to remove it.")
                     .font(.caroBody)
                     .foregroundStyle(Color.muted)
                     .padding(.top, 8)
@@ -35,12 +35,15 @@ struct ChapterPiecesView: View {
                 if let pieces {
                     LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
                         ForEach(pieces) { piece in
-                            PieceTile(piece: piece)
-                                .contextMenu {
-                                    Button("Remove piece", systemImage: "trash", role: .destructive) {
-                                        removing = piece
-                                    }
+                            NavigationLink(value: WardrobeRoute.piece(piece)) {
+                                PieceTile(piece: piece)
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button("Remove piece", systemImage: "trash", role: .destructive) {
+                                    removing = piece
                                 }
+                            }
                         }
                     }
                     .padding(.top, 20)
@@ -64,7 +67,8 @@ struct ChapterPiecesView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.paper, for: .navigationBar)
-        .task { await load() }
+        // Again each time it shows, so a piece changed or turned shows as it is now.
+        .onAppear { Task { await load() } }
         .alert(
             "Remove this piece?",
             isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),

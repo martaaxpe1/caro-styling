@@ -3,12 +3,19 @@ import SwiftUI
 
 /// Screen 07, the review queue: one piece at a time, with Caro's suggested details to confirm
 /// or change. Confirm counts it towards 20; Mark as maybe counts too; Skip leaves it waiting
-/// for next time. Added to the design: Pattern in the Colour row, a Formality row, Remove, and
-/// Retake for a photo where nothing lifted.
+/// for next time. Added to the design: Pattern in the Colour row, a Formality row, Remove,
+/// Retake for a photo where nothing lifted, and turning a photo taken sideways.
+///
+/// The same screen opens a piece from a chapter of the edit (`editing`), to change its details
+/// and Save. Until T6 builds the piece page (screen 11), this is where a piece is changed.
 struct ReviewView: View {
+    /// A piece opened from the edit. Nil: the review queue.
+    var editing: Piece?
+
     @Environment(WardrobeStore.self) private var store
     @Environment(Session.self) private var session
     @Environment(\.closeToEdit) private var closeToEdit
+    @Environment(\.dismiss) private var dismiss
 
     /// The pieces to review in this visit, in order. Skipped ones are not asked again until next time.
     @State private var pieces: [Piece] = []
@@ -32,6 +39,7 @@ struct ReviewView: View {
     @FocusState private var nameFocused: Bool
 
     private var piece: Piece? { pieces.indices.contains(index) ? pieces[index] : nil }
+    private var isEditing: Bool { editing != nil }
 
     var body: some View {
         Group {
@@ -46,13 +54,22 @@ struct ReviewView: View {
         }
         .foregroundStyle(Color.ink)
         .background(Color.paper)
-        .navigationBarBackButtonHidden(true)
+        // A piece opened from a chapter is pushed: the usual back arrow (and swipe) returns to it.
+        .navigationBarBackButtonHidden(!isEditing)
         .toolbar { toolbar }
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.paper, for: .navigationBar)
         .task {
             await store.loadLists()
-            await loadQueue()
+            if let editing {
+                // The queue's answer also carries the member's seasons and occasions, for the chips.
+                await store.refreshQueue()
+                pieces = [editing]
+                loaded = true
+                show()
+            } else {
+                await loadQueue()
+            }
         }
         .sheet(item: $sheet) { sheet in
             if let lists = store.lists, details != nil {
@@ -125,16 +142,18 @@ struct ReviewView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button("Close") { closeToEdit() }
-                .font(.caroButton)
+        if !isEditing {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Close") { closeToEdit() }
+                    .font(.caroButton)
+            }
         }
         ToolbarItem(placement: .principal) {
-            Text(pieces.isEmpty ? "Review" : "Review · \(min(index + 1, pieces.count)) of \(pieces.count)")
+            Text(isEditing ? "Your piece" : pieces.isEmpty ? "Review" : "Review · \(min(index + 1, pieces.count)) of \(pieces.count)")
                 .caroLabelStyle()
         }
         ToolbarItem(placement: .topBarTrailing) {
-            if piece != nil {
+            if piece != nil && !isEditing {
                 Button("Skip") { next() }
                     .font(.caroButton)
                     .disabled(saving)
@@ -153,6 +172,23 @@ struct ReviewView: View {
                     .overlay {
                         PieceImage(path: piece.images.thumb, isCutout: piece.hasCutout, shadow: .large)
                             .padding(piece.hasCutout ? 14 : 8)
+                    }
+                    .overlay(alignment: .bottomTrailing) {
+                        // For a photo taken sideways: each tap turns it a quarter turn.
+                        Button {
+                            Task { await rotate() }
+                        } label: {
+                            Image(systemName: "rotate.right")
+                                .font(.system(size: 16, weight: .regular))
+                                .foregroundStyle(Color.ink)
+                                .frame(width: 36, height: 36)
+                                .background(Color.paper, in: Circle())
+                                .frame(width: CaroLayout.minTouchTarget, height: CaroLayout.minTouchTarget)
+                                .contentShape(Rectangle())
+                        }
+                        .disabled(saving)
+                        .padding(4)
+                        .accessibilityLabel("Turn the photo")
                     }
                     .padding(.top, 12)
 
@@ -180,8 +216,14 @@ struct ReviewView: View {
                 }
 
                 HStack {
-                    Button("Mark as maybe") {
-                        Task { await save(as: .maybe) }
+                    if isEditing && piece.status == .maybe {
+                        Button("No longer a maybe") {
+                            Task { await save(as: .confirmed) }
+                        }
+                    } else {
+                        Button("Mark as maybe") {
+                            Task { await save(as: .maybe) }
+                        }
                     }
                     Spacer()
                     Button("Remove") { confirmingRemove = true }
@@ -205,8 +247,9 @@ struct ReviewView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
-            Button("Confirm") {
-                Task { await save(as: .confirmed) }
+            Button(isEditing ? "Save" : "Confirm") {
+                // Save keeps a piece opened from the edit as it was: confirmed or maybe.
+                Task { await save(as: isEditing ? piece.status : .confirmed) }
             }
             .buttonStyle(.pill)
             .disabled(saving || !canConfirm(details.wrappedValue))
@@ -217,7 +260,7 @@ struct ReviewView: View {
     /// The thin line with "11 of 20" while the wardrobe is still being built.
     @ViewBuilder
     private var progressLine: some View {
-        if let progress = store.progress, !progress.unlocked {
+        if let progress = store.progress, !progress.unlocked, !isEditing {
             HStack(spacing: 10) {
                 ProgressBar(fraction: Double(progress.pieces) / Double(max(progress.needed, 1)), height: 2)
                 Text("\(progress.pieces) of \(progress.needed)")
@@ -426,6 +469,8 @@ struct ReviewView: View {
             let saved = try await store.save(piece.id, details: details)
             if saved.justUnlocked {
                 opened = saved.progress
+            } else if isEditing {
+                dismiss()
             } else {
                 next()
             }
@@ -440,10 +485,24 @@ struct ReviewView: View {
         defer { saving = false }
         if let failed = await store.remove(piece) {
             errorMessage = failed
+        } else if isEditing {
+            dismiss()
         } else {
             pieces.remove(at: index)
             index -= 1
             next()
+        }
+    }
+
+    /// Turns the piece's pictures a quarter turn clockwise, on the server.
+    private func rotate() async {
+        guard let piece, !saving else { return }
+        saving = true
+        defer { saving = false }
+        do {
+            pieces[index] = try await store.rotate(piece.id)
+        } catch {
+            errorMessage = store.message(for: error)
         }
     }
 

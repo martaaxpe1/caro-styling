@@ -5,6 +5,7 @@
 // GET    /me/pieces?chapter=tops      the counted pieces of one chapter, newest first
 // PUT    /me/pieces/:id               { name, kind, colours, ..., status }   confirm (or maybe) with the member's details
 // PUT    /me/pieces/:id/photo         { photo, cutout }   retake: a new photo, the same details
+// POST   /me/pieces/:id/rotate        turns the pictures a quarter turn clockwise
 // GET    /me/pieces/:id/photo         the photo; also /cutout and /thumb (the thumbnail)
 // DELETE /me/pieces/:id               removes the piece and its photos
 //
@@ -106,6 +107,26 @@ router.put('/:id/photo', async (req, res, next) => {
       .run(files.original, files.cutout, files.thumb, piece.id, req.member.id).changes;
     // Removed while the new photo was being saved: keep nothing.
     photos.removeFiles(changed ? photos.filesOf(piece) : files);
+    if (!changed) return res.status(404).json({ error: 'This piece is no longer in your wardrobe.' });
+
+    res.json({ piece: pieceJSON(findPiece(req.member.id, piece.id)) });
+  } catch (error) {
+    if (error instanceof photos.PhotoError) return res.status(400).json({ error: error.message });
+    next(error);
+  }
+});
+
+// A photo taken sideways: turn the pictures a quarter turn clockwise. Tap again to keep turning.
+router.post('/:id/rotate', async (req, res, next) => {
+  try {
+    const piece = findPiece(req.member.id, req.params.id);
+    if (!piece) return res.status(404).json({ error: 'This piece is no longer in your wardrobe.' });
+    const turned = await photos.rotatePiecePhotos(req.member.id, photos.filesOf(piece));
+
+    const changed = db
+      .prepare('UPDATE pieces SET original_path = ?, cutout_path = ?, thumb_path = ? WHERE id = ? AND user_id = ?')
+      .run(turned.original, turned.cutout, turned.thumb, piece.id, req.member.id).changes;
+    photos.removeFiles(changed ? photos.filesOf(piece) : turned);
     if (!changed) return res.status(404).json({ error: 'This piece is no longer in your wardrobe.' });
 
     res.json({ piece: pieceJSON(findPiece(req.member.id, piece.id)) });

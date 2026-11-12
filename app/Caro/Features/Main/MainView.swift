@@ -79,6 +79,8 @@ struct WardrobeDestination: View {
             ChapterPiecesView(name: name, number: number)
         case .review:
             ReviewView()
+        case .piece(let piece):
+            ReviewView(editing: piece)
         case .addPieces:
             EmptyView()
         }

@@ -76,6 +76,13 @@ final class WardrobeStore {
         return saved
     }
 
+    /// Turns a piece's pictures a quarter turn clockwise. The edit is updated in the background.
+    func rotate(_ pieceID: Int) async throws -> Piece {
+        let piece = try await api.rotatePiece(pieceID)
+        Task { await load() }
+        return piece
+    }
+
     /// Retake: a new photo for a piece, cut out again on the iPhone. The details stay.
     func retake(_ pieceID: Int, photoFile: Data) async throws -> Piece {
         guard let prepared = await PhotoPrep.prepare(data: photoFile) else {

@@ -78,6 +78,31 @@ async function savePiecePhotos(userId, { photo, cutout }) {
   return files;
 }
 
+// Turns a piece's pictures a quarter turn clockwise, for a photo taken sideways. The turned
+// pictures get a new name, so the iPhone shows them instead of the copies it kept.
+// Returns the new paths; the caller deletes the old files.
+async function rotatePiecePhotos(userId, files) {
+  const name = crypto.randomBytes(12).toString('hex');
+  const folder = memberFolder(userId);
+  const turned = {
+    original: path.join(folder, `${name}-photo.jpg`),
+    cutout: files.cutout ? path.join(folder, `${name}-cutout.webp`) : null,
+    thumb: path.join(folder, `${name}-thumb.webp`),
+  };
+  try {
+    await sharp(absolute(files.original)).rotate(90).jpeg({ quality: 90, mozjpeg: true }).toFile(absolute(turned.original));
+    if (files.cutout) {
+      await sharp(absolute(files.cutout)).rotate(90).webp({ quality: 90 }).toFile(absolute(turned.cutout));
+    }
+    await sharp(absolute(files.thumb)).rotate(90).webp({ quality: 80 }).toFile(absolute(turned.thumb));
+  } catch (error) {
+    removeFiles(turned);
+    console.error(`A piece photo could not be turned: ${error.message}`);
+    throw new PhotoError('Caro could not turn this photo. Try again.');
+  }
+  return turned;
+}
+
 // The photo as Claude gets it: upright, at most `size` pixels, JPEG, as base64.
 async function photoForClaude(originalPath, size) {
   const bytes = await sharp(absolute(originalPath)).resize(fitInside(size)).jpeg({ quality: 85 }).toBuffer();
@@ -104,6 +129,7 @@ module.exports = {
   PhotoError,
   absolute,
   savePiecePhotos,
+  rotatePiecePhotos,
   photoForClaude,
   removeFiles,
   filesOf,

@@ -11,6 +11,8 @@ enum WardrobeRoute: Hashable {
     case review
     /// The simple list of one chapter's pieces, until T6 builds the chapter page (S6).
     case chapter(name: String, number: Int)
+    /// One piece from a chapter, to change its details, until T6 builds the piece page (11).
+    case piece(Piece)
 }
 
 extension EnvironmentValues {

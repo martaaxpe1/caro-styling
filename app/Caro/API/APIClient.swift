@@ -209,6 +209,12 @@ struct APIClient {
         return response.piece
     }
 
+    /// POST /me/pieces/:id/rotate: turns the pictures a quarter turn clockwise.
+    func rotatePiece(_ pieceID: Int) async throws -> Piece {
+        let response: PieceResponse = try await send("POST", "me/pieces/\(pieceID)/rotate", timeout: 30)
+        return response.piece
+    }
+
     /// PUT /me/pieces/:id: confirm, or mark as maybe, with the details the member checked.
     func savePiece(_ pieceID: Int, details: PieceDetails) async throws -> SavedPiece {
         try await send("PUT", "me/pieces/\(pieceID)", body: details)
