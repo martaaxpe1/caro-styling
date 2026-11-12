@@ -21,6 +21,19 @@ function later(date, days) {
   return new Date(date.getTime() + days * DAY);
 }
 
+// Sends the invitation email. If Resend fails, the invitation is still saved, so the
+// admin is told to resend it. Returns false when it already answered with that error.
+async function sendInvitation(invitation, invitedBy, res) {
+  try {
+    await email.sendInvitation(invitation, invitedBy);
+    return true;
+  } catch (err) {
+    if (!(err instanceof email.EmailError)) throw err;
+    res.status(502).json({ error: 'The invitation is saved, but the email did not go out. Resend it from Invitations.' });
+    return false;
+  }
+}
+
 function memberRow(user) {
   return {
     id: user.id,
@@ -89,7 +102,7 @@ router.get('/', (req, res) => {
 });
 
 // Add person: a name and an email, then the invitation goes out. Open for 14 days.
-router.post('/invitations', (req, res) => {
+router.post('/invitations', async (req, res) => {
   const name = String(req.body?.name ?? '').trim();
   const address = cleanEmail(req.body?.email);
 
@@ -132,12 +145,12 @@ router.post('/invitations', (req, res) => {
     return res.status(409).json({ error: 'This email already has an invitation waiting. Resend it instead.' });
   }
 
-  email.sendInvitation({ name, email: address, expiresAt: invitation.expires_at }, req.member.name);
+  if (!(await sendInvitation({ name, email: address, expiresAt: invitation.expires_at }, req.member.name, res))) return;
   res.status(201).json({ invitation: invitationRow(invitation) });
 });
 
 // Resend: the invitation goes out again and is open for another 14 days from today.
-router.post('/invitations/:id/resend', (req, res) => {
+router.post('/invitations/:id/resend', async (req, res) => {
   const invitation = findPendingInvitation(req);
   if (!invitation) {
     return res.status(404).json({ error: 'This invitation is no longer waiting.' });
@@ -151,7 +164,7 @@ router.post('/invitations/:id/resend', (req, res) => {
   );
   const updated = db.prepare('SELECT * FROM invitations WHERE id = ?').get(invitation.id);
 
-  email.sendInvitation({ name: updated.name, email: updated.email, expiresAt: updated.expires_at }, req.member.name);
+  if (!(await sendInvitation({ name: updated.name, email: updated.email, expiresAt: updated.expires_at }, req.member.name, res))) return;
   res.json({ invitation: invitationRow(updated) });
 });
 

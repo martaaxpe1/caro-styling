@@ -34,7 +34,7 @@ function findAccess(address, at) {
   return invitation ? { invitation } : null;
 }
 
-router.post('/code', (req, res) => {
+router.post('/code', async (req, res) => {
   const address = cleanEmail(req.body?.email);
   if (!looksLikeEmail(address)) {
     return res.status(400).json({ error: 'Type your email, like name@example.com.' });
@@ -71,7 +71,12 @@ router.post('/code', (req, res) => {
     );
   })();
 
-  email.sendSignInCode(address, code, CODE_MINUTES);
+  try {
+    await email.sendSignInCode(address, code, CODE_MINUTES);
+  } catch (err) {
+    if (err instanceof email.EmailError) return res.status(502).json({ error: err.message });
+    throw err;
+  }
   res.json({ ok: true });
 });
 
