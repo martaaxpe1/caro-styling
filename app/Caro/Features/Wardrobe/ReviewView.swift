@@ -6,8 +6,8 @@ import SwiftUI
 /// for next time. Added to the design: Pattern in the Colour row, a Formality row, Remove,
 /// Retake for a photo where nothing lifted, and turning a photo taken sideways.
 ///
-/// The same screen opens a piece from a chapter of the edit (`editing`), to change its details
-/// and Save. Until T6 builds the piece page (screen 11), this is where a piece is changed.
+/// The same screen is Edit on the piece page (screen 11, `editing`): change the details and
+/// Save, with Brand and Notes added. Mark as maybe and Remove live on the piece page then.
 struct ReviewView: View {
     /// A piece opened from the edit. Nil: the review queue.
     var editing: Piece?
@@ -149,7 +149,7 @@ struct ReviewView: View {
             }
         }
         ToolbarItem(placement: .principal) {
-            Text(isEditing ? "Your piece" : pieces.isEmpty ? "Review" : "Review · \(min(index + 1, pieces.count)) of \(pieces.count)")
+            Text(isEditing ? "Edit piece" : pieces.isEmpty ? "Review" : "Review · \(min(index + 1, pieces.count)) of \(pieces.count)")
                 .caroLabelStyle()
         }
         ToolbarItem(placement: .topBarTrailing) {
@@ -202,6 +202,9 @@ struct ReviewView: View {
                     row("Colour", sheet: .colour) { colourValue(details.wrappedValue) }
                     row("Material", value: materialText(details.wrappedValue), sheet: .material)
                     row("Formality", value: details.wrappedValue.formality.map { PieceWords.title($0) }, sheet: .formality)
+                    if isEditing {
+                        brandField(details)
+                    }
                 }
                 .padding(.top, 6)
 
@@ -215,25 +218,25 @@ struct ReviewView: View {
                     chips("Occasions", note: "You choose", items: queue.occasions, selected: details.occasions)
                 }
 
-                HStack {
-                    if isEditing && piece.status == .maybe {
-                        Button("No longer a maybe") {
-                            Task { await save(as: .confirmed) }
-                        }
-                    } else {
+                if isEditing {
+                    notesField(details)
+                }
+
+                if !isEditing {
+                    HStack {
                         Button("Mark as maybe") {
                             Task { await save(as: .maybe) }
                         }
+                        Spacer()
+                        Button("Remove") { confirmingRemove = true }
                     }
-                    Spacer()
-                    Button("Remove") { confirmingRemove = true }
+                    .font(.caroLink)
+                    .foregroundStyle(Color.terracotta)
+                    .underline()
+                    .frame(minHeight: CaroLayout.minTouchTarget)
+                    .padding(.top, 6)
+                    .disabled(saving)
                 }
-                .font(.caroLink)
-                .foregroundStyle(Color.terracotta)
-                .underline()
-                .frame(minHeight: CaroLayout.minTouchTarget)
-                .padding(.top, 6)
-                .disabled(saving)
 
                 if let errorMessage {
                     Text(errorMessage)
@@ -312,6 +315,53 @@ struct ReviewView: View {
                     .accessibilityHidden(true)
             }
             .accessibilityLabel("Name")
+    }
+
+    /// Edit only: the brand, typed, on a details row.
+    private func brandField(_ details: Binding<PieceDetails>) -> some View {
+        HStack {
+            Text("Brand")
+                .font(.caroLabel)
+                .textCase(.uppercase)
+                .tracking(11 * 0.14)
+                .foregroundStyle(Color.muted)
+            Spacer()
+            TextField("Brand", text: details.brand, prompt: fieldPrompt("Add a brand"))
+                .font(.caroBody)
+                .multilineTextAlignment(.trailing)
+                .textInputAutocapitalization(.words)
+                .autocorrectionDisabled()
+                .submitLabel(.done)
+                .onChange(of: details.wrappedValue.brand) { _, brand in
+                    if brand.count > 40 { details.wrappedValue.brand = String(brand.prefix(40)) }
+                }
+        }
+        .frame(minHeight: 38)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Color.hairline).frame(height: 1)
+        }
+    }
+
+    /// Edit only: a short free note, up to 280 letters.
+    private func notesField(_ details: Binding<PieceDetails>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Notes")
+                .font(.caroLabel)
+                .textCase(.uppercase)
+                .tracking(11 * 0.14)
+                .foregroundStyle(Color.muted)
+            TextField("Notes", text: details.notes, prompt: fieldPrompt("Where it is from, how it fits"), axis: .vertical)
+                .font(.caroBody)
+                .lineLimit(2...5)
+                .padding(.bottom, 6)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(Color.hairline).frame(height: 1)
+                }
+                .onChange(of: details.wrappedValue.notes) { _, notes in
+                    if notes.count > 280 { details.wrappedValue.notes = String(notes.prefix(280)) }
+                }
+        }
+        .padding(.top, 18)
     }
 
     private func row(_ label: String, value: String?, sheet: DetailSheet) -> some View {

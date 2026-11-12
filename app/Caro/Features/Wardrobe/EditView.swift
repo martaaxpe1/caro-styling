@@ -1,13 +1,16 @@
 import SwiftUI
 
-/// The edit (screen 08 while the wardrobe is being built; T6 makes it screen 10).
-/// The masthead with the add button, the progress box while Looks and Get the look are locked,
-/// the pieces still waiting, and one numbered row per chapter with its count and cut-outs.
+/// The edit (screen 08 while the wardrobe is being built, screen 10 after).
+/// The masthead with the add button and "The autumn edit", the progress box while Looks and
+/// Get the look are locked, the pieces still waiting, new seasons to check, the contents (one
+/// numbered row per chapter with its counts and cut-outs) and a last row for the overview.
 struct EditView: View {
     let member: Member
     let addPieces: () -> Void
     let review: () -> Void
     let openChapter: (ChapterSummary) -> Void
+    /// The overview and the season check.
+    let open: (WardrobeRoute) -> Void
 
     @Environment(WardrobeStore.self) private var store
     @State private var showingSettings = false
@@ -17,7 +20,7 @@ struct EditView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Masthead(
                     initial: member.initial,
-                    dateline: "The edit",
+                    dateline: editLine,
                     datelineRight: piecesLine,
                     add: addPieces
                 ) {
@@ -32,12 +35,23 @@ struct EditView: View {
         }
         .foregroundStyle(Color.ink)
         .background(Color.paper)
+        // The pages scroll under a strip of paper behind the clock, not under the clock itself.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Color.paper.frame(height: 0)
+                .background(Color.paper.ignoresSafeArea(edges: .top))
+        }
         .toolbar(.hidden, for: .navigationBar)
         .refreshable { await store.load() }
         .task { await store.load() }
         .sheet(isPresented: $showingSettings) {
             SettingsView(member: member)
         }
+    }
+
+    /// "The autumn edit": the season holding today's month. "The edit" with no seasons.
+    private var editLine: String {
+        guard let season = store.wardrobe?.currentSeason?.name, !season.isEmpty else { return "The edit" }
+        return "The \(season.prefix(1).lowercased() + season.dropFirst()) edit"
     }
 
     private var piecesLine: String {
@@ -54,6 +68,7 @@ struct EditView: View {
             }
 
             waitingLine(wardrobe.waiting)
+            seasonsLine(wardrobe.seasonsToCheck)
 
             if wardrobe.chapters.isEmpty {
                 Text("Your pieces show here once you confirm them, chapter by chapter.")
@@ -61,6 +76,12 @@ struct EditView: View {
                     .foregroundStyle(Color.muted)
                     .padding(.top, 24)
             } else {
+                Text("Contents")
+                    .font(.display(17, relativeTo: .headline).italic())
+                    .foregroundStyle(Color.muted)
+                    .padding(.top, 22)
+                    .padding(.bottom, 4)
+
                 VStack(spacing: 0) {
                     ForEach(wardrobe.chapters) { chapter in
                         Button {
@@ -70,8 +91,14 @@ struct EditView: View {
                         }
                         .buttonStyle(.plain)
                     }
+
+                    Button {
+                        open(.overview)
+                    } label: {
+                        OverviewRow()
+                    }
+                    .buttonStyle(.plain)
                 }
-                .padding(.top, 14)
             }
         } else if let message = store.loadError {
             VStack(alignment: .leading, spacing: 12) {
@@ -116,6 +143,27 @@ struct EditView: View {
         }
     }
 
+    /// After the number of seasons changed: the new seasons to check in one batch.
+    @ViewBuilder
+    private func seasonsLine(_ count: Int) -> some View {
+        if count > 0 {
+            HStack(spacing: 12) {
+                Text("New seasons for \(countText(count, "piece", "pieces"))")
+                    .font(.caroNote)
+                Spacer(minLength: 0)
+                Button("Check") { open(.seasonsCheck) }
+                    .font(.caroLink)
+                    .foregroundStyle(Color.terracotta)
+                    .underline()
+                    .frame(minHeight: CaroLayout.minTouchTarget)
+            }
+            .padding(.top, 10)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Color.hairline).frame(height: 1)
+            }
+        }
+    }
+
     private func waitingText(_ waiting: Wardrobe.Waiting) -> String {
         var parts: [String] = []
         if waiting.toReview > 0 {
@@ -141,7 +189,7 @@ struct ChapterRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(ChapterWords.title(chapter.name))
                     .font(.caroChapterName)
-                Text(chapter.count == 1 ? "1 piece" : "\(chapter.count) pieces")
+                Text(meta)
                     .font(.caroMeta)
                     .foregroundStyle(Color.muted)
             }
@@ -155,12 +203,48 @@ struct ChapterRow: View {
             }
             .frame(width: 112, alignment: .trailing)
         }
-        .frame(minHeight: 76)
+        .frame(minHeight: 80)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Color.hairline).frame(height: 1)
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityHint("Opens the chapter")
+    }
+
+    /// "11 pieces · 2 not styled yet". The second part waits for a first look.
+    private var meta: String {
+        let pieces = countText(chapter.count, "piece", "pieces")
+        guard let notStyled = chapter.notStyled, notStyled > 0 else { return pieces }
+        return "\(pieces) · \(notStyled) not styled yet"
+    }
+}
+
+/// The last row of the contents: the wardrobe overview (S7).
+struct OverviewRow: View {
+    var body: some View {
+        HStack(spacing: 0) {
+            Color.clear.frame(width: 50, height: 1)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("The overview")
+                    .font(.caroChapterName)
+                    .italic()
+                Text("By chapter, colour, season and occasion")
+                    .font(.caroMeta)
+                    .foregroundStyle(Color.muted)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .light))
+                .foregroundStyle(Color.muted)
+                .accessibilityHidden(true)
+        }
+        .frame(minHeight: 80)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Color.hairline).frame(height: 1)
+        }
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Opens the overview")
     }
 }

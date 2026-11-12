@@ -21,7 +21,8 @@ struct MainView: View {
                             member: member,
                             addPieces: { editPath.append(WardrobeRoute.addPieces) },
                             review: { editPath.append(WardrobeRoute.review) },
-                            openChapter: { editPath.append(WardrobeRoute.chapter(name: $0.name, number: $0.number)) }
+                            openChapter: { editPath.append(WardrobeRoute.chapter(name: $0.name, number: $0.number)) },
+                            open: { editPath.append($0) }
                         )
                         .navigationDestination(for: WardrobeRoute.self) { route in
                             destination(route)
@@ -67,7 +68,7 @@ struct MainView: View {
     }
 }
 
-/// The screens of adding pieces, the same from onboarding and from the edit.
+/// The screens pushed from the edit, and adding pieces (the same from onboarding).
 struct WardrobeDestination: View {
     let route: WardrobeRoute
 
@@ -76,11 +77,17 @@ struct WardrobeDestination: View {
         case .adding:
             AddingPiecesView()
         case .chapter(let name, let number):
-            ChapterPiecesView(name: name, number: number)
+            ChapterView(name: name, number: number)
         case .review:
             ReviewView()
-        case .piece(let piece):
+        case .piece(let id):
+            PieceView(pieceID: id)
+        case .editPiece(let piece):
             ReviewView(editing: piece)
+        case .overview:
+            OverviewView()
+        case .seasonsCheck:
+            SeasonsCheckView()
         case .addPieces:
             EmptyView()
         }

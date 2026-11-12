@@ -183,10 +183,37 @@ struct APIClient {
         try await send("GET", "me/pieces", query: [URLQueryItem(name: "status", value: "pending")])
     }
 
-    /// GET /me/pieces?chapter=: the counted pieces of one chapter, newest first.
-    func pieces(inChapter chapter: String) async throws -> [Piece] {
-        let response: PiecesResponse = try await send("GET", "me/pieces", query: [URLQueryItem(name: "chapter", value: chapter)])
-        return response.pieces
+    /// GET /me/pieces?chapter=: the counted pieces of one chapter, newest first, with what the
+    /// filters need.
+    func chapter(_ chapter: String) async throws -> ChapterPage {
+        try await send("GET", "me/pieces", query: [URLQueryItem(name: "chapter", value: chapter)])
+    }
+
+    /// GET /me/pieces/:id: one piece for its page, with the looks it is in.
+    func piecePage(_ pieceID: Int) async throws -> PiecePage {
+        try await send("GET", "me/pieces/\(pieceID)")
+    }
+
+    /// PUT /me/pieces/:id/status: maybe, or no longer a maybe.
+    func setStatus(of pieceID: Int, to status: Piece.Status) async throws -> Piece {
+        let response: PieceResponse = try await send("PUT", "me/pieces/\(pieceID)/status", body: ["status": status.rawValue])
+        return response.piece
+    }
+
+    /// GET /me/wardrobe/overview: the facts of the wardrobe overview.
+    func overview() async throws -> Overview {
+        try await send("GET", "me/wardrobe/overview")
+    }
+
+    /// GET /me/wardrobe/seasons-to-check: the pieces with new seasons, by warmth.
+    func seasonsCheck() async throws -> SeasonsCheck {
+        try await send("GET", "me/wardrobe/seasons-to-check")
+    }
+
+    /// POST /me/wardrobe/seasons-to-check: confirms them, with the seasons for each warmth.
+    func confirmSeasons(_ groups: [String: [Int]]) async throws -> Wardrobe {
+        let response: ConfirmedSeasonsResponse = try await send("POST", "me/wardrobe/seasons-to-check", body: groups)
+        return response.wardrobe
     }
 
     /// GET /lists: the fixed lists for the details.
@@ -247,7 +274,7 @@ struct APIClient {
     private struct AdminMemberResponse: Decodable { let member: AdminMember }
     private struct CitiesResponse: Decodable { let cities: [City] }
     private struct FoundStoreResponse: Decodable { let store: FoundStore }
-    private struct PiecesResponse: Decodable { let pieces: [Piece] }
+    private struct ConfirmedSeasonsResponse: Decodable { let wardrobe: Wardrobe }
     private struct PieceResponse: Decodable { let piece: Piece }
     private struct RemovedResponse: Decodable { let progress: WardrobeProgress }
     private struct PhotoBody: Encodable {

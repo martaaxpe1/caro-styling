@@ -39,10 +39,16 @@ struct Piece: Decodable, Identifiable, Equatable, Hashable {
     let material: String?
     let warmth: String?
     let formality: String?
+    let brand: String?
+    let notes: String?
     /// Season ids, in the order of the member's year.
     let seasons: [Int]
+    /// New seasons proposed after the member changed their year, not checked yet.
+    let seasonsToCheck: Bool
     /// Occasion ids, in the member's order.
     let occasions: [Int]
+    /// How many looks it is in.
+    let looks: Int
     let images: Images
 
     var hasCutout: Bool { images.cutout != nil }
@@ -72,6 +78,12 @@ struct Wardrobe: Decodable, Equatable {
 
     let progress: WardrobeProgress
     let waiting: Waiting
+    /// The season holding today's month, for "The autumn edit". Nil with no seasons.
+    let currentSeason: NamedItem?
+    /// How many looks the member has saved.
+    let looks: Int
+    /// Pieces whose new seasons are still to check, after the year changed.
+    let seasonsToCheck: Int
     let chapters: [ChapterSummary]
 }
 
@@ -80,9 +92,110 @@ struct ChapterSummary: Decodable, Identifiable, Equatable {
     let name: String
     let number: Int
     let count: Int
+    /// Pieces in no look. Nil until the member has a first look.
+    let notStyled: Int?
     let thumbs: [String]
 
     var id: String { name }
+}
+
+/// GET /me/pieces?chapter=: one chapter's pieces, with what the filters need (S6).
+struct ChapterPage: Decodable {
+    let pieces: [Piece]
+    let seasons: [NamedItem]
+    let occasions: [NamedItem]
+    let currentSeason: NamedItem?
+}
+
+/// GET /me/pieces/:id: one piece for its page (screen 11).
+struct PiecePage: Decodable {
+    let piece: Piece
+    let seasons: [NamedItem]
+    let occasions: [NamedItem]
+    let looks: [LookSummary]
+}
+
+/// A look a piece is in, as its page shows it: its number, occasions and pieces.
+struct LookSummary: Decodable, Identifiable {
+    struct LookPiece: Decodable, Identifiable {
+        let id: Int
+        let slot: String
+        let thumb: String
+        let hasCutout: Bool
+    }
+
+    let id: Int
+    let number: Int
+    let occasions: [String]
+    let pieces: [LookPiece]
+}
+
+/// A piece in a short list: its name and thumbnail.
+struct PieceThumb: Decodable, Identifiable, Hashable {
+    let id: Int
+    let name: String?
+    let thumb: String
+    let hasCutout: Bool
+}
+
+/// GET /me/wardrobe/overview: what the member has, as facts (S7).
+struct Overview: Decodable {
+    struct Count: Decodable, Identifiable {
+        let name: String
+        let count: Int
+        var id: String { name }
+    }
+
+    struct Chapter: Decodable, Identifiable {
+        let name: String
+        let number: Int
+        let count: Int
+        var id: String { name }
+    }
+
+    struct Named: Decodable, Identifiable {
+        let id: Int
+        let name: String
+        let count: Int
+    }
+
+    struct NotInALook: Decodable {
+        let count: Int
+        let pieces: [PieceThumb]
+    }
+
+    struct FewLooks: Decodable, Identifiable {
+        let id: Int
+        let name: String
+        let looks: Int
+    }
+
+    let pieces: Int
+    let chapters: [Chapter]
+    let colours: [Count]
+    let seasons: [Named]
+    let noSeason: Int
+    let occasions: [Named]
+    let noOccasion: Int
+    let looks: Int
+    /// Nil until the member has a first look.
+    let notInALook: NotInALook?
+    let occasionsFewLooks: [FewLooks]?
+}
+
+/// GET /me/wardrobe/seasons-to-check: the pieces with new seasons, grouped by warmth.
+struct SeasonsCheck: Decodable {
+    struct Group: Decodable, Identifiable {
+        /// light, medium, warm, or none for pieces with no warmth.
+        let warmth: String
+        /// The seasons the rule proposes for this warmth.
+        let seasons: [Int]
+        let pieces: [PieceThumb]
+        var id: String { warmth }
+    }
+
+    let seasons: [NamedItem]
+    let groups: [Group]
 }
 
 /// GET /me/pieces?status=pending: the review queue.
@@ -140,6 +253,8 @@ struct PieceDetails: Encodable, Equatable {
     var seasons: [Int]
     var occasions: [Int]
     var status: Piece.Status
+    var brand: String
+    var notes: String
 
     init(from piece: Piece) {
         name = piece.name ?? ""
@@ -152,6 +267,8 @@ struct PieceDetails: Encodable, Equatable {
         seasons = piece.seasons
         occasions = piece.occasions
         status = .confirmed
+        brand = piece.brand ?? ""
+        notes = piece.notes ?? ""
     }
 
     // Empty values are sent as null, so the server knows they were left empty on purpose.
@@ -167,10 +284,12 @@ struct PieceDetails: Encodable, Equatable {
         try container.encode(seasons, forKey: .seasons)
         try container.encode(occasions, forKey: .occasions)
         try container.encode(status, forKey: .status)
+        try container.encode(brand, forKey: .brand)
+        try container.encode(notes, forKey: .notes)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case name, kind, colours, pattern, material, warmth, formality, seasons, occasions, status
+        case name, kind, colours, pattern, material, warmth, formality, seasons, occasions, status, brand, notes
     }
 }
 
@@ -191,4 +310,14 @@ enum ChapterWords {
     static func number(_ number: Int) -> String {
         String(format: "%02d", number)
     }
+
+    /// "01 · Outerwear"
+    static func label(_ name: String, _ number: Int) -> String {
+        "\(Self.number(number)) · \(title(name))"
+    }
+}
+
+/// Counts in words: "1 piece", "11 pieces".
+func countText(_ count: Int, _ one: String, _ many: String) -> String {
+    count == 1 ? "1 \(one)" : "\(count) \(many)"
 }

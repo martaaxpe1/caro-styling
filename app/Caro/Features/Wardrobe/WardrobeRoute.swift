@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The screens of adding pieces, pushed onto a navigation stack: from onboarding step 6 or
-/// from the edit.
+/// The screens pushed onto a navigation stack: adding pieces (from onboarding step 6 or from
+/// the edit), and the edit's chapters, pieces, overview and season check.
 enum WardrobeRoute: Hashable {
     /// Screen 05 from the edit's add button: the tips, Take photos, Choose from library.
     case addPieces
@@ -9,10 +9,16 @@ enum WardrobeRoute: Hashable {
     case adding
     /// Screen 07: the review queue.
     case review
-    /// The simple list of one chapter's pieces, until T6 builds the chapter page (S6).
+    /// One chapter's pieces, with filters (S6).
     case chapter(name: String, number: Int)
-    /// One piece from a chapter, to change its details, until T6 builds the piece page (11).
-    case piece(Piece)
+    /// One piece's page (screen 11).
+    case piece(id: Int)
+    /// Edit on the piece page: the review form, with Save, Brand and Notes.
+    case editPiece(Piece)
+    /// The wardrobe overview (S7).
+    case overview
+    /// The new seasons to check in one batch, after the year changed.
+    case seasonsCheck
 }
 
 extension EnvironmentValues {

@@ -34,9 +34,36 @@ final class WardrobeStore {
         }
     }
 
-    /// The counted pieces of one chapter.
-    func pieces(inChapter chapter: String) async throws -> [Piece] {
-        try await api.pieces(inChapter: chapter)
+    /// One chapter's pieces, with the member's seasons and occasions for the filters (S6).
+    func chapter(_ name: String) async throws -> ChapterPage {
+        try await api.chapter(name)
+    }
+
+    /// One piece for its page (screen 11).
+    func piecePage(_ pieceID: Int) async throws -> PiecePage {
+        try await api.piecePage(pieceID)
+    }
+
+    /// Maybe, or no longer a maybe. The edit is updated in the background.
+    func setStatus(of pieceID: Int, to status: Piece.Status) async throws -> Piece {
+        let piece = try await api.setStatus(of: pieceID, to: status)
+        Task { await load() }
+        return piece
+    }
+
+    /// The facts of the wardrobe overview (S7).
+    func overview() async throws -> Overview {
+        try await api.overview()
+    }
+
+    /// The pieces whose new seasons are still to check, grouped by warmth.
+    func seasonsCheck() async throws -> SeasonsCheck {
+        try await api.seasonsCheck()
+    }
+
+    /// Confirms the new seasons in one batch: the seasons for each warmth.
+    func confirmSeasons(_ groups: [String: [Int]]) async throws {
+        wardrobe = try await api.confirmSeasons(groups)
     }
 
     /// Removes a piece. Returns the message to show if it failed. If Looks and Get the look
