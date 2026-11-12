@@ -4,7 +4,8 @@ import SwiftUI
 /// as a row of words (All first), Style a look, and the saved looks as flat lays, each with its
 /// number, occasion and source.
 ///
-/// T9 adds From a photo: a second outlined card under Style a look, and the plus asks which.
+/// T9 adds From a photo: Style a look and From a photo are two small outlined cards on one row,
+/// and the plus lists Style a look, Take a photo and Choose from library.
 ///
 /// Added to the design: "Your looks will show here." before the first look, and "No looks for
 /// the office yet." for an occasion with none, each in a dashed empty spot as tall as a look,
@@ -48,20 +49,10 @@ struct LooksView: View {
                             .padding(.top, 18)
                     }
 
-                    VStack(spacing: 10) {
-                        Button {
-                            styling = .empty
-                        } label: {
-                            card("Style a look", "From scratch, or start from a piece", systemImage: "arrow.right")
-                        }
-                        .buttonStyle(.plain)
-                        // A native menu, opening where you tapped: Take a photo, Choose from library.
-                        Menu {
-                            LookPhotoMenu(request: $photoRequest)
-                        } label: {
-                            card("From a photo", "You wearing it, Caro finds your pieces", systemImage: "camera")
-                        }
-                        .buttonStyle(.plain)
+                    // Two small cards on one row; at the largest text sizes they stack.
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 10) { actionCards }
+                        VStack(spacing: 10) { actionCards }
                     }
                     .padding(.top, 18)
 
@@ -137,26 +128,40 @@ struct LooksView: View {
     }
 
     /// An outlined card: "Style a look", "From scratch, or start from a piece"; "From a photo".
-    private func card(_ title: String, _ line: String, systemImage: String) -> some View {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.caroChapterName)
-                    Text(line)
-                        .font(.caroMeta)
-                        .foregroundStyle(Color.muted)
-                }
-                Spacer()
-                Image(systemName: systemImage)
-                    .iconFont(18, weight: .light)
-                    .accessibilityHidden(true)
-            }
-            .foregroundStyle(Color.ink)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .frame(minHeight: 64)
-            .overlay(RoundedRectangle(cornerRadius: CaroLayout.tileRadius).strokeBorder(Color.ink, lineWidth: 1))
-            .contentShape(Rectangle())
+    /// Style a look and From a photo: two small outlined cards, an icon and a serif title.
+    /// From a photo is a native menu, opening where you tapped: Take a photo, Choose from library.
+    @ViewBuilder
+    private var actionCards: some View {
+        Button {
+            styling = .empty
+        } label: {
+            card("Style a look", systemImage: "square.grid.2x2")
+        }
+        .buttonStyle(.plain)
+        Menu {
+            LookPhotoMenu(request: $photoRequest)
+        } label: {
+            card("From a photo", systemImage: "camera")
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func card(_ title: String, systemImage: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .iconFont(17, weight: .light)
+                .accessibilityHidden(true)
+            Text(title)
+                .font(.display(17, relativeTo: .headline))
+                .lineLimit(1)
+                .fixedSize()
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(Color.ink)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, minHeight: 52)
+        .overlay(RoundedRectangle(cornerRadius: CaroLayout.tileRadius).strokeBorder(Color.ink, lineWidth: 1))
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder
