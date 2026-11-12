@@ -77,7 +77,20 @@ function lookJSON(look) {
       thumb: lookPhotoUrl(photo, 'thumb'),
       addedAt: photo.added_at,
     })),
+    // A look saved from an inspiration (T10): that inspiration, for reference, and its pieces
+    // still missing. While some are missing, the look is in progress.
+    ...inspirationPart(look),
     createdAt: look.created_at,
+  };
+}
+
+// Loaded when needed: inspiration.js uses this file's neighbours, not this file.
+function inspirationPart(look) {
+  const found = require('./inspiration').lookInspiration(look.user_id, look.id);
+  return {
+    inspiration: found?.inspiration ?? null,
+    toFind: found?.missing ?? [],
+    inProgress: (found?.missing.length ?? 0) > 0,
   };
 }
 
@@ -150,11 +163,12 @@ function removeLookPhotoFiles(userId, lookIds) {
 // Checks what the member saves on the styling table: { pieces: [piece ids], occasions: [ids],
 // seasons: [ids] }. The slot of each piece follows from its kind, never from the app.
 // Returns { details } or { error }.
-function checkLook(body, userId) {
+// minPieces: 2 for a look; 0 for a version of an inspiration saved in progress (T10).
+function checkLook(body, userId, { minPieces = MIN_PIECES } = {}) {
   const ids = (value) => (Array.isArray(value) ? [...new Set(value.map(Number))] : []);
   const pieceIds = ids(body?.pieces);
   if (pieceIds.some((id) => !Number.isInteger(id))) return { error: 'This piece is no longer in your wardrobe. Open the look again.' };
-  if (pieceIds.length < MIN_PIECES) return { error: 'A look needs at least two pieces.' };
+  if (pieceIds.length < minPieces) return { error: 'A look needs at least two pieces.' };
   if (pieceIds.length > MAX_PIECES) return { error: `A look holds up to ${MAX_PIECES} pieces.` };
 
   const findPiece = db.prepare(
@@ -212,16 +226,20 @@ function saveLook(userId, lookId, details, source = 'built') {
   })();
 }
 
-// After a piece is removed: a look left with no pieces goes too, with its photo files.
+// After a piece is removed: a look left with no pieces goes too, with its photo files. A look
+// saved from an inspiration stays while that inspiration does: it is a look in progress (T10).
 function removeEmptyLooks(userId) {
   const empty = db
-    .prepare(`SELECT id FROM looks WHERE user_id = ? AND NOT EXISTS (SELECT 1 FROM look_pieces WHERE look_pieces.look_id = looks.id)`)
+    .prepare(
+      `SELECT id FROM looks WHERE user_id = ?
+       AND NOT EXISTS (SELECT 1 FROM look_pieces WHERE look_pieces.look_id = looks.id)
+       AND NOT EXISTS (SELECT 1 FROM inspirations WHERE inspirations.look_id = looks.id)`
+    )
     .pluck()
     .all(userId);
   removeLookPhotoFiles(userId, empty);
-  db.prepare(
-    `DELETE FROM looks WHERE user_id = ? AND NOT EXISTS (SELECT 1 FROM look_pieces WHERE look_pieces.look_id = looks.id)`
-  ).run(userId);
+  const remove = db.prepare('DELETE FROM looks WHERE id = ? AND user_id = ?');
+  empty.forEach((id) => remove.run(id, userId));
 }
 
 module.exports = {

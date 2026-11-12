@@ -9,6 +9,9 @@ const { COUNTED, looksCount } = require('./wardrobe');
 const { imageUrl } = require('./pieces');
 
 function overviewJSON(userId) {
+  // To find (T10): the missing pieces the member marked as key, as in Get the look.
+  const toFind = require('./inspiration').toFindJSON(userId);
+
   const total = db.prepare(`SELECT COUNT(*) FROM pieces WHERE user_id = ? AND ${COUNTED}`).pluck().get(userId);
 
   // Every chapter, with 0 where there is nothing: an empty chapter is a fact too.
@@ -101,6 +104,7 @@ function overviewJSON(userId) {
     looks,
     notInALook,
     occasionsFewLooks,
+    toFind,
   };
 }
 

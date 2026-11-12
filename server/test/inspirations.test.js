@@ -318,6 +318,71 @@ test('your version saves as an inspired look, again changes the same look, and t
   assert.equal((await call('GET', `/me/inspirations/${inspId}`, { token })).body.inspiration.look, null);
 });
 
+test('a version can be saved in progress: the look keeps its inspiration and its pieces to find', async () => {
+  const { id, token } = addMember();
+  const p = wardrobeOf(id);
+  // Only the loafers are hers; the rest is missing.
+  nextAnswer = () => {
+    const answer = screen15(id, p)();
+    answer.pieces.forEach((piece, i) => {
+      if (i !== 3) piece.match = 'missing';
+    });
+    return answer;
+  };
+  const inspId = (await addInspiration(token, { link: 'https://pin.it/abc' })).body.inspiration.id;
+  await call('PUT', `/me/inspirations/${inspId}/pieces/5`, { token, body: { key: true } });
+
+  let res = await call('POST', `/me/inspirations/${inspId}/look`, { token, body: { occasions: [], seasons: [] } });
+  assert.equal(res.status, 201, 'one piece of hers is enough');
+  let look = res.body.look;
+  assert.equal(look.pieces.length, 1);
+  assert.equal(look.inProgress, true);
+  assert.equal(look.inspiration.id, inspId);
+  assert.equal(look.inspiration.source, 'Pinterest');
+  assert.ok(look.inspiration.thumb.startsWith(`/me/inspirations/${inspId}/photo/thumb`));
+  assert.deepEqual(
+    look.toFind.map((f) => [f.number, f.key, f.searchedAt]),
+    [[1, false, null], [2, false, null], [3, false, null], [5, true, null]]
+  );
+
+  // The overview lists To find too.
+  const overview = await call('GET', '/me/wardrobe/overview', { token });
+  assert.deepEqual(overview.body.toFind.map((f) => f.description), ['Small black shoulder bag']);
+
+  // Removing her only piece keeps the look in progress, with no pieces.
+  await call('DELETE', `/me/pieces/${p.loafers}`, { token });
+  look = (await call('GET', `/me/looks/${look.id}`, { token })).body.look;
+  assert.equal(look.pieces.length, 0);
+  assert.equal(look.inProgress, true);
+
+  // Filling or taking out every missing piece, then saving again, makes it a full look.
+  for (const [n, piece] of [[1, p.blazer], [2, p.tee], [3, p.jeans]]) {
+    await call('PUT', `/me/inspirations/${inspId}/pieces/${n}`, { token, body: { piece } });
+  }
+  await call('PUT', `/me/inspirations/${inspId}/pieces/4`, { token, body: { removed: true } });
+  await call('PUT', `/me/inspirations/${inspId}/pieces/5`, { token, body: { removed: true } });
+  res = await call('POST', `/me/inspirations/${inspId}/look`, { token, body: { occasions: [], seasons: [] } });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.look.inProgress, false);
+  assert.equal(res.body.look.pieces.length, 3);
+
+  // A built look has no inspiration.
+  const built = await call('POST', '/me/looks', { token, body: { pieces: [p.tee, p.tote], occasions: [], seasons: [] } });
+  assert.equal(built.body.look.inspiration, null);
+  assert.equal(built.body.look.inProgress, false);
+});
+
+test('deleting an inspiration removes a look in progress that holds none of her pieces', async () => {
+  const { id, token } = addMember();
+  wardrobeOf(id);
+  nextAnswer = () => ({ pieces: [described({ description: 'Red dress', kind: 'dress', chapter: 'dresses and skirts', colours: ['red'] })] });
+  const inspId = (await addInspiration(token)).body.inspiration.id;
+  const look = (await call('POST', `/me/inspirations/${inspId}/look`, { token, body: { occasions: [], seasons: [] } })).body.look;
+  assert.equal(look.pieces.length, 0);
+  await call('DELETE', `/me/inspirations/${inspId}`, { token });
+  assert.equal((await call('GET', `/me/looks/${look.id}`, { token })).status, 404);
+});
+
 test('Claude not answering leaves it "not read", and Try again reads it', async () => {
   const { id, token } = addMember();
   const p = wardrobeOf(id);

@@ -7,7 +7,8 @@
 //                                         saves it and starts reading it in the background (one AI action)
 // GET    /me/inspirations/:id             one inspiration: the photo, the pieces found, your version
 // PUT    /me/inspirations/:id             { link, note, occasion }
-// DELETE /me/inspirations/:id             deletes it, its photo files and its To find pieces
+// DELETE /me/inspirations/:id             deletes it, its photo files and its To find pieces; a look
+//                                         saved from it stays, unless it holds none of the member's pieces
 // POST   /me/inspirations/:id/read        Try again, after Claude could not read it
 // PUT    /me/inspirations/:id/pieces/:n   { piece, removed, key }: your piece for it, take it out,
 //                                         mark a missing piece as key (it goes on To find)
@@ -27,7 +28,7 @@ const sharedLink = require('../lib/shared-link');
 const queue = require('../jobs/inspiration-queue');
 const { requireMember } = require('../middleware/signed-in');
 const { requireUnlocked } = require('../middleware/unlocked');
-const { checkLook, saveLook, findSameLook, findLook, lookJSON } = require('../lib/looks');
+const { checkLook, saveLook, findSameLook, findLook, lookJSON, removeEmptyLooks } = require('../lib/looks');
 const { now, iso } = require('../lib/today');
 
 const router = express.Router();
@@ -135,6 +136,8 @@ router.delete('/:id', (req, res) => {
   if (!found) return res.status(404).json({ error: NOT_FOUND });
   db.prepare('DELETE FROM inspirations WHERE id = ? AND user_id = ?').run(found.id, req.member.id);
   inspiration.removePhotoFiles(found);
+  // A look in progress saved from it with none of the member's pieces has nothing left.
+  removeEmptyLooks(req.member.id);
   res.json({ removed: found.id });
 });
 
@@ -158,13 +161,15 @@ router.put('/:id/pieces/:number', (req, res) => {
 
 // Saves the member's version as a look: their own piece for each piece they kept. Saving again
 // changes that same look. The same look rule (PRD section 8) holds, as on the styling table.
+// It can be saved before every piece is found: while pieces are missing, the look is in progress.
 router.post('/:id/look', (req, res) => {
   const userId = req.member.id;
   const found = inspiration.findInspiration(userId, req.params.id);
   if (!found) return res.status(404).json({ error: NOT_FOUND });
   const checked = checkLook(
     { pieces: inspiration.versionPieceIds(userId, found), occasions: req.body?.occasions, seasons: req.body?.seasons },
-    userId
+    userId,
+    { minPieces: 0 }
   );
   if (checked.error) return res.status(400).json({ error: checked.error });
 

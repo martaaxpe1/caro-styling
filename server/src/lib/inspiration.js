@@ -301,6 +301,29 @@ function toFindJSON(userId) {
   }));
 }
 
+// For a look saved from an inspiration: that inspiration, and its pieces still missing in the
+// version (kept, and not filled with one of the member's own). Null for any other look.
+function lookInspiration(userId, lookId) {
+  const found = db.prepare('SELECT * FROM inspirations WHERE look_id = ? AND user_id = ?').get(lookId, userId);
+  if (!found) return null;
+  const missing = piecesOf
+    .all(found.id, userId)
+    .filter((row) => !row.removed && !ownPieceFor(row))
+    .map((row) => {
+      const toFind = db.prepare('SELECT status, searched_at FROM to_find WHERE inspiration_piece_id = ?').get(row.id);
+      return {
+        number: row.number,
+        description: row.description,
+        key: row.is_key === 1,
+        searchedAt: toFind?.searched_at ?? null,
+      };
+    });
+  return {
+    inspiration: { id: found.id, thumb: photoUrl(found, 'thumb'), link: found.link, source: sourceOf(found.link) },
+    missing,
+  };
+}
+
 // --- Changes the member makes ---
 
 // Marks a missing piece as key, or takes the mark off. Key puts it on To find.
@@ -385,6 +408,7 @@ module.exports = {
   summaryJSON,
   inspirationJSON,
   toFindJSON,
+  lookInspiration,
   changePiece,
   versionPieceIds,
   removePhotoFiles,
