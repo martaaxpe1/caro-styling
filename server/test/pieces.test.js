@@ -543,12 +543,12 @@ test('the review queue lists the member\'s own pieces waiting for review, with t
   assert.equal((await call('GET', '/me/pieces', { token: owner.token })).status, 400);
 });
 
-test('the edit shows each chapter with its count and newest cut-outs', async () => {
+test('the edit shows each chapter with its count and three newest cut-outs', async () => {
   const { id, token } = addMember();
   addConfirmed(id, ['jumper', 'cardigan', 'hoodie', 'jeans']);
   const wardrobe = (await call('GET', '/me/wardrobe', { token })).body;
   assert.deepEqual(wardrobe.chapters.map((c) => [c.number, c.name, c.count, c.thumbs.length]), [
-    [2, 'knitwear', 3, 2],
+    [2, 'knitwear', 3, 3],
     [4, 'trousers', 1, 1],
   ]);
 });

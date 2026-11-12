@@ -33,6 +33,8 @@ const occasionsOf = db.prepare(
    WHERE piece_occasions.piece_id = ? ORDER BY occasions.position`
 );
 
+const looksOf = db.prepare('SELECT COUNT(*) FROM look_pieces WHERE piece_id = ?');
+
 function pieceJSON(piece) {
   const kind = piece.kind ? kindOf.get(piece.kind) : null;
   return {
@@ -48,7 +50,13 @@ function pieceJSON(piece) {
     material: piece.material,
     warmth: piece.warmth,
     formality: piece.formality,
+    brand: piece.brand,
+    notes: piece.notes,
     seasons: seasonsOf.pluck().all(piece.id),
+    // New seasons proposed after the member changed their year, not checked yet (PRD section 8).
+    seasonsToCheck: piece.seasons_to_check === 1,
+    // How many of the member's looks it is in.
+    looks: looksOf.pluck().get(piece.id),
     occasions: occasionsOf.pluck().all(piece.id),
     images: {
       photo: imageUrl(piece, 'photo'),
@@ -93,6 +101,12 @@ function checkDetails(body, userId) {
 
   if (!['confirmed', 'maybe'].includes(body?.status)) return { error: 'Confirm the piece or mark it as maybe.' };
 
+  // Brand and notes are optional. Left out of the request: unchanged. Empty: cleared.
+  const brand = optionalText(body, 'brand');
+  const notes = optionalText(body, 'notes');
+  if (brand?.length > 40) return { error: 'Keep the brand to 40 letters.' };
+  if (notes?.length > 280) return { error: 'Keep the note to 280 letters.' };
+
   return {
     details: {
       name: name[0].toUpperCase() + name.slice(1),
@@ -105,8 +119,17 @@ function checkDetails(body, userId) {
       seasons,
       occasions,
       status: body.status,
+      brand,
+      notes,
     },
   };
+}
+
+// undefined when the request leaves the field out, null when it is empty, or the text.
+function optionalText(body, field) {
+  if (!body || !(field in body)) return undefined;
+  const text = String(body[field] ?? '').trim();
+  return text || null;
 }
 
 // Saves checked details. A piece the member confirms before Claude finished reading it
@@ -115,9 +138,12 @@ const saveDetails = db.transaction((piece, d, at) => {
   db.prepare(
     `UPDATE pieces SET name = ?, kind = ?, pattern = ?, material = ?, warmth = ?, formality = ?, status = ?,
        confirmed_at = COALESCE(confirmed_at, ?),
-       details_status = CASE details_status WHEN 'reading' THEN 'not read' ELSE details_status END
+       details_status = CASE details_status WHEN 'reading' THEN 'not read' ELSE details_status END,
+       seasons_to_check = 0
      WHERE id = ? AND user_id = ?`
   ).run(d.name, d.kind, d.pattern, d.material, d.warmth, d.formality, d.status, at, piece.id, piece.user_id);
+  if (d.brand !== undefined) db.prepare('UPDATE pieces SET brand = ? WHERE id = ? AND user_id = ?').run(d.brand, piece.id, piece.user_id);
+  if (d.notes !== undefined) db.prepare('UPDATE pieces SET notes = ? WHERE id = ? AND user_id = ?').run(d.notes, piece.id, piece.user_id);
 
   db.prepare('DELETE FROM piece_colours WHERE piece_id = ? AND user_id = ?').run(piece.id, piece.user_id);
   const addColour = db.prepare('INSERT INTO piece_colours (user_id, piece_id, colour, position) VALUES (?, ?, ?, ?)');

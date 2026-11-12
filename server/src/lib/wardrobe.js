@@ -9,6 +9,7 @@
 const db = require('../db');
 const { now, iso } = require('./today');
 const { imageUrl } = require('./pieces');
+const { currentSeason } = require('./piece-seasons');
 
 const NEEDED = 20;
 
@@ -50,8 +51,15 @@ function checkUnlock(userId) {
   return opened.changes === 1;
 }
 
-// What the edit shows (screen 08): progress, pieces still being read or waiting for review,
-// and each chapter with pieces, with its count and its two newest cut-outs.
+// How many looks the member has saved. Until the first one, "not styled yet" waits (PRD section 7).
+function looksCount(userId) {
+  return db.prepare('SELECT COUNT(*) FROM looks WHERE user_id = ?').pluck().get(userId);
+}
+
+// What the edit shows (screens 08 and 10): progress, pieces still being read or waiting for
+// review, the current season for the dateline, how many pieces have new seasons to check, and
+// each chapter with pieces: its count, how many are in no look (once there is a look), and its
+// three newest cut-outs.
 function wardrobeJSON(userId) {
   const waiting = db
     .prepare(
@@ -63,7 +71,8 @@ function wardrobeJSON(userId) {
 
   const chapters = db
     .prepare(
-      `SELECT chapters.name, chapters.number, COUNT(pieces.id) AS count
+      `SELECT chapters.name, chapters.number, COUNT(pieces.id) AS count,
+         COALESCE(SUM(NOT EXISTS (SELECT 1 FROM look_pieces WHERE look_pieces.piece_id = pieces.id)), 0) AS not_styled
        FROM chapters
        JOIN kinds ON kinds.chapter = chapters.name
        JOIN pieces ON pieces.kind = kinds.name AND pieces.user_id = ? AND ${COUNTED}
@@ -74,16 +83,26 @@ function wardrobeJSON(userId) {
   const newest = db.prepare(
     `SELECT pieces.* FROM pieces JOIN kinds ON kinds.name = pieces.kind
      WHERE pieces.user_id = ? AND kinds.chapter = ? AND ${COUNTED}
-     ORDER BY pieces.id DESC LIMIT 2`
+     ORDER BY pieces.id DESC LIMIT 3`
   );
+
+  const looks = looksCount(userId);
+  const seasonsToCheck = db
+    .prepare(`SELECT COUNT(*) FROM pieces WHERE user_id = ? AND seasons_to_check = 1 AND ${COUNTED}`)
+    .pluck()
+    .get(userId);
 
   return {
     progress: progress(userId),
     waiting: { reading: waiting.reading, toReview: waiting.to_review },
+    currentSeason: currentSeason(userId),
+    looks,
+    seasonsToCheck,
     chapters: chapters.map((chapter) => ({
       name: chapter.name,
       number: chapter.number,
       count: chapter.count,
+      notStyled: looks > 0 ? chapter.not_styled : null,
       thumbs: newest.all(userId, chapter.name).map((piece) => imageUrl(piece, 'thumb')),
     })),
   };
@@ -94,4 +113,4 @@ function hasPieces(userId) {
   return Boolean(db.prepare('SELECT 1 FROM pieces WHERE user_id = ? LIMIT 1').get(userId));
 }
 
-module.exports = { NEEDED, progress, checkUnlock, wardrobeJSON, hasPieces };
+module.exports = { NEEDED, COUNTED, progress, checkUnlock, looksCount, wardrobeJSON, hasPieces };

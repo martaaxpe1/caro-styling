@@ -14,8 +14,24 @@
 // The member checks the seasons in the review queue and can change them.
 
 const db = require('../db');
+const { now } = require('./today');
 
 const LIGHT_NEEDS_C = 20;
+
+// The season holding today's month (DEV_TODAY in development), as { id, name }, or null with no
+// seasons. The edit's dateline ("The autumn edit") and the default chapter filter (PRD section 9).
+function currentSeason(userId) {
+  const month = now().getUTCMonth() + 1;
+  return (
+    db
+      .prepare(
+        `SELECT seasons.id, seasons.name FROM season_months JOIN seasons ON seasons.id = season_months.season_id
+         WHERE season_months.user_id = ? AND season_months.month = ?`
+      )
+      .get(userId, month) ?? null
+  );
+}
+
 
 function seasonsWithHighs(userId) {
   const member = db.prepare('SELECT city_id FROM users WHERE id = ?').get(userId);
@@ -84,12 +100,49 @@ function proposeForPiece(userId, pieceId, warmth, rule = seasonsByWarmth(userId)
   for (const seasonId of rule[warmth] ?? []) add.run(userId, pieceId, seasonId);
 }
 
-// After the member changed the number of seasons: every piece with a warmth gets new seasons.
-// The member confirms them in one batch in T6 (PRD section 8).
+// After the member changed the number of seasons: every piece with a warmth gets new seasons
+// (a piece with no warmth lost its old ones with the old year). Pieces already in the edit are
+// marked to check, so the member confirms them in one batch (PRD section 8). Pieces still in the
+// review queue are checked there anyway. With no seasons now, there is nothing to check.
 function proposeForAllPieces(userId) {
   const rule = seasonsByWarmth(userId);
-  const pieces = db.prepare('SELECT id, warmth FROM pieces WHERE user_id = ? AND warmth IS NOT NULL').all(userId);
-  for (const piece of pieces) proposeForPiece(userId, piece.id, piece.warmth, rule);
+  const hasSeasons = Boolean(db.prepare('SELECT 1 FROM seasons WHERE user_id = ? LIMIT 1').get(userId));
+  const pieces = db.prepare('SELECT id, warmth, status FROM pieces WHERE user_id = ?').all(userId);
+  const mark = db.prepare('UPDATE pieces SET seasons_to_check = ? WHERE id = ? AND user_id = ?');
+  for (const piece of pieces) {
+    if (piece.warmth) proposeForPiece(userId, piece.id, piece.warmth, rule);
+    mark.run(hasSeasons && piece.status !== 'pending' ? 1 : 0, piece.id, userId);
+  }
 }
 
-module.exports = { seasonsByWarmth, proposeForPiece, proposeForAllPieces };
+// The groups of the batch check, by warmth: the pieces marked to check, and the seasons the
+// rule proposes for each group ("none" for pieces with no warmth: no proposal).
+const GROUPS = ['light', 'medium', 'warm', 'none'];
+
+function piecesToCheck(userId) {
+  return db
+    .prepare(`SELECT * FROM pieces WHERE user_id = ? AND seasons_to_check = 1 AND status IN ('confirmed', 'maybe') ORDER BY id`)
+    .all(userId);
+}
+
+// Confirms the batch: { light: [season ids], medium: [...], warm: [...], none: [...] }.
+// Each marked piece gets the seasons of its warmth's group. A group that was not sent is left
+// as it is, still to check (for example a piece marked while the member was looking).
+// The season ids must already be checked as the member's own.
+const confirmBatch = db.transaction((userId, groups) => {
+  const clear = db.prepare('UPDATE pieces SET seasons_to_check = 0 WHERE id = ? AND user_id = ?');
+  const remove = db.prepare('DELETE FROM piece_seasons WHERE piece_id = ? AND user_id = ?');
+  const add = db.prepare('INSERT INTO piece_seasons (user_id, piece_id, season_id) VALUES (?, ?, ?)');
+  let confirmed = 0;
+  for (const piece of piecesToCheck(userId)) {
+    const seasons = groups[piece.warmth ?? 'none'];
+    if (!seasons) continue;
+    remove.run(piece.id, userId);
+    for (const seasonId of seasons) add.run(userId, piece.id, seasonId);
+    clear.run(piece.id, userId);
+    confirmed += 1;
+  }
+  return confirmed;
+});
+
+module.exports = { GROUPS, currentSeason, seasonsByWarmth, proposeForPiece, proposeForAllPieces, piecesToCheck, confirmBatch };

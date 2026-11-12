@@ -2,8 +2,10 @@
 //
 // POST   /me/pieces                   { photo, cutout }   a new piece, pictures as base64 (cutout: null when nothing lifted)
 // GET    /me/pieces?status=pending    the review queue, oldest first, with the season rule per warmth
-// GET    /me/pieces?chapter=tops      the counted pieces of one chapter, newest first
-// PUT    /me/pieces/:id               { name, kind, colours, ..., status }   confirm (or maybe) with the member's details
+// GET    /me/pieces?chapter=tops      the counted pieces of one chapter, newest first, with what the filters need
+// GET    /me/pieces/:id               one piece for its page (screen 11), with the looks it is in
+// PUT    /me/pieces/:id               { name, kind, colours, ..., status, brand, notes }   confirm (or maybe) with the member's details
+// PUT    /me/pieces/:id/status        { status: 'maybe' | 'confirmed' }   mark a piece in the edit as maybe, or not
 // PUT    /me/pieces/:id/photo         { photo, cutout }   retake: a new photo, the same details
 // POST   /me/pieces/:id/rotate        turns the pictures a quarter turn clockwise
 // GET    /me/pieces/:id/photo         the photo; also /cutout and /thumb (the thumbnail)
@@ -18,10 +20,10 @@ const db = require('../db');
 const { now, iso } = require('../lib/today');
 const { requireMember } = require('../middleware/signed-in');
 const photos = require('../lib/photos');
-const { findPiece, pieceJSON, checkDetails, saveDetails } = require('../lib/pieces');
+const { findPiece, imageUrl, pieceJSON, checkDetails, saveDetails } = require('../lib/pieces');
 const pieceQueue = require('../jobs/piece-queue');
 const wardrobe = require('../lib/wardrobe');
-const { seasonsByWarmth } = require('../lib/piece-seasons');
+const { seasonsByWarmth, currentSeason } = require('../lib/piece-seasons');
 
 const router = express.Router();
 router.use(requireMember);
@@ -50,6 +52,14 @@ router.post('/', async (req, res, next) => {
   }
 });
 
+function ownSeasons(userId) {
+  return db.prepare('SELECT id, name FROM seasons WHERE user_id = ? ORDER BY position').all(userId);
+}
+
+function ownOccasions(userId) {
+  return db.prepare('SELECT id, name FROM occasions WHERE user_id = ? ORDER BY position').all(userId);
+}
+
 // The review queue (?status=pending), or one chapter's pieces (?chapter=).
 router.get('/', (req, res) => {
   const userId = req.member.id;
@@ -60,8 +70,8 @@ router.get('/', (req, res) => {
       // So the app can propose new seasons at once when the member changes a piece's warmth.
       seasonsByWarmth: seasonsByWarmth(userId),
       // The member's own seasons and occasions, shown as chips.
-      seasons: db.prepare('SELECT id, name FROM seasons WHERE user_id = ? ORDER BY position').all(userId),
-      occasions: db.prepare('SELECT id, name FROM occasions WHERE user_id = ? ORDER BY position').all(userId),
+      seasons: ownSeasons(userId),
+      occasions: ownOccasions(userId),
     });
   }
   if (typeof req.query.chapter === 'string') {
@@ -72,9 +82,63 @@ router.get('/', (req, res) => {
          ORDER BY pieces.id DESC`
       )
       .all(userId, req.query.chapter);
-    return res.json({ pieces: pieces.map(pieceJSON) });
+    // The filters (S6) choose among these on the phone: the season (the current one at first),
+    // occasion, colour, kind and maybe.
+    return res.json({
+      pieces: pieces.map(pieceJSON),
+      seasons: ownSeasons(userId),
+      occasions: ownOccasions(userId),
+      currentSeason: currentSeason(userId),
+    });
   }
   res.status(400).json({ error: 'Ask for the pieces to review or for one chapter.' });
+});
+
+// One piece for its page (screen 11): its details, the member's seasons and occasions by name,
+// and the looks it is in, newest first, each with its number, occasions and pieces' cut-outs.
+router.get('/:id', (req, res) => {
+  const userId = req.member.id;
+  const piece = findPiece(userId, req.params.id);
+  if (!piece) return res.status(404).json({ error: 'This piece is no longer in your wardrobe.' });
+
+  const looks = db
+    .prepare(
+      `SELECT looks.id, looks.number FROM looks JOIN look_pieces ON look_pieces.look_id = looks.id
+       WHERE look_pieces.piece_id = ? AND looks.user_id = ? ORDER BY looks.number DESC`
+    )
+    .all(piece.id, userId);
+  const lookOccasions = db.prepare(
+    `SELECT occasions.name FROM look_occasions JOIN occasions ON occasions.id = look_occasions.occasion_id
+     WHERE look_occasions.look_id = ? ORDER BY occasions.position`
+  );
+  const lookPieces = db.prepare(
+    `SELECT pieces.*, look_pieces.slot FROM look_pieces JOIN pieces ON pieces.id = look_pieces.piece_id
+     WHERE look_pieces.look_id = ? AND pieces.user_id = ?`
+  );
+
+  res.json({
+    piece: pieceJSON(piece),
+    seasons: ownSeasons(userId),
+    occasions: ownOccasions(userId),
+    looks: looks.map((look) => ({
+      id: look.id,
+      number: look.number,
+      occasions: lookOccasions.pluck().all(look.id),
+      pieces: lookPieces.all(look.id, userId).map((p) => ({ id: p.id, slot: p.slot, thumb: imageUrl(p, 'thumb'), hasCutout: Boolean(p.cutout_path) })),
+    })),
+  });
+});
+
+// Mark a piece in the edit as maybe, or no longer a maybe. Both count towards the unlock, so
+// the count stays the same. Pieces still in the review queue are decided there.
+router.put('/:id/status', (req, res) => {
+  const piece = findPiece(req.member.id, req.params.id);
+  if (!piece) return res.status(404).json({ error: 'This piece is no longer in your wardrobe.' });
+  if (piece.status === 'pending') return res.status(400).json({ error: 'Review this piece first.' });
+  if (!['confirmed', 'maybe'].includes(req.body?.status)) return res.status(400).json({ error: 'Choose maybe or not.' });
+
+  db.prepare('UPDATE pieces SET status = ? WHERE id = ? AND user_id = ?').run(req.body.status, piece.id, req.member.id);
+  res.json({ piece: pieceJSON(findPiece(req.member.id, piece.id)) });
 });
 
 // Confirm a piece (or mark it maybe) with the details the member checked. Answers with the
