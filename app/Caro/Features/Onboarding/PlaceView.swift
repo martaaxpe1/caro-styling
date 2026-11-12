@@ -89,7 +89,7 @@ struct PlaceView: View {
     private var searchField: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 17, weight: .light))
+                .iconFont(17, weight: .light)
                 .foregroundStyle(Color.muted)
                 .accessibilityHidden(true)
             TextField("Search for your city", text: $query, prompt: fieldPrompt("Search for your city"))
@@ -116,7 +116,7 @@ struct PlaceView: View {
                         Spacer(minLength: 8)
                         if isChosen {
                             Image(systemName: "checkmark")
-                                .font(.system(size: 15, weight: .medium))
+                                .iconFont(15, weight: .medium)
                                 .accessibilityHidden(true)
                         }
                     }

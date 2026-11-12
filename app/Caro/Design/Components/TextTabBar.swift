@@ -15,7 +15,8 @@ enum MainTab: Hashable, CaseIterable {
 
 /// Caro's tab bar: three words, the current one underlined (screens 08 and 10).
 /// Until the wardrobe is open, Looks and Get the look are muted, with a small lock, and
-/// cannot be chosen. The unlock rule itself is checked on the server.
+/// cannot be chosen. They stay in the muted colour, readable (5.2 to 1), not faded further.
+/// The unlock rule itself is checked on the server.
 struct TextTabBar: View {
     @Binding var selection: MainTab
     let unlocked: Bool
@@ -32,6 +33,9 @@ struct TextTabBar: View {
         .padding(.horizontal, 40)
         .padding(.top, 16)
         .frame(maxWidth: .infinity)
+        // Like the iPhone's own tab bar: the words grow up to the largest standard size, so each
+        // stays on one line; beyond it, touching and holding a tab shows it large.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .background(Color.paper)
         .overlay(alignment: .top) {
             Rectangle().fill(Color.ink).frame(height: 1)
@@ -48,7 +52,7 @@ struct TextTabBar: View {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 if locked {
                     Image(systemName: "lock")
-                        .font(.system(size: 11, weight: .medium))
+                        .iconFont(11, weight: .medium)
                 }
                 Text(tab.title)
                     .font(current ? .caroTabSelected : .caroTab)
@@ -63,10 +67,20 @@ struct TextTabBar: View {
             .frame(minHeight: CaroLayout.minTouchTarget, alignment: .top)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        // Not .plain: that style fades a locked tab a second time, down to 2 to 1.
+        .buttonStyle(TabButtonStyle())
         .disabled(locked)
+        .accessibilityShowsLargeContentViewer()
         .accessibilityLabel(locked ? "\(tab.title), opens at 20 pieces" : tab.title)
         .accessibilityAddTraits(current ? .isSelected : [])
+    }
+}
+
+/// A tab's look stays exactly as drawn, enabled or not; only a press dims it a little.
+private struct TabButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.6 : 1)
     }
 }
 

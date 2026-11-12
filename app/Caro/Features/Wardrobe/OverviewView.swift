@@ -52,7 +52,9 @@ struct OverviewView: View {
                     HStack(spacing: 10) {
                         Text(ChapterWords.number(chapter.number))
                             .font(.display(17, relativeTo: .headline))
-                            .frame(width: 26, alignment: .leading)
+                            .lineLimit(1)
+                            .fixedSize()
+                            .frame(minWidth: 26, alignment: .leading)
                         Text(ChapterWords.title(chapter.name))
                     }
                 }
@@ -178,6 +180,7 @@ struct CountRow<Label: View>: View {
                 .foregroundStyle(muted ? Color.muted : Color.ink)
         }
         .font(.caroBody)
+        .padding(.vertical, 6) // Room above and below when the text is large; no change at the normal size.
         .frame(minHeight: 38)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Color.hairline).frame(height: 1)

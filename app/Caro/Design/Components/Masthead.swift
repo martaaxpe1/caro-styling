@@ -19,29 +19,29 @@ struct Masthead: View {
 
                 HStack {
                     Button(action: openProfile) {
-                        Text(initial)
-                            .font(.text(13, weight: .medium, relativeTo: .footnote))
-                            .frame(width: 34, height: 34)
-                            .overlay(Circle().strokeBorder(Color.ink, lineWidth: 1))
-                            .frame(width: 44, height: 44, alignment: .leading)
-                            .contentShape(Rectangle())
+                        ProfileCircle(initial: initial)
                     }
                     .accessibilityLabel("Profile and settings")
+                    .accessibilityShowsLargeContentViewer()
 
                     Spacer()
 
                     if let add {
                         Button(action: add) {
                             Image(systemName: "plus")
-                                .font(.system(size: 20, weight: .light))
+                                .iconFont(20, weight: .light)
                                 .frame(width: 44, height: 44, alignment: .trailing)
                                 .contentShape(Rectangle())
                         }
                         .accessibilityLabel(addLabel)
+                        .accessibilityShowsLargeContentViewer()
                     }
                 }
             }
-            .frame(height: 44)
+            .frame(minHeight: 44)
+            // Like the iPhone's own bars: the buttons grow with the text up to the largest
+            // standard size; beyond it, touching and holding shows them large.
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 
             // The double rule: two ink lines, 3 points apart.
             VStack(spacing: 3) {
@@ -63,6 +63,22 @@ struct Masthead: View {
         }
         .foregroundStyle(Color.ink)
         .padding(.horizontal, CaroLayout.pageMargin)
+    }
+}
+
+/// The initial in its circle: 34 points at the normal text size, growing with the initial, up to
+/// the masthead's largest text size.
+private struct ProfileCircle: View {
+    let initial: String
+    @ScaledMetric(relativeTo: .footnote) private var circle: CGFloat = 34
+
+    var body: some View {
+        Text(initial)
+            .font(.text(13, weight: .medium, relativeTo: .footnote))
+            .frame(width: circle, height: circle)
+            .overlay(Circle().strokeBorder(Color.ink, lineWidth: 1))
+            .frame(minWidth: 44, minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
     }
 }
 

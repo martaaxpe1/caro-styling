@@ -326,6 +326,7 @@ struct DetailRow<Value: View>: View {
                 .font(.caroBody)
                 .multilineTextAlignment(.trailing)
         }
+        .padding(.vertical, 6) // Room above and below when the text is large; no change at the normal size.
         .frame(minHeight: 38)
         .padding(.vertical, 2)
         .overlay(alignment: .top) {

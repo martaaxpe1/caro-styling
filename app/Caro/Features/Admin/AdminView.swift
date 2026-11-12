@@ -214,7 +214,7 @@ struct AdminView: View {
 
     private var moreIcon: some View {
         Image(systemName: "ellipsis")
-            .font(.system(size: 17))
+            .iconFont(17)
             .foregroundStyle(Color.ink)
             .frame(width: CaroLayout.minTouchTarget, height: CaroLayout.minTouchTarget)
             .contentShape(Rectangle())

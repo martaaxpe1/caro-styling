@@ -143,6 +143,8 @@ struct OccasionsView: View {
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
                         Text(String(format: "%02d", index + 1))
                             .font(.caroChapterNumber)
+                            .lineLimit(1)
+                            .fixedSize()
                             .frame(minWidth: 40, alignment: .leading)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(occasions[index].name)
@@ -194,7 +196,7 @@ struct OccasionsView: View {
 
     private func icon(_ name: String, size: CGFloat = 17) -> some View {
         Image(systemName: name)
-            .font(.system(size: size, weight: .light))
+            .iconFont(size, weight: .light)
             .frame(width: CaroLayout.minTouchTarget, height: CaroLayout.minTouchTarget)
             .contentShape(Rectangle())
     }
@@ -203,7 +205,7 @@ struct OccasionsView: View {
     private var addField: some View {
         HStack(spacing: 10) {
             Image(systemName: "plus")
-                .font(.system(size: 17, weight: .light))
+                .iconFont(17, weight: .light)
                 .foregroundStyle(Color.muted)
                 .accessibilityHidden(true)
             TextField("Add an occasion", text: $newName, prompt: fieldPrompt("Add an occasion"))

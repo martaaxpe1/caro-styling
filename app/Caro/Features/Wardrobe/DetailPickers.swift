@@ -86,7 +86,7 @@ struct DetailPicker: View {
                                     .font(.caroMeta)
                                     .foregroundStyle(Color.muted)
                                 Image(systemName: "checkmark")
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .iconFont(13, weight: .semibold)
                             }
                         }
                         .contentShape(Rectangle())
@@ -160,7 +160,7 @@ struct DetailPicker: View {
                 Spacer()
                 if isOn {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 13, weight: .semibold))
+                        .iconFont(13, weight: .semibold)
                 }
             }
             .contentShape(Rectangle())

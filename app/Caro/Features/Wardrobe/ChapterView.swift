@@ -276,7 +276,7 @@ struct FilterMenu<Value: Hashable>: View {
             HStack(spacing: 6) {
                 Text(title)
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 10, weight: .medium))
+                    .iconFont(10, weight: .medium)
                     .accessibilityHidden(true)
             }
             .font(.text(14, weight: .medium, relativeTo: .subheadline))

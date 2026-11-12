@@ -127,7 +127,9 @@ struct LookView: View {
             HStack(spacing: 14) {
                 Text(ChapterWords.number(number))
                     .font(.display(18, relativeTo: .title3))
-                    .frame(width: 28, alignment: .leading)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .frame(minWidth: 28, alignment: .leading)
                 PieceImage(path: piece.images.thumb, isCutout: piece.hasCutout)
                     .padding(4)
                     .frame(width: 52, height: 52)
@@ -141,7 +143,7 @@ struct LookView: View {
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .light))
+                    .iconFont(13, weight: .light)
                     .foregroundStyle(Color.muted)
                     .accessibilityHidden(true)
             }

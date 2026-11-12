@@ -77,7 +77,7 @@ struct AddingPiecesView: View {
                     closeToEdit()
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 16, weight: .light))
+                        .iconFont(16, weight: .light)
                 }
                 .accessibilityLabel("Close and keep your progress")
             }

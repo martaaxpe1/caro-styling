@@ -119,7 +119,7 @@ struct StoresView: View {
     private var storeField: some View {
         HStack(spacing: 10) {
             Image(systemName: "plus")
-                .font(.system(size: 17, weight: .light))
+                .iconFont(17, weight: .light)
                 .foregroundStyle(Color.muted)
                 .accessibilityHidden(true)
             TextField("Add a store", text: $query, prompt: fieldPrompt("Add a store"))
@@ -234,7 +234,7 @@ struct StoresView: View {
                 Task { await remove(item) }
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .regular))
+                    .iconFont(14, weight: .regular)
                     .foregroundStyle(Color.muted)
                     .frame(width: CaroLayout.minTouchTarget, height: CaroLayout.minTouchTarget)
                     .contentShape(Rectangle())

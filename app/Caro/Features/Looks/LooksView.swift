@@ -120,7 +120,7 @@ struct LooksView: View {
                 }
                 Spacer()
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 18, weight: .light))
+                    .iconFont(18, weight: .light)
                     .accessibilityHidden(true)
             }
             .foregroundStyle(Color.ink)

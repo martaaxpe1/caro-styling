@@ -148,7 +148,7 @@ struct SettingsView: View {
                         ProgressView()
                     } else {
                         Image(systemName: "square.and.arrow.down")
-                            .font(.system(size: 15, weight: .medium))
+                            .iconFont(15, weight: .medium)
                             .foregroundStyle(Color.muted)
                     }
                 }
@@ -256,7 +256,7 @@ struct SettingsView: View {
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .medium))
+                    .iconFont(14, weight: .medium)
                     .foregroundStyle(Color.muted)
             }
             .padding(.vertical, 10)

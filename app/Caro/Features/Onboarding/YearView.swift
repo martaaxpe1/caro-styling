@@ -170,7 +170,7 @@ struct YearView: View {
                         renaming = index
                     } label: {
                         Image(systemName: "pencil")
-                            .font(.system(size: 17, weight: .light))
+                            .iconFont(17, weight: .light)
                             .frame(width: CaroLayout.minTouchTarget, height: CaroLayout.minTouchTarget)
                             .contentShape(Rectangle())
                     }

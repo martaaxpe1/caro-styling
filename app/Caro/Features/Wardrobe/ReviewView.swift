@@ -310,7 +310,7 @@ struct ReviewView: View {
             .underlinedField(font: .display(24, relativeTo: .title2))
             .overlay(alignment: .trailing) {
                 Image(systemName: "pencil")
-                    .font(.system(size: 16, weight: .light))
+                    .iconFont(16, weight: .light)
                     .foregroundStyle(Color.muted)
                     .accessibilityHidden(true)
             }
@@ -336,6 +336,7 @@ struct ReviewView: View {
                     if brand.count > 40 { details.wrappedValue.brand = String(brand.prefix(40)) }
                 }
         }
+        .padding(.vertical, 6) // Room above and below when the text is large; no change at the normal size.
         .frame(minHeight: 38)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Color.hairline).frame(height: 1)
@@ -386,6 +387,7 @@ struct ReviewView: View {
                 value()
                     .font(.caroBody)
             }
+            .padding(.vertical, 6) // Room above and below when the text is large; no change at the normal size.
             .frame(minHeight: 38)
             .overlay(alignment: .bottom) {
                 Rectangle().fill(Color.hairline).frame(height: 1)

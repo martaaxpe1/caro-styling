@@ -179,12 +179,17 @@ struct EditView: View {
 /// One chapter on the edit: its number, its name, its count, and its newest cut-outs.
 struct ChapterRow: View {
     let chapter: ChapterSummary
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         HStack(spacing: 0) {
+            // The number never splits over two lines: its column widens when the text is larger.
             Text(ChapterWords.number(chapter.number))
                 .font(.caroChapterNumber)
-                .frame(width: 50, alignment: .leading)
+                .lineLimit(1)
+                .fixedSize()
+                .frame(minWidth: 50, alignment: .leading)
+                .padding(.trailing, typeSize.isAccessibilitySize ? 10 : 0)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(ChapterWords.title(chapter.name))
@@ -192,16 +197,18 @@ struct ChapterRow: View {
                 Text(meta)
                     .font(.caroMeta)
                     .foregroundStyle(Color.muted)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            HStack(spacing: -12) {
-                ForEach(chapter.thumbs, id: \.self) { thumb in
-                    PieceImage(path: thumb)
-                        .frame(width: 48, height: 48)
+                // At the largest text sizes the cut-outs move under the words, so a chapter's
+                // name keeps the whole width and never breaks inside a word.
+                if typeSize.isAccessibilitySize {
+                    thumbs.padding(.top, 6)
                 }
             }
-            .frame(width: 112, alignment: .trailing)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, typeSize.isAccessibilitySize ? 12 : 0)
+
+            if !typeSize.isAccessibilitySize {
+                thumbs.frame(width: 112, alignment: .trailing)
+            }
         }
         .frame(minHeight: 80)
         .overlay(alignment: .bottom) {
@@ -210,6 +217,16 @@ struct ChapterRow: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityHint("Opens the chapter")
+    }
+
+    /// The chapter's newest cut-outs, overlapping a little.
+    private var thumbs: some View {
+        HStack(spacing: -12) {
+            ForEach(chapter.thumbs, id: \.self) { thumb in
+                PieceImage(path: thumb)
+                    .frame(width: 48, height: 48)
+            }
+        }
     }
 
     /// "11 pieces · 2 not styled yet". The second part waits for a first look.
@@ -235,7 +252,7 @@ struct OverviewRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .light))
+                .iconFont(14, weight: .light)
                 .foregroundStyle(Color.muted)
                 .accessibilityHidden(true)
         }

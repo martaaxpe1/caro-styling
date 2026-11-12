@@ -150,7 +150,7 @@ struct StyleLookView: View {
                         .caroTitleTracking()
                         .multilineTextAlignment(.leading)
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 15, weight: .light))
+                        .iconFont(15, weight: .light)
                         .accessibilityHidden(true)
                 }
                 .foregroundStyle(Color.ink)

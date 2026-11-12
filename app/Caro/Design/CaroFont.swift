@@ -35,7 +35,30 @@ extension Font {
     }
 }
 
+/// An SF Symbol that grows with the iPhone's text size, like the words next to it.
+/// `size` is its size at the normal text size; it grows at most to twice that.
+private struct IconFont: ViewModifier {
+    @ScaledMetric private var size: CGFloat
+    private let baseSize: CGFloat
+    private let weight: Font.Weight
+
+    init(size: CGFloat, weight: Font.Weight, relativeTo style: Font.TextStyle) {
+        _size = ScaledMetric(wrappedValue: size, relativeTo: style)
+        baseSize = size
+        self.weight = weight
+    }
+
+    func body(content: Content) -> some View {
+        content.font(.system(size: min(size, baseSize * 2), weight: weight))
+    }
+}
+
 extension View {
+    /// The font for an icon next to text: `Image(systemName: "plus").iconFont(17, weight: .light)`.
+    func iconFont(_ size: CGFloat, weight: Font.Weight = .regular, relativeTo style: Font.TextStyle = .body) -> some View {
+        modifier(IconFont(size: size, weight: weight, relativeTo: style))
+    }
+
     /// Labels: small capitals with wide spacing, in muted ink. "STEP 1 OF 6".
     func caroLabelStyle() -> some View {
         self

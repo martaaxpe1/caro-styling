@@ -10,7 +10,7 @@ struct NoteBox: View {
         HStack(alignment: .top, spacing: 12) {
             if let systemImage {
                 Image(systemName: systemImage)
-                    .font(.system(size: 16, weight: .light))
+                    .iconFont(16, weight: .light)
                     .accessibilityHidden(true)
             }
             Text(text)

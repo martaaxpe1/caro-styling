@@ -115,7 +115,7 @@ struct UnlockChecks: View {
         HStack(spacing: 5) {
             if check.done {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .semibold))
+                    .iconFont(11, weight: .semibold)
                 Text(check.name)
             } else {
                 Circle()
