@@ -12,6 +12,7 @@
     "seed-wardrobe": "node --env-file-if-exists=.env scripts/seed-wardrobe.js",
     "db": "sqlite3 -box data/caro.db",
     "clean-up": "node --env-file-if-exists=.env scripts/clean-up.js",
+    "backup": "node --env-file-if-exists=.env scripts/backup.js",
     "test": "node --test test/*.test.js",
     "spike:check": "node --env-file-if-exists=.env spike/check.js",
     "spike:details": "node --env-file-if-exists=.env spike/1-details.js",
@@ -31,6 +32,7 @@
     "@anthropic-ai/sdk": "^1.7.0",
     "better-sqlite3": "^13.0.3",
     "express": "^5.3.0",
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "yazl": "^3.3.1"
   }
 }

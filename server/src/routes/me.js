@@ -10,6 +10,8 @@
 // POST /me/onboarding/stores-done   step 4: Continue, with at least one section
 // POST /me/onboarding/skip-stores   step 4: Skip for now
 // PUT  /me/occasions            step 5: the member's own occasions; set-up done, on to the wardrobe
+// GET  /me/export               Download everything: a zip of the member's data and photos (T8)
+// DELETE /me                    Delete account: the member, their data and photos, at once (T8)
 //
 // Every route runs behind requireMember and uses only req.member.id. Each save in onboarding
 // moves the member on one step, so the app can resume where they stopped. Every save answers
@@ -18,7 +20,9 @@
 const express = require('express');
 const db = require('../db');
 const { now, iso } = require('../lib/today');
-const { memberJSON, advanceOnboarding } = require('../lib/members');
+const { memberJSON, advanceOnboarding, deleteMember } = require('../lib/members');
+const { memberZip } = require('../lib/export');
+const { removeMemberPhotos } = require('../lib/photos');
 const { requireMember } = require('../middleware/signed-in');
 const places = require('../lib/places');
 const weather = require('../lib/weather');
@@ -180,6 +184,32 @@ router.put('/occasions', (req, res) => {
     advanceOnboarding(req.member.id, 6);
   })();
   res.json(setup.setupJSON(req.member.id));
+});
+
+// Download everything: the zip is written as it is sent, so a large wardrobe never sits in memory.
+router.get('/export', (req, res) => {
+  const zip = memberZip(req.member.id);
+  res.set({
+    'Content-Type': 'application/zip',
+    'Content-Disposition': `attachment; filename="caro-${iso(now()).slice(0, 10)}.zip"`,
+  });
+  zip.outputStream.on('error', (err) => {
+    console.error('Download everything failed:', err.message);
+    res.destroy(err);
+  });
+  zip.outputStream.pipe(res);
+});
+
+// Delete account: everything goes at once, photos included, and the session with it.
+// The admin cannot delete their own account, as they cannot remove their own access,
+// so Caro always keeps its admin.
+router.delete('/', (req, res) => {
+  if (req.member.role === 'admin') {
+    return res.status(403).json({ error: 'The admin account cannot be deleted.' });
+  }
+  deleteMember(req.member);
+  removeMemberPhotos(req.member.id);
+  res.json({ ok: true });
 });
 
 module.exports = router;

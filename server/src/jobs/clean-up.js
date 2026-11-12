@@ -7,7 +7,7 @@
 
 const db = require('../db');
 const { now, iso, DAY } = require('../lib/today');
-const { KEEP_REMOVED_DAYS } = require('../lib/members');
+const { KEEP_REMOVED_DAYS, deleteMember } = require('../lib/members');
 const { removeMemberPhotos } = require('../lib/photos');
 
 // `at` is the moment to clean up as of. Normally now; the tests pass a date 31 days on.
@@ -21,12 +21,8 @@ function cleanUp(at = now()) {
     const removed = db.prepare(`SELECT id, email FROM users WHERE status = 'removed' AND removed_at <= ?`).all(cutoff);
 
     for (const user of removed) {
-      // Every table holding a member's data has user_id with ON DELETE CASCADE, so deleting
-      // the member deletes all of it: pieces, looks, seasons, stores, sessions, AI usage.
-      db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
-      // Their invitation and codes are kept by email, so they go separately.
-      db.prepare('DELETE FROM invitations WHERE email = ?').run(user.email);
-      db.prepare('DELETE FROM login_codes WHERE email = ?').run(user.email);
+      // Everything they had, with their invitation and codes (lib/members.js).
+      deleteMember(user);
     }
 
     const codesDeleted = db

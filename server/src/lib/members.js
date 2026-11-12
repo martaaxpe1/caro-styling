@@ -42,4 +42,16 @@ function advanceOnboarding(userId, toStep) {
   ).run(toStep, toStep, userId, toStep - 1);
 }
 
-module.exports = { KEEP_REMOVED_DAYS, memberJSON, statusAfterRestore, advanceOnboarding };
+// Deletes a member from the database: every table holding their data has user_id with
+// ON DELETE CASCADE, so deleting the member deletes all of it (pieces, looks, seasons, stores,
+// sessions, AI usage). Their invitation and sign-in codes are kept by email, so they go too.
+// The photo files are removed by the caller, once this has run (removeMemberPhotos).
+function deleteMember(user) {
+  db.transaction(() => {
+    db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
+    db.prepare('DELETE FROM invitations WHERE email = ?').run(user.email);
+    db.prepare('DELETE FROM login_codes WHERE email = ?').run(user.email);
+  })();
+}
+
+module.exports = { KEEP_REMOVED_DAYS, memberJSON, statusAfterRestore, advanceOnboarding, deleteMember };
