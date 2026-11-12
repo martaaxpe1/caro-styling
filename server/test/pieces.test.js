@@ -398,3 +398,191 @@ test('changing from four seasons to two proposes new seasons for every piece', a
   setup.saveSeasons(id, [{ name: 'Summer half', months: YEARS.warmCool[0].months }, { name: 'Winter half', months: YEARS.warmCool[1].months }]);
   assert.deepEqual(seasonsOf(), ['Winter half']);
 });
+
+// The review queue, the unlock rule and the edit
+
+// Confirmed pieces put straight into the database, for the unlock tests. kinds: ['jumper', ...]
+function addConfirmed(userId, kinds, status = 'confirmed') {
+  const add = db.prepare(
+    `INSERT INTO pieces (user_id, status, name, kind, details_status, original_path, thumb_path, created_at, confirmed_at)
+     VALUES (?, ?, ?, ?, 'suggested', 'photos/none-photo.jpg', 'photos/none-thumb.webp', ?, ?)`
+  );
+  return kinds.map((kind) => Number(add.run(userId, status, `Test ${kind}`, kind, iso(now()), iso(now())).lastInsertRowid));
+}
+
+// 19 pieces with tops and bottoms but no shoes, like npm run seed-wardrobe.
+const NINETEEN = [
+  'coat', 'blazer', 'jacket',
+  'jumper', 'cardigan', 'sweatshirt', 'knitted vest',
+  'shirt', 't-shirt', 'blouse', 'long-sleeved top', 'tank top',
+  'trousers', 'jeans', 'leggings',
+  'skirt', 'dress', 'jumpsuit',
+  'bag',
+];
+
+function details(overrides = {}) {
+  return { name: 'Black leather trainers', kind: 'trainers', colours: ['black'], pattern: 'plain', material: 'leather', warmth: 'medium', formality: 'casual', seasons: [], occasions: [], status: 'confirmed', ...overrides };
+}
+
+test('19 pieces without shoes stay locked; a pair of shoes opens Looks and Get the look, once', async () => {
+  const { id, token } = addMember();
+  addConfirmed(id, NINETEEN);
+
+  let wardrobe = (await call('GET', '/me/wardrobe', { token })).body;
+  assert.deepEqual(wardrobe.progress, { pieces: 19, needed: 20, top: true, bottomOrOnePiece: true, shoes: false, unlocked: false });
+
+  claude.answer = { ...SHIRT, name: 'black leather trainers', kind: 'trainers', chapter: 'shoes', warmth: 'medium' };
+  const shoes = await addPiece(token);
+  claude.answer = SHIRT;
+  wardrobe = (await call('GET', '/me/wardrobe', { token })).body;
+  assert.equal(wardrobe.progress.pieces, 19, 'waiting for review does not count');
+  assert.deepEqual(wardrobe.waiting, { reading: 0, toReview: 1 });
+
+  const confirmed = await call('PUT', `/me/pieces/${shoes.id}`, { token, body: details() });
+  assert.equal(confirmed.status, 200, confirmed.body.error);
+  assert.equal(confirmed.body.justUnlocked, true);
+  assert.deepEqual(confirmed.body.progress, { pieces: 20, needed: 20, top: true, bottomOrOnePiece: true, shoes: true, unlocked: true });
+  assert.equal(confirmed.body.piece.status, 'confirmed');
+  assert.ok(confirmed.body.piece.confirmedAt);
+
+  const me = (await call('GET', '/me', { token })).body.member;
+  assert.equal(me.unlocked, true);
+
+  // Saving the same piece again does not open it a second time.
+  const again = await call('PUT', `/me/pieces/${shoes.id}`, { token, body: details({ name: 'White trainers' }) });
+  assert.equal(again.body.justUnlocked, false);
+});
+
+test('removing pieces afterwards keeps Looks and Get the look open', async () => {
+  const { id, token } = addMember();
+  const ids = addConfirmed(id, [...NINETEEN, 'loafers']);
+  const unlocked = await call('PUT', `/me/pieces/${ids[0]}`, { token, body: details({ name: 'Camel coat', kind: 'coat' }) });
+  assert.equal(unlocked.body.justUnlocked, true);
+
+  for (const pieceId of ids.slice(-6)) {
+    const removed = await call('DELETE', `/me/pieces/${pieceId}`, { token });
+    assert.equal(removed.status, 200);
+  }
+  const wardrobe = (await call('GET', '/me/wardrobe', { token })).body;
+  assert.equal(wardrobe.progress.pieces, 14);
+  assert.equal(wardrobe.progress.shoes, false);
+  assert.equal(wardrobe.progress.unlocked, true);
+});
+
+test('maybe counts, waiting does not; 20 pieces need a top, a bottom or one-piece, and shoes', async () => {
+  const { id, token } = addMember();
+  const ids = addConfirmed(id, [...NINETEEN.slice(0, 18), 'trainers']);
+  const [pending] = addConfirmed(id, ['heels'], 'pending');
+  assert.equal((await call('GET', '/me/wardrobe', { token })).body.progress.pieces, 19);
+
+  const maybe = await call('PUT', `/me/pieces/${pending}`, { token, body: details({ name: 'Red heels', kind: 'heels', status: 'maybe' }) });
+  assert.equal(maybe.body.piece.status, 'maybe');
+  assert.equal(maybe.body.justUnlocked, true, 'a maybe piece counts');
+
+  // Twenty pieces with no top stay locked.
+  const other = addMember();
+  addConfirmed(other.id, ['coat', 'coat', 'coat', 'jeans', 'jeans', 'jeans', 'trainers', 'bag', 'bag', 'bag', 'bag', 'belt', 'belt', 'scarf', 'scarf', 'hat', 'hat', 'sunglasses', 'jewellery', 'dress']);
+  const progress = (await call('GET', '/me/wardrobe', { token: other.token })).body.progress;
+  assert.equal(progress.pieces, 20);
+  assert.equal(progress.top, false);
+  assert.equal(progress.unlocked, false);
+  assert.ok(ids.length);
+});
+
+test('the details are checked: the fixed lists, a name, and only the member\'s own seasons and occasions', async () => {
+  const owner = addMember('Owner');
+  const other = addMember('Other');
+  giveYear(owner.id, 'amsterdam', YEARS.four);
+  giveYear(other.id, 'amsterdam', YEARS.four);
+  const piece = await addPiece(owner.token);
+  const put = (body, token = owner.token) => call('PUT', `/me/pieces/${piece.id}`, { token, body });
+
+  assert.equal((await put(details({ name: ' ' }))).body.error, 'Name this piece.');
+  assert.equal((await put(details({ kind: 'cape' }))).status, 400);
+  assert.equal((await put(details({ colours: ['black', 'mauve'] }))).status, 400);
+  assert.equal((await put(details({ colours: ['black', 'white', 'red', 'blue'] }))).status, 400);
+  assert.equal((await put(details({ material: 'tweed' }))).status, 400);
+  assert.equal((await put(details({ status: 'pending' }))).status, 400);
+  assert.equal((await put(details({ seasons: [Object.values(seasonIds(other.id))[0]] }))).status, 400, "another member's season");
+  const otherOccasion = db.prepare('SELECT id FROM occasions WHERE user_id = ?').pluck().get(other.id);
+  assert.equal((await put(details({ occasions: [otherOccasion] }))).status, 400, "another member's occasion");
+  assert.equal((await put(details(), other.token)).status, 404, "another member's piece");
+
+  const ownSeason = seasonIds(owner.id).Summer;
+  const ownOccasion = db.prepare('SELECT id FROM occasions WHERE user_id = ? ORDER BY position').pluck().get(owner.id);
+  const saved = await put(details({ name: 'cream linen shirt', kind: 'shirt', colours: ['cream', 'navy'], seasons: [ownSeason], occasions: [ownOccasion] }));
+  assert.equal(saved.status, 200, saved.body.error);
+  assert.equal(saved.body.piece.name, 'Cream linen shirt');
+  assert.equal(saved.body.piece.chapter, 'tops');
+  assert.equal(saved.body.piece.slot, 'top');
+  assert.deepEqual(saved.body.piece.colours, ['cream', 'navy']);
+  assert.deepEqual(saved.body.piece.seasons, [ownSeason]);
+  assert.deepEqual(saved.body.piece.occasions, [ownOccasion]);
+});
+
+test('the review queue lists the member\'s own pieces waiting for review, with the season rule', async () => {
+  const owner = addMember('Owner');
+  const other = addMember('Other');
+  giveYear(owner.id, 'miami', YEARS.miami);
+  const first = await addPiece(owner.token);
+  const second = await addPiece(owner.token);
+  await addPiece(other.token);
+  await call('PUT', `/me/pieces/${first.id}`, { token: owner.token, body: details() });
+
+  const queue = (await call('GET', '/me/pieces?status=pending', { token: owner.token })).body;
+  assert.deepEqual(queue.pieces.map((p) => p.id), [second.id]);
+  assert.equal(queue.pieces[0].detailsStatus, 'suggested');
+  assert.equal(queue.pieces[0].name, 'Cream linen shirt');
+  assert.equal(queue.pieces[0].seasons.length, 2, 'light in Miami: both seasons');
+  assert.equal(queue.seasonsByWarmth.warm.length, 1);
+
+  const chapter = (await call('GET', '/me/pieces?chapter=shoes', { token: owner.token })).body;
+  assert.deepEqual(chapter.pieces.map((p) => p.id), [first.id]);
+  assert.equal((await call('GET', '/me/pieces', { token: owner.token })).status, 400);
+});
+
+test('the edit shows each chapter with its count and newest cut-outs', async () => {
+  const { id, token } = addMember();
+  addConfirmed(id, ['jumper', 'cardigan', 'hoodie', 'jeans']);
+  const wardrobe = (await call('GET', '/me/wardrobe', { token })).body;
+  assert.deepEqual(wardrobe.chapters.map((c) => [c.number, c.name, c.count, c.thumbs.length]), [
+    [2, 'knitwear', 3, 2],
+    [4, 'trousers', 1, 1],
+  ]);
+});
+
+test('the app knows when the wardrobe is started, and step 6 shows until then', async () => {
+  const { token } = addMember();
+  assert.equal((await call('GET', '/me', { token })).body.member.wardrobeStarted, false);
+  await addPiece(token);
+  const member = (await call('GET', '/me', { token })).body.member;
+  assert.equal(member.wardrobeStarted, true);
+  assert.equal(member.unlocked, false);
+});
+
+test('retake gives a piece a new photo and keeps its details, without asking Claude again', async () => {
+  const { token } = addMember();
+  const piece = await addPiece(token, { withCutout: false });
+  const before = pieceRow(piece.id);
+  const calls = claude.calls;
+
+  const retaken = await call('PUT', `/me/pieces/${piece.id}/photo`, { token, body: { photo: await photoWithLocation(1200, 1600), cutout: await cutOut() } });
+  assert.equal(retaken.status, 200, retaken.body.error);
+  assert.equal(retaken.body.piece.name, 'Cream linen shirt');
+  assert.ok(retaken.body.piece.images.cutout);
+  assert.notEqual(retaken.body.piece.images.photo, piece.images.photo, 'a new address, so the old copy is not shown');
+  assert.equal(claude.calls, calls);
+  assert.ok(!fs.existsSync(file(before.original_path)), 'the old photo is deleted');
+  assert.ok(fs.existsSync(file(pieceRow(piece.id).original_path)));
+});
+
+test('the fixed lists for the app', async () => {
+  const { token } = addMember();
+  const lists = (await call('GET', '/lists', { token })).body;
+  assert.equal(lists.chapters.length, 7);
+  assert.equal(lists.chapters[4].name, 'dresses and skirts');
+  assert.deepEqual(lists.chapters[4].kinds.map((k) => k.name), ['dress', 'jumpsuit', 'skirt']);
+  assert.equal(lists.colours.length, 21);
+  assert.deepEqual(lists.warmth, ['light', 'medium', 'warm']);
+  assert.equal((await call('GET', '/lists')).status, 401);
+});

@@ -3,6 +3,7 @@
 
 const path = require('path');
 const db = require('../db');
+const lists = require('./lists');
 
 // One of the member's pieces, or null: an id that is not theirs is the same as no piece.
 function findPiece(userId, id) {
@@ -59,4 +60,76 @@ function pieceJSON(piece) {
   };
 }
 
-module.exports = { findPiece, imageUrl, pieceJSON };
+// Checks the details the member saved in the review queue: { name, kind, colours, pattern,
+// material, warmth, formality, seasons, occasions, status }. Returns { details } or { error }.
+// Every value must be on its fixed list; seasons and occasions must be the member's own.
+function checkDetails(body, userId) {
+  const { kindByName, colours, patterns, materials, warmth, formality } = lists.load();
+  const name = String(body?.name ?? '').trim();
+  if (!name) return { error: 'Name this piece.' };
+  if (name.length > 60) return { error: 'Keep the name to 60 letters.' };
+  if (!kindByName.has(body?.kind)) return { error: 'Choose what kind of piece this is.' };
+
+  const pieceColours = Array.isArray(body?.colours) ? body.colours : [];
+  if (pieceColours.length > 3 || new Set(pieceColours).size !== pieceColours.length || pieceColours.some((c) => !colours.includes(c))) {
+    return { error: 'Choose up to three colours from the list.' };
+  }
+
+  const optional = (value, list) => value === null || value === undefined || list.includes(value);
+  if (!optional(body?.pattern, patterns) || !optional(body?.material, materials)) {
+    return { error: 'Choose the pattern and material from the list.' };
+  }
+  if (!optional(body?.warmth, warmth) || !optional(body?.formality, formality)) {
+    return { error: 'Choose the warmth and formality from the list.' };
+  }
+
+  const ids = (value) => (Array.isArray(value) ? [...new Set(value.map(Number))] : []);
+  const seasons = ids(body?.seasons);
+  const occasions = ids(body?.occasions);
+  const ownSeasons = new Set(db.prepare('SELECT id FROM seasons WHERE user_id = ?').pluck().all(userId));
+  const ownOccasions = new Set(db.prepare('SELECT id FROM occasions WHERE user_id = ?').pluck().all(userId));
+  if (seasons.some((id) => !ownSeasons.has(id))) return { error: 'This season is no longer in your year. Open the piece again.' };
+  if (occasions.some((id) => !ownOccasions.has(id))) return { error: 'This occasion is no longer in your list. Open the piece again.' };
+
+  if (!['confirmed', 'maybe'].includes(body?.status)) return { error: 'Confirm the piece or mark it as maybe.' };
+
+  return {
+    details: {
+      name: name[0].toUpperCase() + name.slice(1),
+      kind: body.kind,
+      colours: pieceColours,
+      pattern: body.pattern ?? null,
+      material: body.material ?? null,
+      warmth: body.warmth ?? null,
+      formality: body.formality ?? null,
+      seasons,
+      occasions,
+      status: body.status,
+    },
+  };
+}
+
+// Saves checked details. A piece the member confirms before Claude finished reading it
+// keeps the member's details: Claude's answer is no longer wanted.
+const saveDetails = db.transaction((piece, d, at) => {
+  db.prepare(
+    `UPDATE pieces SET name = ?, kind = ?, pattern = ?, material = ?, warmth = ?, formality = ?, status = ?,
+       confirmed_at = COALESCE(confirmed_at, ?),
+       details_status = CASE details_status WHEN 'reading' THEN 'not read' ELSE details_status END
+     WHERE id = ? AND user_id = ?`
+  ).run(d.name, d.kind, d.pattern, d.material, d.warmth, d.formality, d.status, at, piece.id, piece.user_id);
+
+  db.prepare('DELETE FROM piece_colours WHERE piece_id = ? AND user_id = ?').run(piece.id, piece.user_id);
+  const addColour = db.prepare('INSERT INTO piece_colours (user_id, piece_id, colour, position) VALUES (?, ?, ?, ?)');
+  d.colours.forEach((colour, index) => addColour.run(piece.user_id, piece.id, colour, index + 1));
+
+  db.prepare('DELETE FROM piece_seasons WHERE piece_id = ? AND user_id = ?').run(piece.id, piece.user_id);
+  const addSeason = db.prepare('INSERT INTO piece_seasons (user_id, piece_id, season_id) VALUES (?, ?, ?)');
+  d.seasons.forEach((id) => addSeason.run(piece.user_id, piece.id, id));
+
+  db.prepare('DELETE FROM piece_occasions WHERE piece_id = ? AND user_id = ?').run(piece.id, piece.user_id);
+  const addOccasion = db.prepare('INSERT INTO piece_occasions (user_id, piece_id, occasion_id) VALUES (?, ?, ?)');
+  d.occasions.forEach((id) => addOccasion.run(piece.user_id, piece.id, id));
+});
+
+module.exports = { findPiece, imageUrl, pieceJSON, checkDetails, saveDetails };

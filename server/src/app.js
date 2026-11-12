@@ -6,6 +6,8 @@ const storeRoutes = require('./routes/stores');
 const placeRoutes = require('./routes/places');
 const adminRoutes = require('./routes/admin');
 const pieceRoutes = require('./routes/pieces');
+const wardrobeRoutes = require('./routes/wardrobe');
+const listRoutes = require('./routes/lists');
 
 const app = express();
 
@@ -22,8 +24,10 @@ app.use('/auth', authRoutes);
 // Signed in only: each route checks the session itself (src/middleware/signed-in.js).
 app.use('/me/stores', storeRoutes);
 app.use('/me/pieces', pieceRoutes);
+app.use('/me/wardrobe', wardrobeRoutes);
 app.use('/me', meRoutes);
 app.use('/places', placeRoutes);
+app.use('/lists', listRoutes);
 
 // The admin only: checked on the server for every route (src/routes/admin.js).
 app.use('/admin', adminRoutes);

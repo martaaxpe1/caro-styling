@@ -1,11 +1,14 @@
 // Small rules about members, shared by the routes and the clean-up job.
 
 const db = require('../db');
+const { hasPieces } = require('./wardrobe');
 
 // A removed member's data is kept this long, so the admin can restore access, then deleted.
 const KEEP_REMOVED_DAYS = 30;
 
 // What the app is told about the signed-in member. Never the photos or the wardrobe.
+// unlocked: Looks and Get the look are open. wardrobeStarted: the member has added pieces
+// (or is unlocked), so the app opens on the edit instead of step 6.
 function memberJSON(user) {
   return {
     id: user.id,
@@ -15,6 +18,8 @@ function memberJSON(user) {
     status: user.status,
     onboardingStep: user.onboarding_step,
     country: user.country,
+    unlocked: Boolean(user.unlocked_at),
+    wardrobeStarted: Boolean(user.unlocked_at) || hasPieces(user.id),
   };
 }
 
