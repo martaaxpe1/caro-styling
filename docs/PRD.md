@@ -1,4 +1,4 @@
-# Caro Styling: Product requirements (v1.4, ready to build)
+# Caro Styling: Product requirements (v1.5, ready to build)
 
 The spec for building Caro Styling. It folds in every decision from the drafts (v0.2 to v0.10) and from the design round on the canvas. Where this file and the screens in `design/` disagree on layout, colour, type or copy, the screens win. Where they disagree on behaviour, this file wins. Changes are listed at the end.
 
@@ -95,8 +95,8 @@ Designed for a new person the app knows nothing about. Every step is a check, no
 5. **Occasions.** Caro proposes four, explained: Office, Working from home, Night out, Day out. Keep the ones that fit, rename any, remove any or add your own: one to eight, each name once. Each can carry a short line under its name (up to 80 letters); a rename keeps the line, and the pencil changes both. Renaming an occasion keeps its pieces and looks; removing one takes it off them. An occasion still typed in the field is added when you press Continue or Save. In Settings, a centred "Occasions saved" confirmation lists them before going back.
 6. **Your wardrobe.** The last and longest step, required before Looks and Get the look open.
    - How to photograph a piece: one piece per photo, flat or on a hanger, plain background, daylight.
-   - **Take photos** or **Choose from library**. The iPhone asks for camera or photo access the first time, after a line on why.
-   - Caro cuts each piece out and suggests its details. You confirm them in the review queue.
+   - **Take photos** (several in a row) or **Choose from library** (up to 50 at a time). The iPhone asks for camera access the first time, with Caro's line on why. Choosing from the library needs no access: the iPhone's photo picker shares only the photos you pick.
+   - Caro cuts each piece out and suggests its details. You confirm them in the review queue: **Confirm**, change any detail, **Mark as maybe**, **Skip** (the piece waits for next time and does not count yet) or **Remove**. Where nothing lifted, **Retake** replaces the photo and keeps the details.
    - Progress is always visible: "12 of 20".
    - **Unlock rule.** Looks and Get the look open at 20 confirmed pieces that include at least one top, one bottom or one-piece, and one pair of shoes. The edit is always open.
    - It can take several sessions. Leaving shows the edit with the pieces so far, and Looks and Get the look locked with the progress and **Add pieces**.
@@ -172,6 +172,9 @@ Designed screens are in `design/screens/` (source from the design canvas). Scree
 ### The edit
 
 - **10 The edit.** The masthead (profile, CARO wordmark, add), a double rule and the dateline ("The autumn edit · 96 pieces"). Contents: one numbered chapter per category with its count, "N not styled yet" when some pieces are in no look, and a few cut-outs.
+- **08 The edit, still building (T5).** As screen 08, plus a line with the pieces still being read and the ones to review ("3 pieces to review", **Review**). Until T6, tapping a chapter opens a simple list of its pieces, where touching and holding a piece removes it; T6 replaces it with S6.
+- **07 Review (T5).** As screen 07, plus Pattern in the Colour row, a Formality row, **Remove**, and **Retake** for a photo where nothing lifted.
+- **Camera (T5, to design).** The iPhone's own camera with a bar in Caro's ink: Done, the shutter, the last photo and how many were taken.
 - **S6 Chapter.** All pieces in one chapter as cut-outs. Filters: kind (for example jumpers, cardigans, hoodies), season (current season by default), occasion, colour, maybe.
 - **11 Piece.** The piece large, its details (seasons, occasions, colour, brand, size), the looks it is in. **Edit**. **Style a look with it** opens the styling table with this piece placed.
 - **S7 Wardrobe overview.** Counts by category, colour, season and occasion. Pieces in no look yet. Occasions with fewer than three looks.
@@ -201,7 +204,8 @@ Pieces:
 - Batch capture from the camera or multi-select from the photo library. Each photo becomes one piece.
 - On the phone: the background is removed with the iPhone's own cut-out feature (the Vision framework, the same as touching and holding a subject in Photos). Free, fast, works offline. If nothing lifts from a photo, the piece keeps its photo as it is, on the tile colour, and can be retaken.
 - On the server: resize to about 2000 px on the long side, strip location data, store original and cut-out, make a thumbnail.
-- The app suggests a short name, chapter and kind, colours, pattern, material, warmth (light, medium, warm) and formality. Seasons are proposed from the warmth and the member's year. Occasions start empty: you choose them.
+- The app suggests a short name, chapter and kind, colours, pattern, material, warmth (light, medium, warm) and formality. Seasons are proposed from the warmth and the member's year (section 9). Occasions start empty: you choose them.
+- Details are read on the server in the background, a few pieces at a time, so the member can keep adding photos. If Claude cannot answer, the piece waits for review with its details empty, for the member to fill in.
 - The details come from fixed lists, so they can be counted and filtered:
   - Colours (up to three, main colour first, only as seen from the outside when worn): black, white, cream, beige, camel, brown, grey, navy, blue, light blue, green, olive, red, burgundy, pink, terracotta, orange, yellow, purple, silver, gold.
   - Patterns: plain, striped, checked, floral, polka dot, animal print, graphic, other pattern.
@@ -242,7 +246,7 @@ Store search:
 Onboarding, settings and admin:
 - **Unlock rule.** 20 confirmed pieces, with at least one top, one bottom or one-piece, and one pair of shoes. Pieces skipped in the review queue do not count; pieces marked maybe do. Once open, Looks and Get the look stay open, even if pieces are removed later.
 - Changing where you live in settings proposes a new year and new store websites. Nothing changes until you confirm: the new place and its year are saved together when you confirm the year, and each store keeps its old website, marked with the country it was found for, until you confirm its new one. The store search skips a store not checked for your country.
-- If you change your seasons (for example from four to two), the app proposes new seasons for your pieces from their warmth, and you confirm them in one batch.
+- If you change your seasons (for example from four to two), the app proposes new seasons for your pieces from their warmth at once (T5). Confirming them in one batch comes with the edit (T6), where pieces' seasons are shown.
 - Invitations expire after 14 days. Removed members cannot sign in. A daily job deletes the data of members removed more than 30 days ago.
 
 ## 9. Places, seasons and stores
@@ -253,7 +257,10 @@ Onboarding, settings and admin:
   - A rule in code, not the AI, proposes the seasons. Four meteorological seasons when the typical highs vary by 10 °C or more over the year, shifted by six months in the southern hemisphere. Otherwise two, when most of the rain falls in six months in a row, named from the temperature and rain ("Hot and rainy", "Mild and dry"). Otherwise none.
   - Each of the three can still be chosen. Where rain does not split the year, two seasons are the warmer and the cooler six months ("Warm" and "Cool").
   - With the same number of seasons, renaming a season or moving a month keeps its pieces and looks. With another number, the seasons are replaced (section 8).
-- **Warmth connects pieces to seasons.** Warmth (light, medium, warm) means the same everywhere. A light linen shirt becomes spring and summer in the Netherlands, and both seasons in Miami.
+- **Warmth connects pieces to seasons.** Warmth (light, medium, warm) means the same everywhere. A light linen shirt becomes spring and summer in the Netherlands, and both seasons in Miami. A rule in code, from the typical highs of the member's seasons (the average of their months):
+  - Four seasons: light is the warmest season and the one before it, warm is the coldest season and the one before it, medium is all four. In the Netherlands: light is spring and summer, warm is autumn and winter.
+  - Two seasons: light and medium are both, but light skips a season whose typical high is under 20 °C; warm is the cooler one.
+  - No seasons: none.
 - **The current season is a default filter.** It never hides pieces.
 - **Stores are a personal list,** chosen by every member in onboarding. No shared catalogue. Marta's examples (Arket, COS, Uniqlo, Zara, Ganni, Bimba y Lola, Samsøe Samsøe) are sample content.
 - **Local formats.** Dates, prices and sizes follow the member's country (12 Oct versus Oct 12, EU 38 versus US 8).
@@ -308,7 +315,7 @@ Tables:
 - `seasons`: name, order. `season_months`: the season each month belongs to. A month is in one season at most, so seasons never overlap. Four, two or none per member.
 - `stores`: name, domain (such as cos.com), the page for the member's country, sells online in the country (yes or no), the country it was checked for, order.
 - `cities` and `city_weather` (T4): each city chosen from the city search (GeoNames id, region, country, coordinates, time zone, where its weather came from) and its typical high and rain for each month. Public facts kept once per city, not a member's data, so no `user_id`.
-- `pieces`: name, kind (the chapter and slot follow from it), pattern, material, warmth, formality, brand, size, size system, price paid and its currency, notes, status (pending review, confirmed, maybe), photo paths (original, cut-out, thumbnail; no cut-out when nothing lifted). `piece_colours` (up to three, main first), `piece_occasions`, `piece_seasons`.
+- `pieces`: name, kind (the chapter and slot follow from it), pattern, material, warmth, formality, brand, size, size system, price paid and its currency, notes, status (pending review, confirmed, maybe), details status (reading, suggested, not read; T5), photo paths (original, cut-out, thumbnail; no cut-out when nothing lifted). `piece_colours` (up to three, main first), `piece_occasions`, `piece_seasons`. The photo files live outside the database, in `DATA_DIR/photos/<member>/`: the photo as JPEG, the cut-out and the thumbnail as WebP.
 - `looks`: number, source (built, photo, inspired), note. `look_pieces` (with slot: one piece per slot, several accessories). `look_occasions`, `look_seasons`. `look_photos`: photo, added.
 - `inspirations`: photo, link, note. `inspiration_pieces`: pin number, description, kind, matched piece, match (yours, close, missing), key.
 - `to_find`: from inspiration piece, status (considering, bought, dropped), last searched (empty means not searched yet). `store_results`: store, name, price, currency, link, image, found at.
@@ -407,7 +414,7 @@ Done when: as the test Sara in the Simulator, with `DEV_TODAY=2026-10-30`: Miami
 - Suggested details and seasons from warmth.
 - Adding pieces (processing), the review queue (confirm, edit, skip, maybe), progress.
 - The unlock rule on the server, the locked tabs, "Your wardrobe is open".
-- Screens 05 to 09.
+- Screens 05 to 09. `npm run seed-wardrobe` gives a member 19 drawn pieces and no shoes, locked again, to test the unlock.
 Done when: on Marta's iPhone, she photographs 5 real pieces, sees them cut out, confirms them and sees the count go up. With 19 seeded pieces and no shoes, adding a pair of shoes opens Looks and Get the look. Removing pieces afterwards keeps them open.
 
 **T6. The edit.**
@@ -516,3 +523,4 @@ Not in version one. A short onboarding step to help a member see their own patte
 - **v1.2.** From T2. The database tables use the app's words: `pieces`, `looks`, `to_find`. Section 12 matches the tables as built: the fixed lists as tables, the allowance as one setting for every member, store domains, store sections as three yes or no choices, months per season, sign-in codes kept by email, last searched on To find, prices in cents.
 - **v1.3.** From T3. A refused email is told plainly at the email step; at most 5 codes per email per hour. Resend opens an invitation for another 14 days; only pending invitations are listed. Removing access signs the person out at once; the admin's own access cannot be removed; after 30 days the invitation and codes for that email go too. Admin routes are checked on the server. Until S5, the admin area is reached from a temporary settings sheet.
 - **v1.4.** From T4. Change on Where you live corrects currency, dates and sizes; the country follows the city. Resume at the furthest step; another city in onboarding goes back to Your year. Stores are looked up on return, sections saved on each tap, Continue needs a section, Skip for now and Continue go to step 5, and a store Caro cannot confirm is not searched. In settings, a new place is saved with its year, and stores keep their old site until confirmed. Every option of the year can be chosen. Store websites and city weather count as AI actions. Section 12: city, formats and checked country added, with the `cities` and `city_weather` tables. Occasions are each member's own: Caro proposes four, and the member keeps, renames, removes or adds, one to eight (`proposed_occasions` and `occasions`); each keeps an editable line under its name, and Settings confirms the save. S2: a note under the code field counts the digits until there are 6.
+- **v1.5.** From T5. Take photos takes several in a row; Choose from library needs no permission (the photo picker shares only what you pick). The review queue: Skip leaves a piece waiting, Remove, Retake keeps the details; screen 07 adds Pattern, Formality, Remove and Retake. The edit shows the pieces to review; until T6 a simple chapter list lets a piece be removed. Seasons from warmth: the warm half and the cool half of the member's year. Changing the number of seasons proposes new ones at once; the batch confirmation comes in T6. Details are read in the background; a piece Claude could not read waits for the member to fill in. Section 12: details status on pieces, photo files under `DATA_DIR/photos/`. `npm run seed-wardrobe`.
