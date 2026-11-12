@@ -2,16 +2,17 @@
 // once when it starts and then every 24 hours. `npm run clean-up` runs it by hand.
 //
 // 1. Invitations past their 14 days are marked expired.
-// 2. Members removed more than 30 days ago are deleted, with everything they had.
+// 2. Members removed more than 30 days ago are deleted, with everything they had, photos included.
 // 3. Sign-in codes older than a day are deleted. They only work for 15 minutes.
 
 const db = require('../db');
 const { now, iso, DAY } = require('../lib/today');
 const { KEEP_REMOVED_DAYS } = require('../lib/members');
+const { removeMemberPhotos } = require('../lib/photos');
 
 // `at` is the moment to clean up as of. Normally now; the tests pass a date 31 days on.
 function cleanUp(at = now()) {
-  return db.transaction(() => {
+  const result = db.transaction(() => {
     const invitationsExpired = db
       .prepare(`UPDATE invitations SET status = 'expired' WHERE status = 'pending' AND expires_at <= ?`)
       .run(iso(at)).changes;
@@ -26,15 +27,23 @@ function cleanUp(at = now()) {
       // Their invitation and codes are kept by email, so they go separately.
       db.prepare('DELETE FROM invitations WHERE email = ?').run(user.email);
       db.prepare('DELETE FROM login_codes WHERE email = ?').run(user.email);
-      // T5: also delete their photo files here.
     }
 
     const codesDeleted = db
       .prepare('DELETE FROM login_codes WHERE created_at <= ?')
       .run(iso(new Date(at.getTime() - DAY))).changes;
 
-    return { invitationsExpired, membersDeleted: removed.length, codesDeleted };
+    return { invitationsExpired, removed, codesDeleted };
   })();
+
+  // Their photo files, once the database no longer points at them.
+  for (const user of result.removed) removeMemberPhotos(user.id);
+
+  return {
+    invitationsExpired: result.invitationsExpired,
+    membersDeleted: result.removed.length,
+    codesDeleted: result.codesDeleted,
+  };
 }
 
 // One line for the terminal, like "Clean-up: 1 invitation expired, 0 members deleted, 3 old codes deleted."

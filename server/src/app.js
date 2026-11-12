@@ -5,10 +5,14 @@ const meRoutes = require('./routes/me');
 const storeRoutes = require('./routes/stores');
 const placeRoutes = require('./routes/places');
 const adminRoutes = require('./routes/admin');
+const pieceRoutes = require('./routes/pieces');
 
 const app = express();
 
 app.disable('x-powered-by');
+// A new piece carries its photo and cut-out (about 5 MB as base64), so that route reads larger
+// requests. Everything else keeps the usual small limit.
+app.use('/me/pieces', express.json({ limit: '25mb' }));
 app.use(express.json());
 
 // Open to anyone.
@@ -17,6 +21,7 @@ app.use('/auth', authRoutes);
 
 // Signed in only: each route checks the session itself (src/middleware/signed-in.js).
 app.use('/me/stores', storeRoutes);
+app.use('/me/pieces', pieceRoutes);
 app.use('/me', meRoutes);
 app.use('/places', placeRoutes);
 
@@ -30,6 +35,9 @@ app.use((req, res) => {
 
 // If a route throws, answer with a short JSON error.
 app.use((err, req, res, next) => {
+  if (err.status === 413) {
+    return res.status(413).json({ error: 'This photo is too large to send.' });
+  }
   // A request the server could not read, like broken JSON. Not logged: the request
   // could hold a sign-in code or a token, and those are never logged.
   if (err.status >= 400 && err.status < 500) {
