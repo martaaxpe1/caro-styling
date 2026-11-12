@@ -10,6 +10,8 @@ struct MainView: View {
     @State private var tab: MainTab = .edit
     /// The screens pushed on top of the edit, like adding pieces or a chapter.
     @State private var editPath = NavigationPath()
+    /// The screens pushed on top of Looks: a look, its pieces.
+    @State private var looksPath = NavigationPath()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,7 +32,13 @@ struct MainView: View {
                     }
                     .tint(Color.ink)
                 case .looks:
-                    ComingView(member: member, tab: .looks)
+                    NavigationStack(path: $looksPath) {
+                        LooksView(member: member)
+                            .navigationDestination(for: WardrobeRoute.self) { route in
+                                WardrobeDestination(route: route)
+                            }
+                    }
+                    .tint(Color.ink)
                 case .getTheLook:
                     ComingView(member: member, tab: .getTheLook)
                 }
@@ -38,7 +46,7 @@ struct MainView: View {
             .frame(maxHeight: .infinity)
 
             // The tab bar shows on the first screen of each section, not over adding pieces.
-            if tab != .edit || editPath.isEmpty {
+            if (tab == .edit && editPath.isEmpty) || (tab == .looks && looksPath.isEmpty) || tab == .getTheLook {
                 TextTabBar(selection: $tab, unlocked: member.unlocked)
             }
         }
@@ -46,7 +54,7 @@ struct MainView: View {
         .environment(\.closeToEdit) {
             editPath = NavigationPath()
         }
-        // "Style your first look" on screen 09 opens Looks (T7 builds it).
+        // "Style your first look" on screen 09 opens Looks.
         .onChange(of: store.openLooksNext, initial: true) { _, open in
             guard open else { return }
             store.openLooksNext = false
@@ -88,13 +96,17 @@ struct WardrobeDestination: View {
             OverviewView()
         case .seasonsCheck:
             SeasonsCheckView()
+        case .look(let id):
+            LookView(lookID: id)
+        case .looksWith(let pieceID, let name):
+            PieceLooksView(pieceID: pieceID, name: name)
         case .addPieces:
             EmptyView()
         }
     }
 }
 
-/// Looks and Get the look, until T7 and T10 build them.
+/// Get the look, until T10 builds it.
 struct ComingView: View {
     let member: Member
     let tab: MainTab
@@ -109,7 +121,7 @@ struct ComingView: View {
             .padding(.top, 6)
 
             Spacer()
-            Text(tab == .looks ? "Styling looks comes in T7." : "Get the look comes in T10.")
+            Text("Get the look comes in T10.")
                 .font(.caroBody)
                 .foregroundStyle(Color.muted)
             Spacer()

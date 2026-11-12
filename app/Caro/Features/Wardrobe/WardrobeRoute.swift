@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// The screens pushed onto a navigation stack: adding pieces (from onboarding step 6 or from
-/// the edit), and the edit's chapters, pieces, overview and season check.
+/// the edit), the edit's chapters, pieces, overview and season check, and looks (on both the
+/// edit's stack and the Looks tab's).
 enum WardrobeRoute: Hashable {
     /// Screen 05 from the edit's add button: the tips, Take photos, Choose from library.
     case addPieces
@@ -19,6 +20,10 @@ enum WardrobeRoute: Hashable {
     case overview
     /// The new seasons to check in one batch, after the year changed.
     case seasonsCheck
+    /// One look's page (S8).
+    case look(id: Int)
+    /// "See all" from a piece: every look it is in.
+    case looksWith(pieceID: Int, name: String)
 }
 
 extension EnvironmentValues {

@@ -8,6 +8,8 @@ struct Masthead: View {
     var datelineRight: String = ""
     /// The plus on the right, for adding pieces. No plus when there is nothing to add.
     var add: (() -> Void)?
+    /// What the plus says to VoiceOver: "Add pieces" on the edit, "Style a look" on Looks.
+    var addLabel = "Add pieces"
     let openProfile: () -> Void
 
     var body: some View {
@@ -35,7 +37,7 @@ struct Masthead: View {
                                 .frame(width: 44, height: 44, alignment: .trailing)
                                 .contentShape(Rectangle())
                         }
-                        .accessibilityLabel("Add pieces")
+                        .accessibilityLabel(addLabel)
                     }
                 }
             }

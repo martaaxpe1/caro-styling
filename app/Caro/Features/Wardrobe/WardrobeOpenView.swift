@@ -15,7 +15,7 @@ struct WardrobeOpenView: View {
             Wordmark(height: 18)
                 .padding(.top, 18)
 
-            FlatLay(thumbs: flatLayThumbs)
+            OpenFlatLay(thumbs: flatLayThumbs)
                 .frame(height: 340)
                 .padding(.top, 28)
 
@@ -78,7 +78,7 @@ struct WardrobeOpenView: View {
 
 /// The pieces laid out on paper with soft shadows, at the design's places and angles
 /// (screen 09, 390 points wide; scaled to the screen).
-private struct FlatLay: View {
+private struct OpenFlatLay: View {
     let thumbs: [String]
 
     // x, y, size, angle, from design/screens/09-wardrobe-open.dc.html

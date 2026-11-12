@@ -253,6 +253,39 @@ struct APIClient {
         return response.progress
     }
 
+    // MARK: Looks (screens 12, 13 and S8)
+
+    /// GET /me/looks: the looks, newest first.
+    func looks() async throws -> LooksPage {
+        try await send("GET", "me/looks")
+    }
+
+    /// GET /me/looks/table: the pieces the styling table chooses from.
+    func stylingTable() async throws -> StylingTable {
+        try await send("GET", "me/looks/table")
+    }
+
+    /// GET /me/looks/:id: one look for its page.
+    func lookPage(_ lookID: Int) async throws -> LookPage {
+        try await send("GET", "me/looks/\(lookID)")
+    }
+
+    /// POST /me/looks, or PUT /me/looks/:id to change one.
+    func saveLook(_ draft: LookDraft, lookID: Int?) async throws -> Look {
+        let response: LookResponse
+        if let lookID {
+            response = try await send("PUT", "me/looks/\(lookID)", body: draft)
+        } else {
+            response = try await send("POST", "me/looks", body: draft)
+        }
+        return response.look
+    }
+
+    /// DELETE /me/looks/:id: the look goes; its pieces stay in the edit.
+    func deleteLook(_ lookID: Int) async throws {
+        let _: OK = try await send("DELETE", "me/looks/\(lookID)")
+    }
+
     /// A piece's picture, from an address the server gave, like /me/pieces/12/thumb?v=ab12.
     /// A plain request with the session token: the photos are private.
     func imageRequest(for path: String) -> URLRequest? {
@@ -276,6 +309,7 @@ struct APIClient {
     private struct FoundStoreResponse: Decodable { let store: FoundStore }
     private struct ConfirmedSeasonsResponse: Decodable { let wardrobe: Wardrobe }
     private struct PieceResponse: Decodable { let piece: Piece }
+    private struct LookResponse: Decodable { let look: Look }
     private struct RemovedResponse: Decodable { let progress: WardrobeProgress }
     private struct PhotoBody: Encodable {
         let photo: String

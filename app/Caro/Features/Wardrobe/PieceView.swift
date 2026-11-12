@@ -6,7 +6,8 @@ import SwiftUI
 ///
 /// Added to the design: the button that turns a photo taken sideways (from T5), the member's
 /// note under the details, and two small links at the bottom, Mark as maybe and Remove.
-/// Not yet: the Size row (size is not filled in yet) and Style a look with it (T7).
+/// Style a look with it opens the styling table with this piece on it (T7).
+/// Not yet: the Size row (size is not filled in yet).
 struct PieceView: View {
     let pieceID: Int
 
@@ -16,6 +17,7 @@ struct PieceView: View {
     @State private var errorMessage: String?
     @State private var working = false
     @State private var confirmingRemove = false
+    @State private var styling: StyleStart?
 
     var body: some View {
         Group {
@@ -48,6 +50,20 @@ struct PieceView: View {
         .task { await store.loadLists() }
         // Again each time it shows: after Edit, the page shows what was saved.
         .onAppear { Task { await load() } }
+        // Looks open with the wardrobe (checked on the server): until then there is no pill.
+        .safeAreaInset(edge: .bottom) {
+            if page != nil, store.progress?.unlocked == true {
+                Button("Style a look with it") { styling = .piece(id: pieceID) }
+                    .buttonStyle(.pill)
+                    .disabled(working)
+                    .bottomButtonBar()
+            }
+        }
+        .fullScreenCover(item: $styling) { start in
+            StyleLookView(start: start) { _ in
+                Task { await load() }
+            }
+        }
         .alert("Remove this piece?", isPresented: $confirmingRemove) {
             Button("Remove", role: .destructive) {
                 Task { await remove() }
@@ -161,11 +177,22 @@ struct PieceView: View {
                 .foregroundStyle(Color.muted)
         } else {
             VStack(alignment: .leading, spacing: 10) {
-                Text(looks.count == 1 ? "In 1 look" : "In \(looks.count) looks")
-                    .font(.caroSectionTitle)
+                HStack(alignment: .firstTextBaseline) {
+                    Text(looks.count == 1 ? "In 1 look" : "In \(looks.count) looks")
+                        .font(.caroSectionTitle)
+                    Spacer()
+                    if let piece = page?.piece {
+                        NavigationLink("See all", value: WardrobeRoute.looksWith(pieceID: piece.id, name: piece.name ?? ""))
+                            .font(.text(13, weight: .medium, relativeTo: .subheadline))
+                            .foregroundStyle(Color.terracotta)
+                    }
+                }
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
                     ForEach(looks.prefix(3)) { look in
-                        LookTile(look: look)
+                        NavigationLink(value: WardrobeRoute.look(id: look.id)) {
+                            LookTile(look: look)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -317,27 +344,14 @@ extension DetailRow where Value == Text {
     }
 }
 
-/// A look as a small flat lay on the tile colour, for the piece page (T7 builds the real one).
+/// A look as a small flat lay on the tile colour, for the piece page.
 struct LookTile: View {
     let look: LookSummary
 
-    // Where each piece lies on the tile, as parts of its width and height, from the design.
-    private static let spots: [(x: CGFloat, y: CGFloat, size: CGFloat, turn: Double)] = [
-        (0.04, 0.04, 0.72, -4), (0.46, 0.06, 0.58, 4), (0.52, 0.36, 0.60, 3), (0.46, 0.62, 0.50, -8),
-    ]
-
     var body: some View {
-        GeometryReader { box in
-            ZStack(alignment: .topLeading) {
-                ForEach(Array(look.pieces.prefix(4).enumerated()), id: \.element.id) { index, piece in
-                    let spot = Self.spots[index]
-                    PieceImage(path: piece.thumb, isCutout: piece.hasCutout)
-                        .frame(width: box.size.height * spot.size, height: box.size.height * spot.size)
-                        .rotationEffect(.degrees(spot.turn))
-                        .offset(x: box.size.width * spot.x, y: box.size.height * spot.y)
-                }
-            }
-        }
+        FlatLay(items: look.pieces.map {
+            FlatLayItem(id: $0.id, slot: Slot(rawValue: $0.slot) ?? .accessories, path: $0.thumb, isCutout: $0.hasCutout)
+        })
         .frame(height: 100)
         .background(Color.tile, in: RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
         .clipShape(RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
