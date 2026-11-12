@@ -1,0 +1,40 @@
+# Render blueprint for Caro (T8). Render reads this file to set up the online server:
+# in Render, New, Blueprint, then choose this repository.
+#
+# - One web service, the server in server/, in Frankfurt (close to the Netherlands, in the EU).
+# - A persistent disk at /var/data for the database, the photos and the nightly backups.
+#   Without it, everything would be wiped on every deploy.
+# - HTTPS comes with Render's address (https://caro-styling.onrender.com or similar).
+# - Secrets are not in this file: Render asks for each one marked sync: false, and keeps it
+#   in its environment settings, never in Git.
+
+services:
+  - type: web
+    name: caro-styling
+    runtime: node
+    region: frankfurt
+    plan: starter            # a disk needs a paid plan; Starter is the smallest
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: false        # deploys only when you press Deploy in Render
+    disk:
+      name: caro-data
+      mountPath: /var/data
+      sizeGB: 5
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false

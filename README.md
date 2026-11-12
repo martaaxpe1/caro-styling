@@ -76,6 +76,19 @@ Each call is counted in the `ai_usage` table, which the admin area shows as "AI 
 
 For testing against a second copy of the server (another port and database), a debug build can be launched with `-serverURL http://localhost:3100`, as an argument in Xcode (Product, Scheme, Edit Scheme, Run, Arguments) or with `xcrun simctl launch`. Without it, the app uses port 3000 as before.
 
+## Online (T8)
+
+The server runs on Render (render.com), set up by `render.yaml`: one web service in Frankfurt with a 5 GB disk at `/var/data` for the database, photos and backups. Its address is https, so the app talks to it securely without any exception.
+
+- **Secrets** (`ANTHROPIC_API_KEY`, `ADMIN_EMAIL`, `RESEND_API_KEY`, `EMAIL_FROM`) live only in Render, under the service's Environment. Never in Git.
+- **Deploy:** Render deploys from GitHub. Commit, push to `main`, then in Render press Manual Deploy, Deploy latest commit. Each deploy restarts the server; the disk keeps the data.
+- **First time only:** in Render's Shell tab, `npm run seed` makes you the admin online.
+- **Emails** go through Resend from the domain in `EMAIL_FROM`. On your Mac they still print in the terminal.
+- **Backups:** online, the server zips the database and every photo once a day into `/var/data/backups/`, keeping the last 3. In Render's Shell, `ls -lh /var/data/backups` lists them, and `npm run backup` makes one now. Render also snapshots the whole disk every day. On your Mac, `npm run backup` makes one in `server/data/backups/` by hand.
+- **Your data:** in the app, Settings has Download everything (a zip of your data and photos) and Delete account.
+
+The app finds the server in `app/Caro/Config/AppConfig.swift`: builds run from Xcode use your Mac, TestFlight builds use Render. To run from Xcode against Render, add the argument `-serverURL https://caro-styling.onrender.com` (Product, Scheme, Edit Scheme, Run, Arguments).
+
 ## What is in here
 
 | Path | What it is | Who reads it |
@@ -83,7 +96,8 @@ For testing against a second copy of the server (another port and database), a d
 | `app/` | The iPhone app: Swift and SwiftUI, opened with `app/Caro.xcodeproj`. | Both |
 | `server/` | The server: Node, Express, SQLite. | Both |
 | `CLAUDE.md` | Standing instructions for Claude Code: how we work, design rules, server rules. Read automatically at the start of every session. | Claude Code |
-| `docs/PRD.md` | The spec (v1.3), with the build plan and tickets in section 17. | Both |
+| `render.yaml` | How Render sets up the online server. | Render |
+| `docs/PRD.md` | The spec, with the build plan and tickets in section 17. | Both |
 | `docs/FIRST_PROMPT.md` | The first message to paste into Claude Code. | You |
 | `docs/BENCHMARK.md` | The other wardrobe apps, and how Caro differs. | Both |
 | `design/screens/` | The designed screens, exported from the canvas, plus a README mapping each to its ticket. | Claude Code |
