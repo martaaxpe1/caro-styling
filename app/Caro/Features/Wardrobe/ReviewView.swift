@@ -7,6 +7,7 @@ import SwiftUI
 /// Retake for a photo where nothing lifted.
 struct ReviewView: View {
     @Environment(WardrobeStore.self) private var store
+    @Environment(Session.self) private var session
     @Environment(\.closeToEdit) private var closeToEdit
 
     /// The pieces to review in this visit, in order. Skipped ones are not asked again until next time.
@@ -21,6 +22,10 @@ struct ReviewView: View {
     @State private var showingRetakeLibrary = false
     @State private var showingRetakeCamera = false
     @State private var retakeItem: PhotosPickerItem?
+    /// Screen 09, after the confirm that opened Looks and Get the look.
+    @State private var opened: WardrobeProgress?
+    /// Style your first look (true) or Go to the edit (false), acted on once screen 09 has closed.
+    @State private var openLooksAfter = false
 
     @FocusState private var nameFocused: Bool
 
@@ -52,6 +57,27 @@ struct ReviewView: View {
                 DetailPicker(sheet: sheet, lists: lists, details: Binding($details)!) { warmth in
                     proposeSeasons(for: warmth)
                 }
+            }
+        }
+        .fullScreenCover(
+            isPresented: Binding(get: { opened != nil }, set: { if !$0 { opened = nil } }),
+            onDismiss: {
+                // Once screen 09 has closed: the app learns Looks and Get the look are open,
+                // goes back to the edit, and opens Looks if that was the choice.
+                let openLooks = openLooksAfter
+                let store = store
+                let session = session
+                let closeToEdit = closeToEdit
+                Task {
+                    await session.refresh()
+                    closeToEdit()
+                    store.openLooksNext = openLooks
+                }
+            }
+        ) {
+            WardrobeOpenView(pieces: opened?.pieces ?? 20) { openLooks in
+                openLooksAfter = openLooks
+                opened = nil
             }
         }
         .alert("Remove this piece?", isPresented: $confirmingRemove) {
@@ -381,8 +407,12 @@ struct ReviewView: View {
         saving = true
         defer { saving = false }
         do {
-            _ = try await store.save(piece.id, details: details)
-            next()
+            let saved = try await store.save(piece.id, details: details)
+            if saved.justUnlocked {
+                opened = saved.progress
+            } else {
+                next()
+            }
         } catch {
             errorMessage = store.message(for: error)
         }

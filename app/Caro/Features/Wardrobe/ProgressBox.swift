@@ -25,7 +25,7 @@ struct ProgressBox: View {
                 .padding(.top, 12)
 
             HStack(spacing: 12) {
-                Text("Looks and Get the look open at \(progress.needed).")
+                Text(openLine)
                     .font(.caroMeta)
                     .foregroundStyle(Color.muted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -45,6 +45,24 @@ struct ProgressBox: View {
         .overlay {
             RoundedRectangle(cornerRadius: CaroLayout.tileRadius).strokeBorder(Color.ink, lineWidth: 1)
         }
+    }
+}
+
+extension ProgressBox {
+    /// "Looks and Get the look open at 20." Once there are 20 but something is missing, it
+    /// says what: "Looks and Get the look open with a pair of shoes."
+    var openLine: String {
+        guard progress.pieces >= progress.needed else {
+            return "Looks and Get the look open at \(progress.needed)."
+        }
+        let missing = [
+            progress.top ? nil : "a top",
+            progress.bottomOrOnePiece ? nil : "a bottom or a dress",
+            progress.shoes ? nil : "a pair of shoes",
+        ].compactMap { $0 }
+        guard !missing.isEmpty else { return "Looks and Get the look are opening." }
+        let list = missing.count == 1 ? missing[0] : missing.dropLast().joined(separator: ", ") + " and " + missing.last!
+        return "Looks and Get the look open with \(list)."
     }
 }
 

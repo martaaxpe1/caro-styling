@@ -45,6 +45,13 @@ struct MainView: View {
         .environment(\.closeToEdit) {
             editPath = NavigationPath()
         }
+        // "Style your first look" on screen 09 opens Looks (T7 builds it).
+        .onChange(of: store.openLooksNext, initial: true) { _, open in
+            guard open else { return }
+            store.openLooksNext = false
+            editPath = NavigationPath()
+            tab = .looks
+        }
     }
 
     @ViewBuilder

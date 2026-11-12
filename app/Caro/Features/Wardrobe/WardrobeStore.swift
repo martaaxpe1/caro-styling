@@ -55,6 +55,9 @@ final class WardrobeStore {
         session.message(for: error)
     }
 
+    /// Set by "Style your first look" on screen 09: the app opens on Looks.
+    var openLooksNext = false
+
     // MARK: The review (screen 07)
 
     /// The fixed lists for the detail pickers. Loaded once.
