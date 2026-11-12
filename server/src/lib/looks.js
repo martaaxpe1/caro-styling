@@ -4,9 +4,11 @@
 // The member styles every look. Nothing here proposes, ranks or completes a look: the server
 // only checks that the pieces the member chose are theirs and fit the slots.
 
+const path = require('path');
 const db = require('../db');
 const { now, iso } = require('./today');
 const { imageUrl } = require('./pieces');
+const photos = require('./photos');
 
 // The slots in the order a look lists its pieces.
 const SLOTS = ['outer layer', 'top', 'bottom', 'one-piece', 'shoes', 'bag', 'accessories'];
@@ -36,6 +38,15 @@ const seasonsOf = db.prepare(
    WHERE look_seasons.look_id = ? ORDER BY seasons.position`
 );
 
+const photosOf = db.prepare('SELECT * FROM look_photos WHERE look_id = ? AND user_id = ? ORDER BY added_at, id');
+
+// The address of one of a look's photos. Like piece pictures, it changes with the file (?v=).
+function lookPhotoUrl(photo, which) {
+  const file = which === 'thumb' ? photo.thumb_path : photo.photo_path;
+  const version = path.basename(file).split('-')[0];
+  return `/me/looks/${photo.look_id}/photos/${photo.id}/${which}?v=${version}`;
+}
+
 function lookJSON(look) {
   const pieces = piecesOf
     .all(look.id, look.user_id)
@@ -59,8 +70,81 @@ function lookJSON(look) {
         thumb: imageUrl(piece, 'thumb'),
       },
     })),
+    // Photos of the member wearing it, oldest first (T9).
+    photos: photosOf.all(look.id, look.user_id).map((photo) => ({
+      id: photo.id,
+      photo: lookPhotoUrl(photo, 'photo'),
+      thumb: lookPhotoUrl(photo, 'thumb'),
+      addedAt: photo.added_at,
+    })),
     createdAt: look.created_at,
   };
+}
+
+// The same look rule (PRD section 8): two looks are the same when their main pieces are the
+// same: outer layer, top, bottom or one-piece, and shoes. Bag and accessories can change.
+const MAIN_SLOTS = ['outer layer', 'top', 'bottom', 'one-piece', 'shoes'];
+
+// The main pieces of a look as one text, like "bottom:12 shoes:40 top:7". Empty when a look
+// has none (only a bag and accessories): such a look is never "the same" as another.
+function mainKey(pieces) {
+  return pieces
+    .filter((piece) => MAIN_SLOTS.includes(piece.slot))
+    .map((piece) => `${piece.slot}:${piece.id}`)
+    .sort()
+    .join(' ');
+}
+
+const mainPiecesOf = db.prepare(
+  `SELECT piece_id AS id, slot FROM look_pieces WHERE look_id = ? AND user_id = ? AND slot IN ('outer layer', 'top', 'bottom', 'one-piece', 'shoes')`
+);
+
+// The member's look with the same main pieces as `pieces` ([{ id, slot }]), newest first, or
+// null. exceptLookId leaves out the look being changed.
+function findSameLook(userId, pieces, exceptLookId = null) {
+  const key = mainKey(pieces);
+  if (!key) return null;
+  const looks = db.prepare('SELECT * FROM looks WHERE user_id = ? ORDER BY number DESC').all(userId);
+  return looks.find((look) => look.id !== exceptLookId && mainKey(mainPiecesOf.all(look.id, userId)) === key) ?? null;
+}
+
+// Adds a photo of the member wearing a look. The files are saved first; returns the row's id.
+async function addLookPhoto(userId, lookId, base64) {
+  const files = await photos.saveLookPhoto(userId, base64);
+  try {
+    return insertLookPhoto(userId, lookId, files);
+  } catch (error) {
+    // The look went while the photo was being saved.
+    photos.removeFiles(files);
+    throw error;
+  }
+}
+
+// The row for photo files already saved ({ photo, thumb }). Returns its id.
+function insertLookPhoto(userId, lookId, files) {
+  return Number(
+    db
+      .prepare('INSERT INTO look_photos (user_id, look_id, photo_path, thumb_path, added_at) VALUES (?, ?, ?, ?, ?)')
+      .run(userId, lookId, files.photo, files.thumb, iso(now())).lastInsertRowid
+  );
+}
+
+// One photo of one of the member's looks, or null.
+function findLookPhoto(userId, lookId, photoId) {
+  return (
+    db.prepare('SELECT * FROM look_photos WHERE id = ? AND look_id = ? AND user_id = ?').get(Number(photoId), Number(lookId), userId) ?? null
+  );
+}
+
+function photoFiles(photo) {
+  return { photo: photo.photo_path, thumb: photo.thumb_path };
+}
+
+// Deletes the photo files of these looks; their rows go with the looks (ON DELETE CASCADE).
+function removeLookPhotoFiles(userId, lookIds) {
+  for (const lookId of lookIds) {
+    for (const photo of photosOf.all(lookId, userId)) photos.removeFiles(photoFiles(photo));
+  }
 }
 
 // Checks what the member saves on the styling table: { pieces: [piece ids], occasions: [ids],
@@ -100,7 +184,8 @@ function checkLook(body, userId) {
 
 // Saves a new look (lookId null) or changes one, in one go. A new look takes the number after
 // the highest the member ever had, so numbers are never reused. Returns the look's id.
-function saveLook(userId, lookId, details) {
+// source is 'built' or 'photo'; a look that is changed keeps the source it had.
+function saveLook(userId, lookId, details, source = 'built') {
   return db.transaction(() => {
     let id = lookId;
     if (id === null) {
@@ -108,8 +193,8 @@ function saveLook(userId, lookId, details) {
       const number = db.prepare('SELECT looks_numbered FROM users WHERE id = ?').pluck().get(userId);
       id = Number(
         db
-          .prepare(`INSERT INTO looks (user_id, number, source, created_at) VALUES (?, ?, 'built', ?)`)
-          .run(userId, number, iso(now())).lastInsertRowid
+          .prepare(`INSERT INTO looks (user_id, number, source, created_at) VALUES (?, ?, ?, ?)`)
+          .run(userId, number, source, iso(now())).lastInsertRowid
       );
     } else {
       for (const table of ['look_pieces', 'look_occasions', 'look_seasons']) {
@@ -127,11 +212,30 @@ function saveLook(userId, lookId, details) {
   })();
 }
 
-// After a piece is removed: a look left with no pieces goes too.
+// After a piece is removed: a look left with no pieces goes too, with its photo files.
 function removeEmptyLooks(userId) {
+  const empty = db
+    .prepare(`SELECT id FROM looks WHERE user_id = ? AND NOT EXISTS (SELECT 1 FROM look_pieces WHERE look_pieces.look_id = looks.id)`)
+    .pluck()
+    .all(userId);
+  removeLookPhotoFiles(userId, empty);
   db.prepare(
     `DELETE FROM looks WHERE user_id = ? AND NOT EXISTS (SELECT 1 FROM look_pieces WHERE look_pieces.look_id = looks.id)`
   ).run(userId);
 }
 
-module.exports = { SLOTS, findLook, lookJSON, checkLook, saveLook, removeEmptyLooks };
+module.exports = {
+  SLOTS,
+  MAIN_SLOTS,
+  findLook,
+  lookJSON,
+  checkLook,
+  saveLook,
+  removeEmptyLooks,
+  findSameLook,
+  addLookPhoto,
+  insertLookPhoto,
+  findLookPhoto,
+  photoFiles,
+  removeLookPhotoFiles,
+};

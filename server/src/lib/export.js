@@ -47,7 +47,8 @@ const README = [
   'caro.json holds everything Caro keeps for you, table by table: your set-up, occasions,',
   'seasons, stores, pieces and their details, looks, and your AI actions.',
   '',
-  'photos/ holds your photos: each piece as a photo (JPEG), a cut-out and a thumbnail (WebP).',
+  'photos/ holds your photos: each piece as a photo (JPEG), a cut-out and a thumbnail (WebP),',
+  'and your photos wearing your looks (JPEG, with a thumbnail).',
   'In caro.json, a piece points at its files by name.',
   '',
 ].join('\n');

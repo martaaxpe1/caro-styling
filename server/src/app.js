@@ -13,9 +13,10 @@ const lookRoutes = require('./routes/looks');
 const app = express();
 
 app.disable('x-powered-by');
-// A new piece carries its photo and cut-out (about 5 MB as base64), so that route reads larger
-// requests. Everything else keeps the usual small limit.
+// A new piece carries its photo and cut-out (about 5 MB as base64), and a look from a photo
+// its photo, so those routes read larger requests. Everything else keeps the usual small limit.
 app.use('/me/pieces', express.json({ limit: '25mb' }));
+app.use('/me/looks', express.json({ limit: '25mb' }));
 app.use(express.json());
 
 // Open to anyone.

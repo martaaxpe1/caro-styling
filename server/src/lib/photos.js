@@ -78,6 +78,43 @@ async function savePiecePhotos(userId, { photo, cutout }) {
   return files;
 }
 
+// Saves a photo of the member wearing a look (T9): the photo, upright, at most 2000 pixels,
+// as JPEG, and a 600 pixel thumbnail as WebP. Like piece photos, no location data is kept.
+// Returns { photo, thumb }, relative to DATA_DIR.
+async function saveLookPhoto(userId, base64) {
+  const bytes = decode(base64);
+  if (!bytes) throw new PhotoError('The photo did not arrive. Try again.');
+  const name = crypto.randomBytes(12).toString('hex');
+  const folder = memberFolder(userId);
+  fs.mkdirSync(absolute(folder), { recursive: true });
+  const files = {
+    photo: path.join(folder, `${name}-look.jpg`),
+    thumb: path.join(folder, `${name}-look-thumb.webp`),
+  };
+  try {
+    await sharp(bytes).rotate().resize(fitInside(PHOTO_SIZE)).jpeg({ quality: 85, mozjpeg: true }).toFile(absolute(files.photo));
+    await sharp(bytes).rotate().resize(fitInside(THUMB_SIZE)).webp({ quality: 80 }).toFile(absolute(files.thumb));
+  } catch (error) {
+    removeFiles(files);
+    console.error(`A look photo could not be saved: ${error.message}`);
+    throw new PhotoError('Caro could not read this photo. Try another one.');
+  }
+  return files;
+}
+
+// A photo the app sent, as Claude gets it: upright, at most `size` pixels, JPEG, as base64.
+// Nothing is written to the disk.
+async function sentPhotoForClaude(base64, size) {
+  const bytes = decode(base64);
+  if (!bytes) throw new PhotoError('The photo did not arrive. Try again.');
+  try {
+    const out = await sharp(bytes).rotate().resize(fitInside(size)).jpeg({ quality: 85 }).toBuffer();
+    return out.toString('base64');
+  } catch {
+    throw new PhotoError('Caro could not read this photo. Try another one.');
+  }
+}
+
 // Turns a piece's pictures a quarter turn clockwise, for a photo taken sideways. The turned
 // pictures get a new name, so the iPhone shows them instead of the copies it kept.
 // Returns the new paths; the caller deletes the old files.
@@ -129,6 +166,8 @@ module.exports = {
   PhotoError,
   absolute,
   savePiecePhotos,
+  saveLookPhoto,
+  sentPhotoForClaude,
   rotatePiecePhotos,
   photoForClaude,
   removeFiles,
