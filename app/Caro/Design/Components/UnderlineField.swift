@@ -1,7 +1,7 @@
 import SwiftUI
 
 extension View {
-    /// Text fields as in the design (screens 01 and 02): Bodoni on a thin ink line, no box.
+    /// Text fields as in the design (screens 01 and 02): the display serif on a thin ink line, no box.
     /// Use on a TextField, with a label above it in `.caroLabelStyle()`:
     ///
     ///     Text("Your email").caroLabelStyle()

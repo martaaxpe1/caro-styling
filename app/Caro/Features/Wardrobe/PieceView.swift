@@ -289,7 +289,7 @@ struct PieceView: View {
     }
 }
 
-/// A piece's name in Bodoni, 34, with its last word in italics: "Camel wool *coat*".
+/// A piece's name in the display serif, 34, with its last word in italics: "Camel wool *coat*".
 struct PieceName: View {
     let name: String
 

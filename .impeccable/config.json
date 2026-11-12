@@ -11,9 +11,9 @@
       },
       {
         "rule": "overused-font",
-        "value": "bodoni moda",
+        "value": "newsreader",
         "createdAt": "2026-11-12T15:30:00.000Z",
-        "reason": "Caro brand display font: design/tokens.json fonts.display.family is Bodoni Moda"
+        "reason": "Caro brand display font: design/tokens.json fonts.display.family is Newsreader"
       }
     ]
   }

@@ -5,8 +5,8 @@
 	<!-- The fonts bundled in Resources/Fonts, so the app can use them by name. -->
 	<key>UIAppFonts</key>
 	<array>
-		<string>BodoniModa.ttf</string>
-		<string>BodoniModa-Italic.ttf</string>
+		<string>Newsreader.ttf</string>
+		<string>Newsreader-Italic.ttf</string>
 		<string>Inter.ttf</string>
 	</array>
 	<!-- Allow plain http to the server on your Mac (localhost and .local names only).

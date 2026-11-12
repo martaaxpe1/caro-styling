@@ -1,11 +1,11 @@
 import SwiftUI
 
 /// Caro's text styles, from design/tokens.json.
-/// Bodoni Moda for display, Inter for everything else. Every style grows with
+/// Newsreader for display, Inter for everything else. Every style grows with
 /// the iPhone's text size setting (Dynamic Type), anchored to a system style.
 /// Use them like any font: `.font(.caroScreenTitle)`.
 extension Font {
-    // Display, Bodoni Moda. Add `.italic()` to a word for emphasis: "Your *version*".
+    // Display, Newsreader. Add `.italic()` to a word for emphasis: "Your *version*".
     static let caroScreenTitle = display(32, relativeTo: .largeTitle)
     static let caroPieceTitle = display(34, relativeTo: .largeTitle)
     static let caroChapterNumber = display(30, relativeTo: .title)
@@ -27,7 +27,7 @@ extension Font {
     static let caroLabel = text(11, relativeTo: .caption) // Use with .caroLabelStyle()
 
     static func display(_ size: CGFloat, relativeTo style: TextStyle) -> Font {
-        .custom("Bodoni Moda", size: size, relativeTo: style)
+        .custom("Newsreader", size: size, relativeTo: style)
     }
 
     static func text(_ size: CGFloat, weight: Weight = .regular, relativeTo style: TextStyle) -> Font {

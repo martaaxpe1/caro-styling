@@ -72,7 +72,7 @@ struct LooksView: View {
 
     // MARK: Parts
 
-    /// All, Office, Working from home, ...: Bodoni words, the chosen one in italics, underlined.
+    /// All, Office, Working from home, ...: display serif words, the chosen one in italics, underlined.
     private func occasionsRow(_ page: LooksPage) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 18) {

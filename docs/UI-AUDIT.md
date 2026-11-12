@@ -42,3 +42,14 @@ Section 15, Shapes, add: "A pill that cannot be pressed yet is hairline with mut
 Changes log:
 
 - **v1.9.** From the UI audit. Readable example text in empty fields and a deeper terracotta for small text on the tile colour, both new tokens. Buttons that cannot be pressed yet are hairline with muted words. Locked tabs stay readable. Icons and numbers follow the iPhone's text size; at the largest sizes the edit's cut-outs move under the chapter name. Toolbar buttons follow iOS 26 (glass). Empty Looks shows its line in a dashed empty spot. The design files' detail colours are named in tokens.json.
+
+## Display font: Newsreader (after the audit)
+
+Marta found the look too close to the AI default (cream, a thin Didone, terracotta). She chose direction B, fonts only: Newsreader replaces Bodoni Moda for every display style (titles, chapter names and numbers, section titles, fields, the sign-in code). Inter, sizes, layout, colours, copy and behaviour are unchanged; the italic emphasised word stays, in Newsreader italic.
+
+- Why: Bodoni Moda is a poster Didone whose hairlines go spindly at 18 to 34 points. Newsreader is a variable serif with optical sizes, made for screens, so titles hold up at phone sizes.
+- Files: `app/Caro/Resources/Fonts/Newsreader.ttf`, `Newsreader-Italic.ttf` and `OFL-Newsreader.txt` (SIL Open Font Licence, from Google Fonts); Bodoni Moda's files are removed. `CaroFont.swift` and `Info.plist` point at Newsreader; `design/tokens.json` `type.display` says Newsreader.
+- Departs from the design files: yes, every screen's display type. The canvas screens in `design/screens/` still show Bodoni Moda.
+- Comparison of the candidates: https://claude.ai/artifact/1hmzVeUJbhpPEgUX25vkEP (private to Marta).
+
+Proposed for the PRD: section 15, Type: "Newsreader for display (titles 30 to 34, chapter names 21, chapter numbers 30, italics for the emphasised word: "Your *version*")." Add to the v1.9 entry: "Newsreader replaces Bodoni Moda for display type, so titles hold up at phone sizes; the canvas screens still show Bodoni."
