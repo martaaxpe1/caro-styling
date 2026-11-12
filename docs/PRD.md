@@ -1,4 +1,4 @@
-# Caro Styling: Product requirements (v1.9, ready to build)
+# Caro Styling: Product requirements (v1.10, ready to build)
 
 The spec for building Caro Styling. It folds in every decision from the drafts (v0.2 to v0.10) and from the design round on the canvas. Where this file and the screens in `design/` disagree on layout, colour, type or copy, the screens win. Where they disagree on behaviour, this file wins. Changes are listed at the end.
 
@@ -165,7 +165,7 @@ Designed screens are in `design/screens/` (source from the design canvas). Scree
 | S8 | Look detail | to design | T7 |
 | S9 | Look from a photo, confirm the pieces | to design | T9 |
 | 14 | Get the look | `14-get-the-look` | T10 |
-| S10 | Add inspiration, pieces found | to design | T10 |
+| S10 | Add inspiration, pieces found (on screen 15 since T10) | to design | T10 |
 | 15 | Your version | `15-your-version` | T10 |
 | S11 | Find it (store results) | to design | T11 |
 
@@ -190,9 +190,10 @@ Designed screens are in `design/screens/` (source from the design canvas). Scree
 
 ### Get the look
 
-- **14 Get the look.** Masthead and dateline, **Add an inspiration** (or share an image from Instagram or Pinterest), your inspirations with how much you own ("4 of 5 yours", "All yours"), and the To find list with each piece's state: not searched yet (**Find it**), options found, bought (**Add** to the edit).
-- **S10 Add inspiration, pieces found.** The photo, an optional link and note. Each piece in the look described, next to the closest piece you own of the same kind, or "Not in your wardrobe". Change or remove any match.
-- **15 Your version.** The inspiration with numbered pins. Below, your version as numbered credits: each piece marked yours, close or missing, with "For their grey oversized blazer". A missing piece shows your nearest piece of that kind, if you have one ("Your nearest: black knit jumper"), a fact ("in 3 of your inspirations") and **Find it**. Fill a missing piece yourself, or mark it as key. **Save** as a look.
+- **14 Get the look.** Masthead and dateline, **Add an inspiration** (or share an image from Instagram or Pinterest), your inspirations with how much you own ("4 of 5 yours", "All yours"), and the To find list with each piece's state: not searched yet (**Find it**), options found, bought (**Add** to the edit). (T10: Add an inspiration and the plus open the photo library, one image. An inspiration Caro is still reading says "Reading"; one it could not read says "Not read yet". All inspirations show in the grid, so there is no See all yet. A To find row says "In 3 inspirations · not searched yet" and opens its inspiration; **Find it** comes with T11.)
+- **S10 Add inspiration, pieces found.** The photo, an optional link and note. Each piece in the look described, next to the closest piece you own of the same kind, or "Not in your wardrobe". Change or remove any match. (T10: on screen 15 itself, not a step of its own.)
+- **15 Your version.** The inspiration with numbered pins. Below, your version as numbered credits: each piece marked yours, close or missing, with "For their grey oversized blazer". A missing piece shows your nearest piece of that kind, if you have one ("Your nearest: black knit jumper"), a fact ("in 3 of your inspirations") and **Find it**. Fill a missing piece yourself, or mark it as key. **Save** as a look. (T10: opens as soon as the image is sent, with "Caro is reading this look" until Claude answers, about half a minute; if it cannot, the message and **Try again**. The whole photo shows, never cropped, with "Saved from Pinterest" when its link is a pin. Each credit is a native menu: choose one of your pieces (Add a piece by chapter, as on S9), back to Caro's match, mark as key, take it out of your version; a taken out piece is listed under the credits with **Put back**. A missing piece has **Mark as key** next to it, filled and saying Key once marked; until T11 it stands where Find it will be. Under the credits: occasion (one, shown on screen 14), seasons (the current season first), link and note. **Save** in the top bar needs two of your pieces and saves your pieces for the kept pieces; saving again changes the same look; the same look rule holds ("You already have this look: No. 12." with **Open it**). After saving, the look's page opens, "From an inspiration". **Delete inspiration** is a small link that asks first; a look saved from it stays.)
+- **Share sheet (T10, to design).** Caro in the iPhone's share sheet, for one image, a web link or text with a link. A small Caro screen: "Add to *Get the look*", the image (or "A Pinterest pin"), an optional note, **Add**; then "Added to *Get the look*. Caro is reading it now. Open Caro to see your version." and **Done**. Signed out: "Sign in to Caro first, then share again." The app does not open.
 - **S11 Find it.** Up to five products from your stores, in the sections you shop in: image, name, store, price in your currency, link to the store page (opens in Safari inside the app). "Nothing found" is a valid answer. The piece goes on To find.
 
 ### Settings and admin
@@ -237,6 +238,10 @@ Inspired looks:
   - Close does not count as yours.
 - A missing piece shows a fact, not advice: "A piece like this is in 4 of your inspirations."
 - You decide which missing piece is key.
+- (T10) "4 of 5 yours" counts the pieces Claude marked yours and the pieces you filled with one of your own. Close is shown but not counted; screens 14 and 15 count it, and here this file wins. A piece taken out of your version is not counted.
+- (T10) The fact counts your inspirations with a missing piece of the same kind and main colour, and shows from two.
+- (T10) Claude gets the member's counted pieces as on S9 (a small picture and a line each, numbered) and the inspiration, and can only name the member's own pieces; a match in another chapter is dropped. It also gives each piece's place on the photo for its pin. The inspiration is saved first and read in the background, one AI action; the app asks again every few seconds. Stored like look photos: upright, at most 2000 pixels, no location data, with a thumbnail, served only to its owner.
+- (T10) Pinterest often shares a link instead of the image. For a pin.it or pinterest link, the server opens the pin's page and takes its main image, only from Pinterest's own image site, with size and time limits. Any other link is refused: "Caro can take the image only from a Pinterest link. Save the image to Photos and share it from there." Instagram is not opened.
 
 Store search:
 - Only on your tap, for one piece, in your stores, on your country's site.
@@ -324,7 +329,7 @@ Tables:
 - `to_find`: from inspiration piece, status (considering, bought, dropped), last searched (empty means not searched yet). `store_results`: store, name, price, currency, link, image, found at.
 - `ai_usage`: action, date.
 
-To add with the ticket that needs it: an occasion on inspirations (T10, screen 14 shows one), pin positions on the inspiration photo (T10).
+T10 (migration 009): inspirations get a status (reading, ready, not read), an occasion and the look saved from them. Inspiration pieces get their main colour, shape, pin position (percent of the photo), the member's own piece for them (filled, or a match changed) and removed. A key piece is a row on `to_find`; taking the key off, filling the piece or taking it out removes that row.
 
 ## 13. Notifications
 
@@ -357,7 +362,7 @@ The look is "Spread": your closet as a magazine. Exact values are in `design/tok
 
 Claude Code confirms or adjusts this in T0.
 
-- **iPhone app.** Swift and SwiftUI in Xcode, iOS 17 or later. Vision for cut-outs, PhotosPicker and the camera, a share extension for inspirations (T10), the Keychain for the session.
+- **iPhone app.** Swift and SwiftUI in Xcode, iOS 17 or later. Vision for cut-outs, PhotosPicker and the camera, a share extension for inspirations (T10), the Keychain for the session. (T10: the share extension is a second target, CaroShare, that sends to the server itself. It reads the session from a shared Keychain group (Keychain sharing), since the free Apple team cannot use App Groups.)
 - **Server.** Node 22, Express, SQLite (better-sqlite3), sharp for images, Resend for email, the Anthropic SDK for the Claude API. The same family as the Unspoken Diary, now answering the app with JSON instead of rendering pages.
 - **Hosting.** Render, with a persistent disk for the database and photos. Secrets in Render's environment settings. (T8: `render.yaml`, Frankfurt, Starter plan, a 5 GB disk at `/var/data`.)
 - **Distribution.** TestFlight.
@@ -462,6 +467,7 @@ Done when: a photo of Marta wearing 4 of her pieces suggests those pieces; confi
 - The "in N of your inspirations" fact.
 - Screens 14, 15, S10.
 Done when: Marta shares an image from Pinterest into Caro, sees the pieces found and her version as credits, marks the missing piece as key, and saves the look.
+(T10: S10 is part of screen 15. Shared images and Pinterest links both work; other links are refused.)
 
 **T11. Find it and To find.**
 - Search one key piece in the member's stores, on the country site.
@@ -532,3 +538,4 @@ Not in version one. A short onboarding step to help a member see their own patte
 - **v1.7.** From T7. Looks have no name, only a number that is never reused. The styling table: Dress in the rail (a dress takes the bottom's place), several occasions ticked in the title, the season chip ordering the tray, Save at two pieces. Looks open only after the unlock, checked on the server. S8 as built, with numbered credits, Edit and Delete. See all from the piece page. Section 12: looks numbered by `users.looks_numbered`; a look left empty is removed. `seed-wardrobe -- --open`.
 - **v1.8.** From T8. Online on Render (Frankfurt, a disk, HTTPS) with secrets in Render; emails through Resend from Marta's domain. Members install as internal TestFlight testers, so Apple emails the TestFlight invitation and no review is needed. Download everything is a zip of the member's own data and photos, shared from Settings; Delete account deletes everything at once and is not offered to the admin. Nightly backups keep the last 3, next to Render's daily snapshots. The app icon comes from the PNG wordmark until Sara's vector arrives.
 - **v1.9.** From T9. Look from a photo (S9) as built: one photo from the camera or library; Caro names only the member's own pieces, sure ones ticked, less sure ones asked about; Add a piece by chapter; occasions and seasons as on the styling table; nothing stored until Save. The same look rule adds the photo to the look and also stops a built look with the same main pieces being saved twice. Looks gets a From a photo card and the plus asks which. The look's page shows Your photos, with Add a photo and Remove photo. Section 12: look photos keep a thumbnail and their files go with the look.
+- **v1.10.** From T10. Get the look (14) and Your version (15) as built, with S10 on screen 15: pins on the whole photo, credits as native menus (choose your piece, back to Caro's match, mark as key, take out and put back), occasion, seasons, link and note, Save as a look that saving again changes, and the same look rule. "N of M yours" counts yours and filled pieces, not close (screens 14 and 15 count close; this file wins). The fact counts the same kind and main colour. Inspirations are read in the background. The share extension (CaroShare) sends one image or a Pinterest link straight to the server, using Keychain sharing instead of App Groups; the server takes a pin's image only from Pinterest. Find it waits for T11. Section 12: migration 009.
