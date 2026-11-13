@@ -427,9 +427,15 @@ struct APIClient {
         return response.toFind
     }
 
-    /// POST /me/to-find/:id/search: Find it, or Search again. Runs in the background.
-    func searchAgain(_ id: Int) async throws -> FindItPage {
-        let response: FindItResponse = try await send("POST", "me/to-find/\(id)/search")
+    /// POST /me/to-find/:id/search: Find it, or Search again, with the member's own words if
+    /// given (empty goes back to Caro's description). Runs in the background.
+    func searchAgain(_ id: Int, words: String? = nil) async throws -> FindItPage {
+        let response: FindItResponse
+        if let words {
+            response = try await send("POST", "me/to-find/\(id)/search", body: ["words": words])
+        } else {
+            response = try await send("POST", "me/to-find/\(id)/search")
+        }
         return response.toFind
     }
 

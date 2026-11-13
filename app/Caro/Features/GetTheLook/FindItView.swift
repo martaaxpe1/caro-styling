@@ -4,8 +4,10 @@ import SwiftUI
 ///
 /// The piece's name and its inspiration, then up to five products: the store's picture on the
 /// tile colour, the name, the store and the price in your currency. Tap a product to open its
-/// page in Safari inside the app. Swipe right to keep it, left to discard it (as in Mail); the
-/// same choices are in a touch-and-hold menu. Kept products come first, with Bought, which adds
+/// page in Safari inside the app. Keep or discard it with the heart and the cross next to it,
+/// or swipe right or left (as in Mail); the same choices are in a touch-and-hold menu.
+/// While Caro searches, each store shows how it is doing, and products appear as stores answer.
+/// "Searched for" shows the words used, with Change; when nothing is found, they open to edit. Kept products come first, with Bought, which adds
 /// the piece to your edit with the store's picture, cropped. "Nothing found" is a valid answer.
 /// Stores Caro could not search are listed. Search again is a small outlined pill.
 ///
@@ -21,6 +23,9 @@ struct FindItView: View {
     @State private var webPage: WebPage?
     @State private var buying: StoreResult?
     @State private var confirmingDrop = false
+    @State private var editingWords = false
+    @State private var wordsDraft = ""
+    @FocusState private var wordsFocused: Bool
 
     var body: some View {
         Group {
@@ -60,7 +65,7 @@ struct FindItView: View {
         // While Caro searches, ask again every few seconds.
         .task(id: page?.isSearching) {
             while page?.isSearching == true, !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(3))
+                try? await Task.sleep(for: .seconds(2))
                 await load()
             }
         }
@@ -95,24 +100,31 @@ struct FindItView: View {
                     .plainRow(separator: false)
             }
 
+            if let progress = page.progress {
+                progressBlock(progress)
+                    .padding(.top, 14)
+                    .plainRow(separator: false)
+            }
+
+            if !page.isBought {
+                wordsBlock(page)
+                    .padding(.top, 14)
+                    .plainRow(separator: false)
+            }
+
             if !page.results.isEmpty {
                 if !page.isBought {
-                    Text("Tap to open in the store. Swipe right to keep, left to discard.")
+                    Text("Tap a product to see it in the store. Keep it or discard it with the buttons, or swipe right or left.")
                         .font(.caroMeta)
                         .foregroundStyle(Color.muted)
-                        .padding(.top, 14)
+                        .padding(.top, 16)
+                        .padding(.bottom, 4)
                         .plainRow(separator: false)
                 }
                 ForEach(page.results) { result in
                     productRow(result, page: page)
                         .plainRow(separator: true)
                 }
-            } else if page.searchStatus == "done" {
-                Text("Nothing found in your stores.")
-                    .font(.caroBody)
-                    .foregroundStyle(Color.muted)
-                    .padding(.top, 16)
-                    .plainRow(separator: false)
             }
 
             if !page.notSearched.isEmpty {
@@ -127,7 +139,7 @@ struct FindItView: View {
                 .plainRow(separator: false)
             }
 
-            if !page.isBought {
+            if !page.isBought && !showsWordsField(page) {
                 searchButton(page)
                     .padding(.top, 18)
                     .plainRow(separator: false)
@@ -177,12 +189,9 @@ struct FindItView: View {
     private func statusLine(_ page: FindItPage) -> some View {
         switch page.searchStatus {
         case "searching":
-            HStack(spacing: 8) {
-                ProgressView()
-                Text("Searching \(storesText(page.stores)). This takes about half a minute.")
-            }
-            .font(.caroNote)
-            .foregroundStyle(Color.muted)
+            Text("Searching \(page.stores.count == 1 ? "your store" : "your \(page.stores.count) stores"), each on its own. This takes up to a minute.")
+                .font(.caroNote)
+                .foregroundStyle(Color.muted)
         case "failed":
             Text(page.searchMessage ?? "Caro could not search your stores just now. Try again.")
                 .font(.caroNote)
@@ -211,14 +220,132 @@ struct FindItView: View {
         return line
     }
 
-    /// "COS, Zara and Arket", or "your stores" when there are many.
-    private func storesText(_ stores: [String]) -> String {
-        guard !stores.isEmpty, stores.count <= 3 else { return "your stores" }
-        return stores.count == 1 ? stores[0] : stores.dropLast().joined(separator: ", ") + " and " + stores.last!
+    /// Each store while Caro searches: a spinner, then how many it found, or that it did not answer.
+    private func progressBlock(_ progress: [StoreProgress]) -> some View {
+        VStack(spacing: 0) {
+            ForEach(progress, id: \.store) { item in
+                HStack(spacing: 10) {
+                    Group {
+                        switch item.status {
+                        case "searching": ProgressView().controlSize(.small)
+                        case "failed": Image(systemName: "xmark").foregroundStyle(Color.terracotta)
+                        default: Image(systemName: "checkmark").foregroundStyle(Color.ink)
+                        }
+                    }
+                    .iconFont(12, weight: .medium)
+                    .frame(width: 18)
+                    Text(item.store)
+                        .font(.caroBody)
+                    Spacer()
+                    Text(progressWords(item))
+                        .font(.caroMeta)
+                        .foregroundStyle(item.status == "failed" ? Color.terracotta : Color.muted)
+                }
+                .frame(minHeight: 32)
+                .overlay(alignment: .bottom) { Rectangle().fill(Color.hairline).frame(height: 1) }
+                .accessibilityElement(children: .combine)
+            }
+        }
+        .animation(.default, value: progress)
+    }
+
+    private func progressWords(_ item: StoreProgress) -> String {
+        switch item.status {
+        case "searching": return "Searching"
+        case "failed": return "Did not answer"
+        default: return item.found == 0 ? "Nothing found" : "\(item.found) found"
+        }
+    }
+
+    /// The words to change are open when you asked, or when the search found nothing.
+    private func showsWordsField(_ page: FindItPage) -> Bool {
+        !page.isSearching && (editingWords || (page.searchStatus == "done" && page.results.isEmpty))
+    }
+
+    /// "Searched for: black crossbody bag, small, slim strap" with Change. Opened, a field with
+    /// the words and Search with these words; after nothing found, a line on what to try.
+    @ViewBuilder
+    private func wordsBlock(_ page: FindItPage) -> some View {
+        if showsWordsField(page) {
+            VStack(alignment: .leading, spacing: 10) {
+                if page.searchStatus == "done" && page.results.isEmpty {
+                    Text("Nothing found in your stores.")
+                        .font(.caroRowTitle)
+                    Text("Try other words: a simpler name, the material, or the word a store would use, like shoulder bag.")
+                        .font(.caroNote)
+                        .foregroundStyle(Color.muted)
+                }
+                Text("Search for")
+                    .caroLabelStyle()
+                    .padding(.top, 4)
+                TextField("Like black leather crossbody bag", text: $wordsDraft, axis: .vertical)
+                    .font(.caroBody)
+                    .lineLimit(1...3)
+                    .focused($wordsFocused)
+                    .submitLabel(.search)
+                    .onSubmit { Task { await search(words: wordsDraft) } }
+                    .padding(.vertical, 8)
+                    .overlay(alignment: .bottom) { Rectangle().fill(Color.ink).frame(height: 1) }
+                HStack(spacing: 16) {
+                    Button {
+                        Task { await search(words: wordsDraft) }
+                    } label: {
+                        Text("Search with these words")
+                            .font(.text(13, weight: .semibold, relativeTo: .subheadline))
+                            .foregroundStyle(Color.terracotta)
+                            .padding(.horizontal, 16)
+                            .frame(minHeight: 34)
+                            .overlay(Capsule().strokeBorder(Color.terracotta, lineWidth: 1))
+                            .frame(minHeight: CaroLayout.minTouchTarget)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(working || wordsDraft.trimmingCharacters(in: .whitespaces).isEmpty)
+                    if editingWords {
+                        Button("Cancel") {
+                            editingWords = false
+                            wordsFocused = false
+                        }
+                        .font(.caroLink)
+                        .foregroundStyle(Color.muted)
+                        .buttonStyle(.borderless)
+                    }
+                    if page.ownWords {
+                        Button("Caro's words") {
+                            Task { await search(words: "") }
+                        }
+                        .font(.caroLink)
+                        .foregroundStyle(Color.terracotta)
+                        .underline()
+                        .buttonStyle(.borderless)
+                        .accessibilityHint("Searches again with Caro's description of the piece")
+                    }
+                }
+            }
+            .onAppear { if wordsDraft.isEmpty { wordsDraft = page.searchWords } }
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                (Text("Searched for ").foregroundStyle(Color.muted) + Text(page.searchWords))
+                    .font(.caroNote)
+                Spacer(minLength: 4)
+                if !page.isSearching {
+                    Button("Change") {
+                        wordsDraft = page.searchWords
+                        editingWords = true
+                        wordsFocused = true
+                    }
+                    .font(.caroLink)
+                    .foregroundStyle(Color.terracotta)
+                    .underline()
+                    .buttonStyle(.borderless)
+                    .accessibilityHint("Change the words Caro searches with")
+                }
+            }
+        }
     }
 
     private func productRow(_ result: StoreResult, page: FindItPage) -> some View {
-        HStack(alignment: .center, spacing: 12) {
+        VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .center, spacing: 8) {
             Button {
                 open(result)
             } label: {
@@ -243,18 +370,15 @@ struct FindItView: View {
             .buttonStyle(.plain)
             .accessibilityHint("Opens it in the store")
 
-            if result.isKept && !page.isBought && result.image != nil {
-                Button("Bought") { buying = result }
-                    .font(.text(13, weight: .semibold, relativeTo: .subheadline))
-                    .foregroundStyle(Color.terracotta)
-                    .padding(.horizontal, 14)
-                    .frame(minHeight: 32)
-                    .overlay(Capsule().strokeBorder(Color.terracotta, lineWidth: 1))
-                    .frame(minHeight: CaroLayout.minTouchTarget)
-                    .buttonStyle(.borderless)
-                    .disabled(working)
-                    .accessibilityHint("Adds it to your edit with the store's picture")
+            if !page.isBought {
+                decisionButtons(result)
             }
+        }
+        // Kept: Bought, under the name, to add it to your edit.
+        if result.isKept && !page.isBought && result.image != nil {
+            boughtButton(result)
+                .padding(.leading, 76)
+        }
         }
         .padding(.vertical, 10)
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
@@ -284,12 +408,53 @@ struct FindItView: View {
                 }
             }
         }
-        .accessibilityAction(named: result.isKept ? "Not kept" : "Keep") {
-            Task { await decide(result, result.isKept ? nil : "kept") }
+    }
+
+    /// Keep (a heart, filled once kept) and discard (a cross), as round outlined buttons.
+    private func decisionButtons(_ result: StoreResult) -> some View {
+        HStack(spacing: 8) {
+            Button {
+                Task { await decide(result, result.isKept ? nil : "kept") }
+            } label: {
+                Image(systemName: result.isKept ? "heart.fill" : "heart")
+                    .iconFont(15)
+                    .foregroundStyle(result.isKept ? Color.onInk : Color.ink)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(result.isKept ? Color.ink : Color.clear))
+                    .overlay(Circle().strokeBorder(Color.ink, lineWidth: 1))
+                    .frame(minWidth: CaroLayout.minTouchTarget, minHeight: CaroLayout.minTouchTarget)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(result.isKept ? "Kept. Tap to undo" : "Keep")
+            Button {
+                Task { await decide(result, "discarded") }
+            } label: {
+                Image(systemName: "xmark")
+                    .iconFont(14)
+                    .foregroundStyle(Color.terracotta)
+                    .frame(width: 38, height: 38)
+                    .overlay(Circle().strokeBorder(Color.terracotta, lineWidth: 1))
+                    .frame(minWidth: CaroLayout.minTouchTarget, minHeight: CaroLayout.minTouchTarget)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel("Discard")
         }
-        .accessibilityAction(named: "Discard") {
-            Task { await decide(result, "discarded") }
-        }
+        .disabled(working)
+    }
+
+    private func boughtButton(_ result: StoreResult) -> some View {
+                Button("Bought") { buying = result }
+                    .font(.text(13, weight: .semibold, relativeTo: .subheadline))
+                    .foregroundStyle(Color.terracotta)
+                    .padding(.horizontal, 14)
+                    .frame(minHeight: 32)
+                    .overlay(Capsule().strokeBorder(Color.terracotta, lineWidth: 1))
+                    .frame(minHeight: CaroLayout.minTouchTarget)
+                    .buttonStyle(.borderless)
+                    .disabled(working)
+                    .accessibilityHint("Adds it to your edit with the store's picture")
     }
 
     private func productImage(_ result: StoreResult) -> some View {
@@ -367,11 +532,15 @@ struct FindItView: View {
         }
     }
 
-    private func search() async {
+    /// Search again; with words, those words (empty: back to Caro's description).
+    private func search(words: String? = nil) async {
         working = true
         defer { working = false }
         do {
-            page = try await store.searchAgain(toFindID)
+            page = try await store.searchAgain(toFindID, words: words)
+            editingWords = false
+            wordsFocused = false
+            wordsDraft = ""
             errorMessage = nil
         } catch {
             errorMessage = store.message(for: error)
@@ -380,7 +549,8 @@ struct FindItView: View {
 
     private func decide(_ result: StoreResult, _ decision: String?) async {
         do {
-            page = try await store.decide(toFindID, result: result.id, decision: decision)
+            let changed = try await store.decide(toFindID, result: result.id, decision: decision)
+            withAnimation(.snappy) { page = changed }
             errorMessage = nil
         } catch {
             errorMessage = store.message(for: error)

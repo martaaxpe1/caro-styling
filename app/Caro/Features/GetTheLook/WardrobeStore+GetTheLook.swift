@@ -60,9 +60,9 @@ extension WardrobeStore {
         try await api.findIt(id)
     }
 
-    /// Find it, or Search again: one AI action, in the background.
-    func searchAgain(_ id: Int) async throws -> FindItPage {
-        try await api.searchAgain(id)
+    /// Find it, or Search again, with your own words if given: one AI action, in the background.
+    func searchAgain(_ id: Int, words: String? = nil) async throws -> FindItPage {
+        try await api.searchAgain(id, words: words)
     }
 
     /// Keep (swipe right) or discard (swipe left) a product; nil undecides.

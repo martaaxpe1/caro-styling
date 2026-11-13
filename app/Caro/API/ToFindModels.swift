@@ -24,7 +24,12 @@ struct FindItPage: Decodable, Identifiable {
     /// Why the last search did not work, in words to show.
     let searchMessage: String?
     let searchedAt: Date?
-    /// Up to five, the kept ones first. Discarded ones are not sent.
+    /// The words searched with: Caro's description of the piece, or the member's own.
+    let searchWords: String
+    let ownWords: Bool
+    /// While searching: each store and how it is doing. Nil otherwise.
+    let progress: [StoreProgress]?
+    /// Up to three per store, the kept ones first. Discarded ones are not sent.
     let results: [StoreResult]
     /// The member's country, for prices in their own format.
     let country: String?
@@ -37,6 +42,14 @@ struct FindItPage: Decodable, Identifiable {
 
     var isSearching: Bool { searchStatus == "searching" }
     var isBought: Bool { status == "bought" }
+}
+
+/// One store while Find it searches it.
+struct StoreProgress: Decodable, Hashable {
+    let store: String
+    /// searching, done, or failed
+    let status: String
+    let found: Int
 }
 
 /// One product a store lists for the piece.
