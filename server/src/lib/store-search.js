@@ -97,7 +97,7 @@ function prompt(member, stores, piece) {
 The stores:
 ${shops}
 
-Search each store's whole website. Return up to ${MAX_RESULTS} products listed in these shops that match the description, closest first. Only products sold in the shop for ${place}, with prices in ${member.currency}. Only products from the shops' ${listText(sectionsOf(member))} sections: leave out every other section, including children's.
+Search each store's whole website, one store at a time, so every store is searched. Then return every matching product you found, from any of the stores, up to ${MAX_RESULTS}, closest first. Only products sold in the shop for ${place}, with prices in ${member.currency}. Only products from the shops' ${listText(sectionsOf(member))} sections: leave out every other section, including children's.
 Open each product page you return with web fetch, to check that it still works and to find its main product image. Leave out any product whose page does not open.
 For each product: the name as the shop writes it, the price as a number, the three-letter currency code, the address of the product page, and the address of its main image (empty if you could not find one).
 If nothing matches, return an empty list. That is a valid answer.`;
@@ -113,8 +113,8 @@ const TOOL_VERSIONS = [
 function toolsFor(member, stores, [search, fetch]) {
   const domains = [...new Set(stores.map((s) => s.domain))];
   return [
-    { type: search, name: 'web_search', max_uses: 5, allowed_domains: domains, user_location: { type: 'approximate', country: member.country } },
-    { type: fetch, name: 'web_fetch', max_uses: 8, allowed_domains: domains },
+    { type: search, name: 'web_search', max_uses: Math.min(domains.length + 2, 10), allowed_domains: domains, user_location: { type: 'approximate', country: member.country } },
+    { type: fetch, name: 'web_fetch', max_uses: 10, allowed_domains: domains },
   ];
 }
 
