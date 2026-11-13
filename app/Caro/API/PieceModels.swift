@@ -50,6 +50,8 @@ struct Piece: Decodable, Identifiable, Equatable, Hashable {
     /// How many looks it is in.
     let looks: Int
     let images: Images
+    /// The store's name while its photo is still the store's picture (Bought, T11). Retake clears it.
+    let storePhoto: String?
 
     var hasCutout: Bool { images.cutout != nil }
 }

@@ -102,6 +102,12 @@ struct Look: Decodable, Identifiable, Hashable {
         let description: String
         let key: Bool
         let searchedAt: String?
+        /// A key piece's To find row and its search (T11).
+        let toFind: Int?
+        let searchStatus: String?
+        let found: Int?
+        let kept: Int?
+        let image: String?
 
         var id: Int { number }
     }

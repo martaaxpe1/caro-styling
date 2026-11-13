@@ -3,6 +3,9 @@ import SwiftUI
 /// S3 Admin: members, invitations and add person (PRD section 4). Only the admin reaches it,
 /// from settings, and the server refuses everyone else anyway. People and totals only:
 /// nothing from anyone's wardrobe.
+///
+/// T11: AI this month, all members together, by kind, and the monthly allowance, which the
+/// admin changes here. The server refuses an AI action once a member has used it up.
 struct AdminView: View {
     @Environment(Session.self) private var session
 
@@ -13,6 +16,8 @@ struct AdminView: View {
     @State private var addingPerson = false
     @State private var memberToRemove: AdminMember?
     @State private var invitationToCancel: Invitation?
+    @State private var changingAllowance = false
+    @State private var allowanceDraft = ""
 
     private let api = APIClient()
 
@@ -41,6 +46,9 @@ struct AdminView: View {
                     ForEach(overview.members) { member in
                         memberRow(member)
                     }
+
+                    aiSection(overview.ai)
+                        .padding(.top, 40)
 
                     sectionHeader("Invitations", count: overview.invitations.count)
                         .padding(.top, 40)
@@ -75,6 +83,14 @@ struct AdminView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
+        .alert("Monthly AI allowance", isPresented: $changingAllowance) {
+            TextField("300", text: $allowanceDraft)
+                .keyboardType(.numberPad)
+            Button("Save") { Task { await saveAllowance() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("AI actions each member may make in a month. Each piece, look from a photo, inspiration, store search, store website and city's weather counts as one.")
+        }
         .sheet(isPresented: $addingPerson) {
             AddPersonView { email in
                 doneMessage = "Invitation sent to \(email)."
@@ -131,6 +147,67 @@ struct AdminView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
+    }
+
+    /// AI this month: the total, each kind, and the allowance with Change.
+    private func aiSection(_ ai: AIUsage) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            sectionHeader("AI this month", count: ai.total)
+            ForEach(ai.byAction, id: \.self) { row in
+                HStack {
+                    Text(row.action.prefix(1).uppercased() + row.action.dropFirst())
+                    Spacer()
+                    Text("\(row.count)")
+                        .foregroundStyle(Color.muted)
+                }
+                .font(.caroBody)
+                .frame(minHeight: 44)
+                .overlay(alignment: .bottom) { hairline }
+                .accessibilityElement(children: .combine)
+            }
+            if ai.byAction.isEmpty {
+                Text("No AI actions yet this month.")
+                    .font(.caroBody)
+                    .foregroundStyle(Color.muted)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .overlay(alignment: .bottom) { hairline }
+            }
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Allowance")
+                        .font(.caroRowTitle)
+                    Text("\(ai.allowance) a month for each member")
+                        .font(.caroMeta)
+                        .foregroundStyle(Color.muted)
+                }
+                Spacer()
+                Button("Change") {
+                    allowanceDraft = "\(ai.allowance)"
+                    changingAllowance = true
+                }
+                .font(.caroLink)
+                .foregroundStyle(Color.terracotta)
+                .underline()
+                .frame(minHeight: CaroLayout.minTouchTarget)
+            }
+            .frame(minHeight: 58)
+            .overlay(alignment: .bottom) { hairline }
+        }
+    }
+
+    private func saveAllowance() async {
+        guard let value = Int(allowanceDraft.trimmingCharacters(in: .whitespaces)), value >= 0 else {
+            errorMessage = "The allowance is a whole number, 0 or more."
+            return
+        }
+        do {
+            _ = try await api.setAllowance(value)
+            doneMessage = "The allowance is now \(value) a month."
+            errorMessage = nil
+            await load()
+        } catch {
+            errorMessage = session.message(for: error)
+        }
     }
 
     private func memberRow(_ member: AdminMember) -> some View {
@@ -248,7 +325,11 @@ struct AdminView: View {
         }
 
         let actions = member.aiActionsThisMonth
-        parts.append("\(actions) AI \(actions == 1 ? "action" : "actions") this month")
+        if let allowance = overview?.ai.allowance {
+            parts.append("\(actions) of \(allowance) AI actions this month")
+        } else {
+            parts.append("\(actions) AI \(actions == 1 ? "action" : "actions") this month")
+        }
 
         return parts.joined(separator: " · ")
     }

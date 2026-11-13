@@ -139,7 +139,9 @@ test('Mark as key searches the member stores at once, in their currency, on thei
   assert.deepEqual(names, ['Leather shoulder bag', 'Zara bag', 'Bag 4', 'Bag 5', 'Bag 6']);
   assert.ok(page.body.toFind.results.every((r) => r.currency === 'EUR'));
   assert.equal(page.body.toFind.results[1].priceCents, 4995);
-  assert.equal(page.body.toFind.results[1].image, 'https://images.example.test/preview.jpg', 'no image from Claude: the page preview');
+  assert.match(page.body.toFind.results[1].image, /^\/me\/to-find\/\d+\/results\/\d+\/image$/);
+  const zara = db.prepare(`SELECT image_url FROM store_results WHERE name = 'Zara bag'`).pluck().get();
+  assert.equal(zara, 'https://images.example.test/preview.jpg', 'no image from Claude: the page preview');
   assert.equal(page.body.toFind.results[0].store, 'COS');
   assert.equal(page.body.toFind.notSearched.length, 1);
   assert.match(page.body.toFind.notSearched[0], /Arket has no online shop in the Netherlands/);

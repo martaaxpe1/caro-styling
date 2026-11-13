@@ -419,6 +419,44 @@ struct APIClient {
         return response.look
     }
 
+    // MARK: Find it and To find (T11)
+
+    /// GET /me/to-find/:id: the Find it page for one key piece.
+    func findIt(_ id: Int) async throws -> FindItPage {
+        let response: FindItResponse = try await send("GET", "me/to-find/\(id)")
+        return response.toFind
+    }
+
+    /// POST /me/to-find/:id/search: Find it, or Search again. Runs in the background.
+    func searchAgain(_ id: Int) async throws -> FindItPage {
+        let response: FindItResponse = try await send("POST", "me/to-find/\(id)/search")
+        return response.toFind
+    }
+
+    /// PUT /me/to-find/:id/results/:rid: keep (swipe right) or discard (swipe left); nil undecides.
+    func decide(_ id: Int, result: Int, decision: String?) async throws -> FindItPage {
+        let response: FindItResponse = try await send("PUT", "me/to-find/\(id)/results/\(result)", body: DecisionBody(decision: decision))
+        return response.toFind
+    }
+
+    /// POST /me/to-find/:id/bought: the piece goes into the edit with the store's picture, cropped.
+    func bought(_ id: Int, result: Int, photo: Data, cutout: Data?) async throws -> Piece {
+        let body = BoughtBody(result: result, photo: photo.base64EncodedString(), cutout: cutout?.base64EncodedString())
+        let response: PieceResponse = try await send("POST", "me/to-find/\(id)/bought", body: body, timeout: Self.uploadTimeout)
+        return response.piece
+    }
+
+    /// PUT /me/to-find/:id: no longer looking for it.
+    func dropToFind(_ id: Int) async throws {
+        let _: OK = try await send("PUT", "me/to-find/\(id)", body: ["status": "dropped"])
+    }
+
+    /// PUT /admin/allowance: the monthly AI allowance, the same for every member.
+    func setAllowance(_ allowance: Int) async throws -> AIUsage {
+        let response: AIResponse = try await send("PUT", "admin/allowance", body: ["allowance": allowance])
+        return response.ai
+    }
+
     /// A piece's picture, from an address the server gave, like /me/pieces/12/thumb?v=ab12.
     /// A plain request with the session token: the photos are private.
     func imageRequest(for path: String) -> URLRequest? {
@@ -434,6 +472,33 @@ struct APIClient {
     // MARK: Sending
 
     private struct OK: Decodable {}
+    private struct FindItResponse: Decodable { let toFind: FindItPage }
+    private struct AIResponse: Decodable { let ai: AIUsage }
+    private struct BoughtBody: Encodable {
+        let result: Int
+        let photo: String
+        let cutout: String?
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(result, forKey: .result)
+            try container.encode(photo, forKey: .photo)
+            try container.encode(cutout, forKey: .cutout)
+        }
+
+        private enum CodingKeys: String, CodingKey { case result, photo, cutout }
+    }
+    private struct DecisionBody: Encodable {
+        let decision: String?
+
+        // nil is sent as null: not decided.
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(decision, forKey: .decision)
+        }
+
+        private enum CodingKeys: String, CodingKey { case decision }
+    }
     private struct ErrorResponse: Decodable { let error: String }
     private struct MemberResponse: Decodable { let member: Member }
     private struct InvitationResponse: Decodable { let invitation: Invitation }

@@ -48,6 +48,21 @@ struct SignedIn: Decodable {
 struct AdminOverview: Decodable {
     let members: [AdminMember]
     let invitations: [Invitation]
+    let ai: AIUsage
+}
+
+/// AI actions this month, all members together (T11). Totals only.
+struct AIUsage: Decodable {
+    struct ByAction: Decodable, Hashable {
+        /// piece details, look from a photo, inspiration, store search, store website, your year
+        let action: String
+        let count: Int
+    }
+
+    /// AI actions each member may make in a month.
+    let allowance: Int
+    let total: Int
+    let byAction: [ByAction]
 }
 
 /// One row in the admin's member list. People and totals only, never photos.

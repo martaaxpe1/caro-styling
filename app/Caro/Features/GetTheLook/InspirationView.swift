@@ -9,7 +9,8 @@ import SwiftUI
 /// note. Save makes your version a look (From an inspiration), and opens it.
 ///
 /// Caro only describes and compares. You decide every piece, and which missing one is key.
-/// Find it, the store search for a key piece, comes with T11.
+/// T11: marking a piece as key starts the store search for it at once (one tap, one piece);
+/// its credit then says how the search is doing, and its menu opens what Caro found.
 struct InspirationView: View {
     let inspirationID: Int
 
@@ -70,8 +71,8 @@ struct InspirationView: View {
         }
         .onAppear { Task { await load() } }
         // While Caro reads it, ask again every few seconds.
-        .task(id: inspiration?.isReading) {
-            while inspiration?.isReading == true, !Task.isCancelled {
+        .task(id: isBusy) {
+            while isBusy, !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(3))
                 if let fresh = try? await store.inspiration(inspirationID) { inspiration = fresh }
             }
@@ -301,6 +302,11 @@ struct InspirationView: View {
                 change { try await store.fillInspirationPiece(inspirationID, number: piece.number, piece: nil) }
             }
         }
+        if let toFind = piece.toFind {
+            Button("See what Caro found", systemImage: "bag") {
+                store.toFindToOpen = toFind.id
+            }
+        }
         if piece.isMissing {
             Button(piece.key ? "Not key" : "Mark as key", systemImage: piece.key ? "star.slash" : "star") {
                 change { try await store.markInspirationPiece(inspirationID, number: piece.number, key: !piece.key) }
@@ -319,6 +325,8 @@ struct InspirationView: View {
         if let count = piece.inspirations { first += " · in \(count) of your inspirations" }
         var lines = [first]
         if let nearest = piece.nearest?.name { lines.append("Your nearest: \(lowercasedFirst(nearest))") }
+        // A key piece: how the store search is doing (T11).
+        if let search = piece.toFind { lines.append(search.words) }
         return lines
     }
 
@@ -456,6 +464,13 @@ struct InspirationView: View {
     }
 
     /// Pieces still missing in your version: the look is in progress.
+    /// Caro is reading the inspiration, or searching the stores for a key piece: ask again
+    /// every few seconds.
+    private var isBusy: Bool {
+        guard let inspiration else { return false }
+        return inspiration.isReading || inspiration.pieces.contains { $0.toFind?.searchStatus == "searching" }
+    }
+
     private func inProgress(_ inspiration: Inspiration) -> Bool {
         inspiration.pieces.contains { !$0.removed && $0.isMissing }
     }

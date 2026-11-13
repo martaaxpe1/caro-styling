@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 
 /// Screen 11, a piece: its chapter, the cut-out large and slightly turned, its name with the last
@@ -8,6 +9,8 @@ import SwiftUI
 /// note under the details, and two small links at the bottom, Mark as maybe and Remove.
 /// Style a look with it opens the styling table with this piece on it (T7).
 /// Not yet: the Size row (size is not filled in yet).
+/// T11: a piece bought from Find it still shows the store's picture: "Photo from COS." with
+/// Retake (take a photo or choose one), which keeps the details.
 struct PieceView: View {
     let pieceID: Int
 
@@ -18,6 +21,10 @@ struct PieceView: View {
     @State private var working = false
     @State private var confirmingRemove = false
     @State private var styling: StyleStart?
+    @State private var showingRetakeLibrary = false
+    @State private var retakeItem: PhotosPickerItem?
+    @State private var retakeCameraOpen = false
+    @State private var showingCameraRefused = false
 
     var body: some View {
         Group {
@@ -64,6 +71,24 @@ struct PieceView: View {
                 Task { await load() }
             }
         }
+        .photosPicker(isPresented: $showingRetakeLibrary, selection: $retakeItem, matching: .images, preferredItemEncoding: .compatible)
+        .onChange(of: retakeItem) { _, item in
+            guard let item else { return }
+            retakeItem = nil
+            Task {
+                guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+                await retake(with: data)
+            }
+        }
+        .fullScreenCover(isPresented: $retakeCameraOpen) {
+            CameraView(single: true) { file in
+                Task { await retake(with: file) }
+            } done: { _ in
+                retakeCameraOpen = false
+            }
+            .ignoresSafeArea()
+        }
+        .cameraRefusedAlert(isPresented: $showingCameraRefused)
         .alert("Remove this piece?", isPresented: $confirmingRemove) {
             Button("Remove", role: .destructive) {
                 Task { await remove() }
@@ -90,6 +115,11 @@ struct PieceView: View {
                     Text(line)
                         .font(.caroNote)
                         .foregroundStyle(Color.muted)
+                        .padding(.top, 6)
+                }
+
+                if let store = piece.storePhoto {
+                    storePhotoNote(store)
                         .padding(.top, 6)
                 }
 
@@ -244,6 +274,48 @@ struct PieceView: View {
     }
 
     // MARK: Actions
+
+    /// "Photo from COS. Retake it when your piece arrives." Retake: camera or library.
+    private func storePhotoNote(_ storeName: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text("Photo from \(storeName).")
+                .foregroundStyle(Color.muted)
+            Menu {
+                Button("Take photo", systemImage: "camera") { openCamera() }
+                Button("Choose from library", systemImage: "photo.on.rectangle") { showingRetakeLibrary = true }
+            } label: {
+                Text("Retake it when your piece arrives")
+                    .font(.caroLink)
+                    .foregroundStyle(Color.terracotta)
+                    .underline()
+                    .multilineTextAlignment(.leading)
+            }
+            .disabled(working)
+        }
+        .font(.caroNote)
+    }
+
+    private func openCamera() {
+        Task {
+            switch await CameraAccess.ask() {
+            case .allowed: retakeCameraOpen = true
+            case .refused: showingCameraRefused = true
+            case .noCamera: errorMessage = "This iPhone has no camera. Choose from library instead."
+            }
+        }
+    }
+
+    /// Your own photo replaces the store's picture; the details stay.
+    private func retake(with data: Data) async {
+        working = true
+        defer { working = false }
+        do {
+            _ = try await store.retake(pieceID, photoFile: data)
+            await load()
+        } catch {
+            errorMessage = store.message(for: error)
+        }
+    }
 
     private func load() async {
         do {

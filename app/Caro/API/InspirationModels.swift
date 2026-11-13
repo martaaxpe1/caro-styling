@@ -30,22 +30,37 @@ struct ToFindItem: Decodable, Identifiable, Hashable {
     let number: Int
     let description: String
     let kind: String?
-    /// considering, or bought (T11)
+    /// considering (bought and dropped pieces leave the list)
     let status: String
     let searchedAt: String?
     /// In how many of your inspirations a piece like it is missing; nil when only this one.
     let inspirations: Int?
+    /// The store search (T11): nil (not searched yet), searching, done, failed.
+    let searchStatus: String?
+    let searchMessage: String?
+    /// Products found, and kept by the member.
+    let found: Int
+    let kept: Int
+    /// A kept product's picture, or the first one found.
+    let image: String?
+
+    var words: String {
+        ToFindWords.status(searchStatus: searchStatus, found: found, kept: kept, inspirations: inspirations)
+    }
+    /// Not searched yet, or the search did not work: Find it shows on the row.
+    var canFindIt: Bool { searchStatus == nil || searchStatus == "failed" }
 }
 
-/// How a piece on To find is doing, in words: "In 3 inspirations · not searched yet".
-enum ToFindWords {
-    static func status(searchedAt: String?, bought: Bool = false, inspirations: Int? = nil) -> String {
-        let state = bought ? "bought" : (searchedAt == nil ? "not searched yet" : "searched")
-        if let count = inspirations {
-            return "In \(count) inspirations · \(state)"
-        }
-        return state.prefix(1).uppercased() + state.dropFirst()
-    }
+/// A key piece's search, on Your version (T11).
+struct KeySearch: Decodable, Hashable {
+    let id: Int
+    let searchStatus: String?
+    let searchMessage: String?
+    let found: Int
+    let kept: Int
+    let image: String?
+
+    var words: String { ToFindWords.status(searchStatus: searchStatus, found: found, kept: kept) }
 }
 
 /// One inspiration and your version of it (screen 15).
@@ -100,6 +115,8 @@ struct InspirationPiece: Decodable, Identifiable, Hashable {
     let inspirations: Int?
     let key: Bool
     let removed: Bool
+    /// A key piece's To find row and its search (T11).
+    let toFind: KeySearch?
 
     var id: Int { number }
     var isMissing: Bool { match == "missing" }

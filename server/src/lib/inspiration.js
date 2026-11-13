@@ -323,7 +323,7 @@ function lookInspiration(userId, lookId) {
     .all(found.id, userId)
     .filter((row) => !row.removed && !ownPieceFor(row))
     .map((row) => {
-      const toFind = db.prepare('SELECT * FROM to_find WHERE inspiration_piece_id = ?').get(row.id);
+      const toFind = db.prepare(`SELECT * FROM to_find WHERE inspiration_piece_id = ? AND status = 'considering'`).get(row.id);
       return {
         number: row.number,
         description: row.description,

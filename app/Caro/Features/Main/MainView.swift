@@ -50,6 +50,8 @@ struct MainView: View {
                             switch route {
                             case .inspiration(let id):
                                 InspirationView(inspirationID: id)
+                            case .findIt(let id):
+                                FindItView(toFindID: id)
                             }
                         }
                     }
@@ -82,6 +84,19 @@ struct MainView: View {
             var path = NavigationPath()
             path.append(GetTheLookRoute.inspiration(id: inspirationID))
             getPath = path
+        }
+        // A key piece's Find it page: on top of Your version when it came from there, else on its own.
+        .onChange(of: store.toFindToOpen, initial: true) { _, toFindID in
+            guard let toFindID else { return }
+            store.toFindToOpen = nil
+            if tab == .getTheLook {
+                getPath.append(GetTheLookRoute.findIt(id: toFindID))
+            } else {
+                tab = .getTheLook
+                var path = NavigationPath()
+                path.append(GetTheLookRoute.findIt(id: toFindID))
+                getPath = path
+            }
         }
         // A look saved from a photo, or "Open No. 12" after the same look rule: show its page.
         .onChange(of: store.lookToOpen, initial: true) { _, lookID in

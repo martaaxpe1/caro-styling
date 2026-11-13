@@ -9,8 +9,33 @@ import SwiftUI
 /// link (Caro takes the pin's image). An image needs no link.
 ///
 /// Added to the design: an inspiration Caro is still reading says "Reading"; one it could not
-/// read says so. All inspirations show in the grid, so there is no See all yet. Find it on a
-/// To find piece comes with T11; until then the row says "Not searched yet".
+/// read says so. All inspirations show in the grid, so there is no See all yet.
+///
+/// T11: a To find row opens Find it (S11) and shows a kept product's picture (or the first one
+/// found) and how the search is doing; Find it shows on a row not searched yet, or when the
+/// search did not work.
+/// A To find piece's picture: a product found in the stores, or a dashed terracotta spot.
+struct ToFindThumb: View {
+    let image: String?
+    var side: CGFloat = 48
+
+    var body: some View {
+        Group {
+            if let image {
+                LookPhotoImage(path: image, fill: false)
+                    .padding(3)
+                    .frame(width: side, height: side)
+                    .background(Color.tile, in: RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
+            } else {
+                RoundedRectangle(cornerRadius: CaroLayout.tileRadius)
+                    .strokeBorder(Color.terracotta, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+                    .frame(width: side, height: side)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
 struct GetTheLookView: View {
     let member: Member
     /// Opens an inspiration's page.
@@ -120,8 +145,9 @@ struct GetTheLookView: View {
         askingForLink = true
     }
 
+    /// Caro is reading an inspiration, or searching the stores for a piece.
     private var isReading: Bool {
-        page?.inspirations.contains { $0.status == "reading" } ?? false
+        (page?.inspirations.contains { $0.status == "reading" } ?? false) || (page?.toFind.contains { $0.searchStatus == "searching" } ?? false)
     }
 
     // MARK: Parts
@@ -238,52 +264,82 @@ struct GetTheLookView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(page.toFind) { item in
-                        Button {
-                            open(item.inspiration)
-                        } label: {
-                            toFindRow(item)
+                        HStack(spacing: 8) {
+                            Button {
+                                store.toFindToOpen = item.id
+                            } label: {
+                                toFindRow(item)
+                            }
+                            .buttonStyle(.plain)
+                            if item.canFindIt {
+                                findItButton(item)
+                            }
                         }
-                        .buttonStyle(.plain)
+                        .overlay(alignment: .top) { Rectangle().fill(Color.hairline).frame(height: 1) }
                     }
                 }
             }
         }
     }
 
-    /// The piece's name and state, with a dashed spot where the product will show (T11).
+    /// The piece's name and state, with a product's picture, or a dashed spot until one is found.
     private func toFindRow(_ item: ToFindItem) -> some View {
         HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: CaroLayout.tileRadius)
-                .strokeBorder(Color.terracotta, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
-                .frame(width: 48, height: 48)
-                .accessibilityHidden(true)
+            ToFindThumb(image: item.image, side: 48)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.description)
                     .font(.text(14, weight: .medium, relativeTo: .body))
-                Text(statusText(item))
+                Text(item.words)
                     .font(.caroMeta)
-                    .foregroundStyle(Color.muted)
+                    .foregroundStyle(item.searchStatus == "failed" ? Color.terracotta : Color.muted)
             }
             Spacer(minLength: 8)
-            Image(systemName: "chevron.right")
-                .iconFont(14, weight: .light)
-                .foregroundStyle(Color.muted)
-                .accessibilityHidden(true)
+            if !item.canFindIt {
+                Image(systemName: "chevron.right")
+                    .iconFont(14, weight: .light)
+                    .foregroundStyle(Color.muted)
+                    .accessibilityHidden(true)
+            }
         }
         .foregroundStyle(Color.ink)
         .padding(.vertical, 8)
         .frame(minHeight: 64)
-        .overlay(alignment: .top) { Rectangle().fill(Color.hairline).frame(height: 1) }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+        .accessibilityHint("Opens what Caro found")
     }
 
-    /// "In 3 inspirations · not searched yet"
-    private func statusText(_ item: ToFindItem) -> String {
-        ToFindWords.status(searchedAt: item.searchedAt, bought: item.status == "bought", inspirations: item.inspirations)
+    /// Find it: a small outlined terracotta pill, like Mark as key.
+    private func findItButton(_ item: ToFindItem) -> some View {
+        Button {
+            Task { await findIt(item) }
+        } label: {
+            Text("Find it")
+                .font(.text(13, weight: .semibold, relativeTo: .subheadline))
+                .lineLimit(1)
+                .fixedSize()
+                .foregroundStyle(Color.terracotta)
+                .padding(.horizontal, 14)
+                .frame(minHeight: 32)
+                .overlay(Capsule().strokeBorder(Color.terracotta, lineWidth: 1))
+                .frame(minHeight: CaroLayout.minTouchTarget)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Searches your stores for this piece")
     }
 
     // MARK: Server
+
+    /// Find it on a row: starts the search, then opens what Caro finds.
+    private func findIt(_ item: ToFindItem) async {
+        do {
+            _ = try await store.searchAgain(item.id)
+            store.toFindToOpen = item.id
+        } catch {
+            addError = store.message(for: error)
+        }
+    }
 
     private func load() async {
         do {

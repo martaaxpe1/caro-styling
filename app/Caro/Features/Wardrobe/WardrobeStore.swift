@@ -90,6 +90,9 @@ final class WardrobeStore {
     var lookToOpen: Int?
     /// An inspiration to show in Get the look (T10), from a look's page or the overview.
     var inspirationToOpen: Int?
+    /// A key piece's Find it page to show in Get the look (T11), from Your version, a look's
+    /// page or the overview.
+    var toFindToOpen: Int?
 
     // MARK: The review (screen 07)
 

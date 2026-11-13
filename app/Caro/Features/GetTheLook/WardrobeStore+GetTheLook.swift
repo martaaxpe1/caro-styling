@@ -1,4 +1,4 @@
-import Foundation
+import UIKit
 
 /// Get the look, in the same store as the wardrobe and looks: your version is made of the
 /// wardrobe's pieces, and saving it makes a look.
@@ -53,8 +53,45 @@ extension WardrobeStore {
     }
 }
 
+// MARK: Find it and To find (T11)
+
+extension WardrobeStore {
+    func findIt(_ id: Int) async throws -> FindItPage {
+        try await api.findIt(id)
+    }
+
+    /// Find it, or Search again: one AI action, in the background.
+    func searchAgain(_ id: Int) async throws -> FindItPage {
+        try await api.searchAgain(id)
+    }
+
+    /// Keep (swipe right) or discard (swipe left) a product; nil undecides.
+    func decide(_ id: Int, result: Int, decision: String?) async throws -> FindItPage {
+        try await api.decide(id, result: result, decision: decision)
+    }
+
+    /// Bought: the cropped store picture is cut out on the iPhone and the piece goes into the
+    /// edit, confirmed. The edit is updated in the background.
+    func bought(_ id: Int, result: Int, picture: UIImage) async throws -> Piece {
+        guard let prepared = await PhotoPrep.prepare(picture) else {
+            throw APIError.refused("Caro could not read this picture. Try again.")
+        }
+        let piece = try await api.bought(id, result: result, photo: prepared.photo, cutout: prepared.cutout)
+        ImageCache.shared.keep(prepared.preview, for: piece.images.thumb)
+        Task { await load() }
+        return piece
+    }
+
+    /// No longer looking for it: it leaves To find.
+    func dropToFind(_ id: Int) async throws {
+        try await api.dropToFind(id)
+    }
+}
+
 /// The screens pushed on top of Get the look.
 enum GetTheLookRoute: Hashable {
     /// One inspiration and your version of it (screen 15).
     case inspiration(id: Int)
+    /// Find it: the products found for one key piece (S11, T11).
+    case findIt(id: Int)
 }

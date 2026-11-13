@@ -276,7 +276,8 @@ function resultJSON(row) {
     priceCents: row.price_cents,
     currency: row.currency,
     url: row.url,
-    image: row.image_url,
+    // The picture through the server (routes/to-find.js), so the app loads it like any other.
+    image: row.image_url ? `/me/to-find/${row.to_find_id}/results/${row.id}/image` : null,
     foundAt: row.found_at,
     decision: row.decision,
   };

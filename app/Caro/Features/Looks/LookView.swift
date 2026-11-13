@@ -160,23 +160,33 @@ struct LookView: View {
                 .font(.caroSectionTitle)
             VStack(spacing: 0) {
                 ForEach(look.toFind) { piece in
-                    HStack(spacing: 12) {
-                        RoundedRectangle(cornerRadius: CaroLayout.tileRadius)
-                            .strokeBorder(Color.terracotta, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
-                            .frame(width: 40, height: 40)
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(piece.description)
-                                .font(.text(14, weight: .medium, relativeTo: .body))
-                                .foregroundStyle(Color.terracotta)
-                            Text(piece.key ? "Key · " + ToFindWords.status(searchedAt: piece.searchedAt).lowercased() : "Not in your wardrobe")
-                                .font(.caroMeta)
-                                .foregroundStyle(Color.muted)
+                    Button {
+                        if let toFind = piece.toFind { store.toFindToOpen = toFind }
+                    } label: {
+                        HStack(spacing: 12) {
+                            ToFindThumb(image: piece.image, side: 40)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(piece.description)
+                                    .font(.text(14, weight: .medium, relativeTo: .body))
+                                    .foregroundStyle(Color.terracotta)
+                                Text(piece.toFind != nil ? "Key · " + ToFindWords.status(searchStatus: piece.searchStatus, found: piece.found ?? 0, kept: piece.kept ?? 0).lowercased() : "Not in your wardrobe")
+                                    .font(.caroMeta)
+                                    .foregroundStyle(Color.muted)
+                            }
+                            Spacer(minLength: 0)
+                            if piece.toFind != nil {
+                                Image(systemName: "chevron.right")
+                                    .iconFont(13, weight: .light)
+                                    .foregroundStyle(Color.muted)
+                                    .accessibilityHidden(true)
+                            }
                         }
-                        Spacer(minLength: 0)
+                        .padding(.vertical, 8)
+                        .overlay(alignment: .top) { Rectangle().fill(Color.hairline).frame(height: 1) }
+                        .contentShape(Rectangle())
                     }
-                    .padding(.vertical, 8)
-                    .overlay(alignment: .top) { Rectangle().fill(Color.hairline).frame(height: 1) }
+                    .buttonStyle(.plain)
+                    .disabled(piece.toFind == nil)
                     .accessibilityElement(children: .combine)
                 }
             }

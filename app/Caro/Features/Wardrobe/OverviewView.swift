@@ -129,13 +129,14 @@ struct OverviewView: View {
             section("To find", note: countText(toFind.count, "piece", "pieces")) {
                 ForEach(toFind) { item in
                     Button {
-                        store.inspirationToOpen = item.inspiration
+                        store.toFindToOpen = item.id
                     } label: {
                         HStack(spacing: 12) {
+                            ToFindThumb(image: item.image, side: 40)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.description)
                                     .font(.caroBody)
-                                Text(ToFindWords.status(searchedAt: item.searchedAt, bought: item.status == "bought", inspirations: item.inspirations))
+                                Text(item.words)
                                     .font(.caroMeta)
                                     .foregroundStyle(Color.muted)
                             }

@@ -47,6 +47,8 @@ function pageJSON(userId, toFind) {
     searchMessage: toFind.search_message,
     searchedAt: toFind.searched_at,
     results: search.resultsOf(userId, toFind.id),
+    // For prices and dates in the member's own format.
+    country: member.country,
     stores: searched.map((s) => s.name),
     notSearched: skipped.map((s) => s.reason),
     piece: boughtPiece ? pieceJSON(boughtPiece) : null,
