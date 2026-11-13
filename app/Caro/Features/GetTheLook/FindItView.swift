@@ -159,12 +159,15 @@ struct FindItView: View {
                     .padding(.top, 2)
             }
             Spacer(minLength: 0)
-            NavigationLink(value: GetTheLookRoute.inspiration(id: page.inspiration.id)) {
+            // A button, not a link: a link inside a list gets a chevron.
+            Button {
+                store.inspirationToOpen = page.inspiration.id
+            } label: {
                 LookPhotoImage(path: page.inspiration.thumb)
                     .frame(width: 60, height: 80)
                     .clipShape(RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.borderless)
             .accessibilityLabel("Open its inspiration")
         }
         .padding(.top, 10)

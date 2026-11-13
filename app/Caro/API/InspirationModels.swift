@@ -44,8 +44,10 @@ struct ToFindItem: Decodable, Identifiable, Hashable {
     /// A kept product's picture, or the first one found.
     let image: String?
 
+    /// The state in words; when the search did not work, why (like the allowance message).
     var words: String {
-        ToFindWords.status(searchStatus: searchStatus, found: found, kept: kept, inspirations: inspirations)
+        if searchStatus == "failed", let searchMessage { return searchMessage }
+        return ToFindWords.status(searchStatus: searchStatus, found: found, kept: kept, inspirations: inspirations)
     }
     /// Not searched yet, or the search did not work: Find it shows on the row.
     var canFindIt: Bool { searchStatus == nil || searchStatus == "failed" }
@@ -60,7 +62,10 @@ struct KeySearch: Decodable, Hashable {
     let kept: Int
     let image: String?
 
-    var words: String { ToFindWords.status(searchStatus: searchStatus, found: found, kept: kept) }
+    var words: String {
+        if searchStatus == "failed", let searchMessage { return searchMessage }
+        return ToFindWords.status(searchStatus: searchStatus, found: found, kept: kept)
+    }
 }
 
 /// One inspiration and your version of it (screen 15).

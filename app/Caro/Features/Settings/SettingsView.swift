@@ -81,7 +81,7 @@ struct SettingsView: View {
                     if current.isAdmin {
                         sectionHeader("Admin")
                             .padding(.top, 40)
-                        row("Admin", "Members and invitations", .admin)
+                        row("Admin", "Members, invitations and AI use", .admin)
                     }
                 }
                 .foregroundStyle(Color.ink)

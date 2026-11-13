@@ -268,7 +268,7 @@ struct InspirationView: View {
                         ForEach(subLines(piece), id: \.self) { line in
                             Text(line)
                                 .font(.caroMeta)
-                                .foregroundStyle(Color.muted)
+                                .foregroundStyle(piece.toFind?.searchStatus == "failed" && line == piece.toFind?.words ? Color.terracotta : Color.muted)
                         }
                     }
                     .multilineTextAlignment(.leading)
