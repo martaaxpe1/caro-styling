@@ -168,7 +168,7 @@ router.put('/:id/photo', async (req, res, next) => {
     const files = await photos.savePiecePhotos(req.member.id, { photo: req.body?.photo, cutout: req.body?.cutout });
 
     const changed = db
-      .prepare('UPDATE pieces SET original_path = ?, cutout_path = ?, thumb_path = ? WHERE id = ? AND user_id = ?')
+      .prepare('UPDATE pieces SET original_path = ?, cutout_path = ?, thumb_path = ?, store_photo = NULL WHERE id = ? AND user_id = ?')
       .run(files.original, files.cutout, files.thumb, piece.id, req.member.id).changes;
     // Removed while the new photo was being saved: keep nothing.
     photos.removeFiles(changed ? photos.filesOf(piece) : files);

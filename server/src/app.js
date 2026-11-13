@@ -10,6 +10,7 @@ const wardrobeRoutes = require('./routes/wardrobe');
 const listRoutes = require('./routes/lists');
 const lookRoutes = require('./routes/looks');
 const inspirationRoutes = require('./routes/inspirations');
+const toFindRoutes = require('./routes/to-find');
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.disable('x-powered-by');
 app.use('/me/pieces', express.json({ limit: '25mb' }));
 app.use('/me/looks', express.json({ limit: '25mb' }));
 app.use('/me/inspirations', express.json({ limit: '25mb' }));
+app.use(/^\/me\/to-find\/\d+\/bought$/, express.json({ limit: '25mb' }));
 app.use(express.json());
 
 // Open to anyone.
@@ -31,6 +33,7 @@ app.use('/me/pieces', pieceRoutes);
 app.use('/me/wardrobe', wardrobeRoutes);
 app.use('/me/looks', lookRoutes);
 app.use('/me/inspirations', inspirationRoutes);
+app.use('/me/to-find', toFindRoutes);
 app.use('/me', meRoutes);
 app.use('/places', placeRoutes);
 app.use('/lists', listRoutes);

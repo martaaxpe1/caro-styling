@@ -63,6 +63,8 @@ function pieceJSON(piece) {
       cutout: imageUrl(piece, 'cutout'),
       thumb: imageUrl(piece, 'thumb'),
     },
+    // The store's name when its photo is still the store's picture (Bought, T11).
+    storePhoto: piece.store_photo ?? null,
     createdAt: piece.created_at,
     confirmedAt: piece.confirmed_at,
   };

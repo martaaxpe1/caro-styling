@@ -4,6 +4,7 @@ const { startDailyCleanUp } = require('./jobs/clean-up');
 const { startNightlyBackup } = require('./jobs/backup');
 const pieceQueue = require('./jobs/piece-queue');
 const inspirationQueue = require('./jobs/inspiration-queue');
+const searchQueue = require('./jobs/search-queue');
 
 const port = process.env.PORT || 3000;
 
@@ -40,4 +41,6 @@ app.listen(port, (err) => {
   pieceQueue.start();
   // And the inspirations still waiting for Claude.
   inspirationQueue.start();
+  // And the store searches.
+  searchQueue.start();
 });

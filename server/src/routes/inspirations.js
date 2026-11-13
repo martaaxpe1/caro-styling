@@ -27,6 +27,8 @@ const inspiration = require('../lib/inspiration');
 const sharedLink = require('../lib/shared-link');
 const queue = require('../jobs/inspiration-queue');
 const allowance = require('../lib/allowance');
+const storeSearch = require('../lib/store-search');
+const searchQueue = require('../jobs/search-queue');
 const { requireMember } = require('../middleware/signed-in');
 const { requireUnlocked } = require('../middleware/unlocked');
 const { checkLook, saveLook, findSameLook, findLook, lookJSON, removeEmptyLooks } = require('../lib/looks');
@@ -58,6 +60,22 @@ function cleanLink(value) {
 function cleanNote(value) {
   if (typeof value !== 'string') return null;
   return value.trim().slice(0, NOTE_LENGTH) || null;
+}
+
+function startSearchFor(userId, inspirationId, number) {
+  const toFind = db
+    .prepare(
+      `SELECT to_find.* FROM to_find JOIN inspiration_pieces ON inspiration_pieces.id = to_find.inspiration_piece_id
+       WHERE inspiration_pieces.inspiration_id = ? AND inspiration_pieces.number = ? AND to_find.user_id = ? AND to_find.status = 'considering'`
+    )
+    .get(inspirationId, number, userId);
+  if (!toFind || toFind.search_status === 'searching' || toFind.searched_at) return;
+  const refused = storeSearch.startSearch(userId, toFind);
+  if (refused) {
+    db.prepare(`UPDATE to_find SET search_status = 'failed', search_message = ? WHERE id = ?`).run(refused.error, toFind.id);
+    return;
+  }
+  searchQueue.add(toFind.id);
 }
 
 function sendInspiration(res, userId, id, status = 200) {
@@ -159,6 +177,10 @@ router.put('/:id/pieces/:number', (req, res) => {
   if (!found) return res.status(404).json({ error: NOT_FOUND });
   const refused = inspiration.changePiece(req.member.id, found, req.params.number, req.body ?? {});
   if (refused) return res.status(refused.status).json({ error: refused.error });
+  // Marking a piece as key is the member's tap for this one piece: Caro searches their stores
+  // for it at once (Marta's choice in T10). If it cannot search, the piece is still key, and
+  // the reason shows on To find.
+  if (req.body?.key === true) startSearchFor(req.member.id, found.id, Number(req.params.number));
   sendInspiration(res, req.member.id, found.id);
 });
 

@@ -22,6 +22,7 @@ const allowance = require('./allowance');
 const { pieceJSON } = require('./pieces');
 const { now, iso } = require('./today');
 const lookPhoto = require('./look-photo');
+const storeSearch = require('./store-search');
 
 const PHOTO_SIZE = 1568;
 const MAX_PIECES = 8;
@@ -271,10 +272,18 @@ function inspirationJSON(inspiration) {
         inspirations: missing ? inspirationsWithPiece(userId, row) : null,
         key: row.is_key === 1,
         removed: row.removed === 1,
+        toFind: toFindFor(userId, row),
       };
     }),
     createdAt: inspiration.created_at,
   };
+}
+
+// A key piece's To find row, with its search state, for Your version. Null for any other.
+function toFindFor(userId, row) {
+  if (!row.is_key) return null;
+  const toFind = db.prepare(`SELECT * FROM to_find WHERE inspiration_piece_id = ? AND user_id = ? AND status = 'considering'`).get(row.id, userId);
+  return toFind ? { id: toFind.id, searchedAt: toFind.searched_at, ...storeSearch.searchSummary(userId, toFind) } : null;
 }
 
 // The To find list: missing pieces the member marked as key, newest first.
@@ -286,7 +295,7 @@ function toFindJSON(userId) {
        FROM to_find
        JOIN inspiration_pieces ON inspiration_pieces.id = to_find.inspiration_piece_id
        JOIN inspirations ON inspirations.id = inspiration_pieces.inspiration_id
-       WHERE to_find.user_id = ? AND to_find.status != 'dropped'
+       WHERE to_find.user_id = ? AND to_find.status = 'considering'
        ORDER BY to_find.created_at DESC, to_find.id DESC`
     )
     .all(userId);
@@ -296,10 +305,12 @@ function toFindJSON(userId) {
     number: row.number,
     description: row.description,
     kind: row.kind,
-    // considering, bought (T11)
+    // considering (bought and dropped pieces leave the list)
     status: row.to_find_status,
     searchedAt: row.searched_at,
     inspirations: inspirationsWithPiece(userId, row),
+    // searchStatus, searchMessage, found, kept, image (T11)
+    ...storeSearch.searchSummary(userId, { id: row.to_find_id, search_status: row.search_status, search_message: row.search_message }),
   }));
 }
 
@@ -312,12 +323,14 @@ function lookInspiration(userId, lookId) {
     .all(found.id, userId)
     .filter((row) => !row.removed && !ownPieceFor(row))
     .map((row) => {
-      const toFind = db.prepare('SELECT status, searched_at FROM to_find WHERE inspiration_piece_id = ?').get(row.id);
+      const toFind = db.prepare('SELECT * FROM to_find WHERE inspiration_piece_id = ?').get(row.id);
       return {
         number: row.number,
         description: row.description,
         key: row.is_key === 1,
+        toFind: toFind?.id ?? null,
         searchedAt: toFind?.searched_at ?? null,
+        ...(toFind ? storeSearch.searchSummary(userId, toFind) : {}),
       };
     });
   return {
