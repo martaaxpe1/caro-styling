@@ -18,6 +18,7 @@ const db = require('../db');
 const photos = require('./photos');
 const lists = require('./lists');
 const { ask, recordAiAction } = require('./claude');
+const allowance = require('./allowance');
 const { pieceJSON } = require('./pieces');
 const { now, iso } = require('./today');
 const lookPhoto = require('./look-photo');
@@ -128,6 +129,7 @@ function findInspiration(userId, id) {
 async function readInspiration(inspiration) {
   const userId = inspiration.user_id;
   try {
+    allowance.check(userId);
     const photo = await photos.photoForClaude(inspiration.photo_path, PHOTO_SIZE);
     const wardrobe = lookPhoto.wardrobeOf(userId);
     const prompt = [

@@ -11,6 +11,7 @@ const db = require('../db');
 const lists = require('./lists');
 const photos = require('./photos');
 const { ask, recordAiAction } = require('./claude');
+const allowance = require('./allowance');
 const pieceSeasons = require('./piece-seasons');
 const places = require('./places');
 const weather = require('./weather');
@@ -156,6 +157,11 @@ async function lookUpWeather(userId) {
 // Reads one piece: asks Claude, checks the answer, saves it as a suggestion.
 // If Claude cannot answer, the piece is "not read" and the member fills in the details.
 async function readPiece(piece) {
+  // The month's AI allowance is used up: the piece is kept, and the member fills in its details.
+  if (!allowance.hasRoom(piece.user_id)) {
+    markNotRead(piece);
+    return;
+  }
   try {
     const photo = await photos.photoForClaude(piece.original_path, PHOTO_SIZE);
     // Counted when asked: each piece is one AI action this month (PRD section 10).

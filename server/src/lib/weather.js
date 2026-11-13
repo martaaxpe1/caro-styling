@@ -14,6 +14,7 @@
 const db = require('../db');
 const { now, iso } = require('./today');
 const { ask, recordAiAction } = require('./claude');
+const allowance = require('./allowance');
 
 const SHORT = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 const MAX_DIFFERENCE_C = 3;
@@ -109,6 +110,8 @@ const remote = {
 };
 
 async function fromClaude(city, memberId) {
+  // The month's AI allowance is used up: Open-Meteo's numbers alone, which are free.
+  if (memberId && !allowance.hasRoom(memberId)) return null;
   try {
     const months = checkedMonths(await remote.claude(city));
     recordAiAction(memberId, 'your year');

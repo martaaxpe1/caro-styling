@@ -11,6 +11,7 @@ const { cleanEmail, looksLikeEmail } = require('../lib/auth');
 const email = require('../lib/email');
 const { KEEP_REMOVED_DAYS, statusAfterRestore } = require('../lib/members');
 const { requireMember, requireAdmin } = require('../middleware/signed-in');
+const allowance = require('../lib/allowance');
 
 const router = express.Router();
 router.use(requireMember, requireAdmin);
@@ -98,7 +99,23 @@ router.get('/', (req, res) => {
     .all(iso(at))
     .map(invitationRow);
 
-  res.json({ members, invitations });
+  res.json({ members, invitations, ai: aiJSON() });
+});
+
+// AI usage, all members together, this month: the allowance, the total, and the total per kind.
+function aiJSON() {
+  const totals = allowance.totalsThisMonth();
+  return { allowance: allowance.allowance(), total: totals.total, byAction: totals.byAction };
+}
+
+// The monthly AI allowance, the same for every member. 0 stops every AI action.
+router.put('/allowance', (req, res) => {
+  const value = Number(req.body?.allowance);
+  if (!Number.isInteger(value) || value < 0 || value > 100000) {
+    return res.status(400).json({ error: 'The allowance is a whole number, 0 or more.' });
+  }
+  allowance.setAllowance(value);
+  res.json({ ai: aiJSON() });
 });
 
 // Add person: a name and an email, then the invitation goes out. Open for 14 days.

@@ -31,6 +31,7 @@ const db = require('../db');
 const photos = require('../lib/photos');
 const lookPhoto = require('../lib/look-photo');
 const { ClaudeError } = require('../lib/claude');
+const { AllowanceError } = require('../lib/allowance');
 const { requireMember } = require('../middleware/signed-in');
 const { requireUnlocked } = require('../middleware/unlocked');
 const { pieceJSON } = require('../lib/pieces');
@@ -102,6 +103,7 @@ router.post('/spot', async (req, res, next) => {
     const found = await lookPhoto.spot(req.member.id, req.body?.photo);
     res.json(found);
   } catch (error) {
+    if (error instanceof AllowanceError) return res.status(429).json({ error: error.message });
     if (error instanceof ClaudeError) {
       console.error(`Look from a photo failed: ${error.message}`);
       return res.status(502).json({ error: SPOT_FAILED });

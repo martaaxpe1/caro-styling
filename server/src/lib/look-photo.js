@@ -14,6 +14,7 @@ const sharp = require('sharp');
 const db = require('../db');
 const photos = require('./photos');
 const { ask, recordAiAction } = require('./claude');
+const allowance = require('./allowance');
 const { pieceJSON } = require('./pieces');
 const lists = require('./lists');
 
@@ -203,6 +204,7 @@ function shortName(text) {
 // Spots the member's pieces in a photo they sent (base64). Nothing is stored: the photo is
 // saved only when the member saves the look. Counts one AI action.
 async function spot(userId, photoBase64) {
+  allowance.check(userId);
   const photo = await photos.sentPhotoForClaude(photoBase64, PHOTO_SIZE);
   const wardrobe = wardrobeOf(userId);
   if (wardrobe.length === 0) return { spotted: [], notInWardrobe: [], photoQuality: null };

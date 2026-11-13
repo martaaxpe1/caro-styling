@@ -14,6 +14,7 @@ const { now, iso } = require('../lib/today');
 const { requireMember } = require('../middleware/signed-in');
 const { ClaudeError, recordAiAction } = require('../lib/claude');
 const stores = require('../lib/stores');
+const allowance = require('../lib/allowance');
 const setup = require('../lib/setup');
 
 const router = express.Router();
@@ -44,6 +45,8 @@ router.post('/find', async (req, res, next) => {
   if (!name) return res.status(400).json({ error: 'Type the name of a store.' });
   if (name.length > 60) return res.status(400).json({ error: 'Keep the name to 60 letters.' });
   if (!req.member.country) return res.status(400).json({ error: 'Choose where you live first.' });
+
+  if (!allowance.hasRoom(req.member.id)) return res.status(429).json({ error: allowance.message() });
 
   try {
     const store = await stores.findWebsite(name, req.member.country, req.member.currency);

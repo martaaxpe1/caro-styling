@@ -26,6 +26,7 @@ const photos = require('../lib/photos');
 const inspiration = require('../lib/inspiration');
 const sharedLink = require('../lib/shared-link');
 const queue = require('../jobs/inspiration-queue');
+const allowance = require('../lib/allowance');
 const { requireMember } = require('../middleware/signed-in');
 const { requireUnlocked } = require('../middleware/unlocked');
 const { checkLook, saveLook, findSameLook, findLook, lookJSON, removeEmptyLooks } = require('../lib/looks');
@@ -77,6 +78,7 @@ router.post('/', async (req, res, next) => {
   const userId = req.member.id;
   let image = req.body?.photo;
   let link = cleanLink(req.body?.link);
+  if (!allowance.hasRoom(userId)) return res.status(429).json({ error: allowance.message() });
   try {
     if (!image) {
       if (!link) return res.status(400).json({ error: 'The image did not arrive. Try again.' });
@@ -145,6 +147,7 @@ router.post('/:id/read', (req, res) => {
   const found = inspiration.findInspiration(req.member.id, req.params.id);
   if (!found) return res.status(404).json({ error: NOT_FOUND });
   if (found.status === 'not read') {
+    if (!allowance.hasRoom(req.member.id)) return res.status(429).json({ error: allowance.message() });
     db.prepare(`UPDATE inspirations SET status = 'reading' WHERE id = ?`).run(found.id);
     queue.add(found.id);
   }
