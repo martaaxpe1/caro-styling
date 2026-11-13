@@ -1,15 +1,16 @@
 // Find it (PRD sections 7, 8 and 10, screen S11): search the member's stores for one key piece.
 //
-// The way the T1 spike recommended (docs/SPIKE.md test 4, server/spike/4-stores.js), with
-// Marta's choice of one search over all her stores at once:
-// 1. Haiku with web search, limited to the websites of the member's stores, searched from the
-//    member's country. The whole website, not only the country page: a search limited to the
+// The way the T1 spike recommended (docs/SPIKE.md test 4, server/spike/4-stores.js): each
+// store searched on its own, all at the same time (Marta's choice after testing T11: one search
+// over all stores at once often stopped early and found nothing):
+// 1. Haiku with web search, limited to that store's website, searched from the member's country. The whole website, not only the country page: a search limited to the
 //    country page found nothing when the search engine did not know that page.
 // 2. Only products in the member's currency, from the sections they shop in (women's, men's,
 //    unisex). Never children's.
 // 3. Haiku's web fetch opens each product page, to get its image and to drop dead links.
-// The server then checks every answer itself: a link on one of the member's stores, their
-// currency, a price, an https image. Up to five. "Nothing found" is a valid answer.
+// The server then checks every answer itself: a link on that store, the member's currency, a
+// price, an https image. Up to three per store. "Nothing found" is a valid answer.
+// While it runs, each store's progress is kept in memory, so the app can show it.
 //
 // Claude only looks up what the stores list for the piece the member asked about. It never
 // recommends, never suggests other pieces, never comments on style.
@@ -22,7 +23,8 @@ const allowance = require('./allowance');
 const { domainOf } = require('./stores');
 const { now, iso } = require('./today');
 
-const MAX_RESULTS = 5;
+// Products kept from each store.
+const PER_STORE = 3;
 
 const countryNames = new Intl.DisplayNames(['en'], { type: 'region' });
 // Countries said with "the": the Netherlands, the United States.
@@ -89,42 +91,38 @@ function storesFor(member) {
   return { searched, skipped };
 }
 
-function prompt(member, stores, piece) {
+function prompt(member, store, piece) {
   const place = placeName(member.country);
-  const shops = stores.map((s) => `- ${s.name}: ${s.domain} (its shop for ${place}: ${s.country_url})`).join('\n');
-  return `Search these stores' online shops for ${place} for one piece: "${piece}".
+  return `Search the ${store.name} online shop for ${place} (${store.country_url}) for one piece: "${piece}".
 
-The stores:
-${shops}
-
-Search each store's whole website, one store at a time, so every store is searched. Then return every matching product you found, from any of the stores, up to ${MAX_RESULTS}, closest first. Only products sold in the shop for ${place}, with prices in ${member.currency}. Only products from the shops' ${listText(sectionsOf(member))} sections: leave out every other section, including children's.
+Search the store's whole website, ${store.domain}. Return up to ${PER_STORE} products listed in that shop that match the description, closest first. Only products sold in the shop for ${place}, with prices in ${member.currency}. Only products from the shop's ${listText(sectionsOf(member))} sections: leave out every other section, including children's.
 Open each product page you return with web fetch, to check that it still works and to find its main product image. Leave out any product whose page does not open.
 For each product: the name as the shop writes it, the price as a number, the three-letter currency code, the address of the product page, and the address of its main image (empty if you could not find one).
 If nothing matches, return an empty list. That is a valid answer.`;
 }
 
-// Web search and web fetch, limited to the stores. The newest tool versions first; if the
+// Web search and web fetch, limited to the store's website. The newest tool versions first; if the
 // model does not take them, the basic ones.
 const TOOL_VERSIONS = [
   ['web_search_20260209', 'web_fetch_20260209'],
   ['web_search_20250305', 'web_fetch_20250910'],
 ];
 
-function toolsFor(member, stores, [search, fetch]) {
-  const domains = [...new Set(stores.map((s) => s.domain))];
+function toolsFor(member, store, [search, fetch]) {
   return [
-    { type: search, name: 'web_search', max_uses: Math.min(domains.length + 2, 10), allowed_domains: domains, user_location: { type: 'approximate', country: member.country } },
-    { type: fetch, name: 'web_fetch', max_uses: 10, allowed_domains: domains },
+    { type: search, name: 'web_search', max_uses: 3, allowed_domains: [store.domain], user_location: { type: 'approximate', country: member.country } },
+    { type: fetch, name: 'web_fetch', max_uses: 4, allowed_domains: [store.domain] },
   ];
 }
 
 // The parts that ask another service. The tests replace them, so they cost nothing.
 const remote = {
-  async claude(member, stores, piece) {
+  // One store's search.
+  async claude(member, store, piece) {
     let lastError;
     for (const versions of TOOL_VERSIONS) {
       try {
-        return await ask({ model: 'haiku', system: SYSTEM, prompt: prompt(member, stores, piece), schema: SCHEMA, tools: toolsFor(member, stores, versions) });
+        return await ask({ model: 'haiku', system: SYSTEM, prompt: prompt(member, store, piece), schema: SCHEMA, tools: toolsFor(member, store, versions) });
       } catch (error) {
         lastError = error;
         if (!(error instanceof ClaudeError) || !/error 400/.test(error.message)) throw error;
@@ -184,14 +182,25 @@ function checked(answer, member, stores) {
     if (!name) continue;
     seen.add(url);
     products.push({ store, name, priceCents: Math.round(price * 100), currency: member.currency, url, imageUrl: httpsUrl(item?.image_url) });
-    if (products.length === MAX_RESULTS) break;
+    if (products.length === PER_STORE) break;
   }
   return products;
 }
 
-// The words Claude searches for: the piece as Caro described it, with its shape.
-function pieceText(row) {
-  return [row.description, row.shape].filter(Boolean).join(', ');
+// The words Claude searches for: the member's own words, or the piece as Caro described it,
+// with its shape.
+function searchWords(toFind, row) {
+  return toFind.search_words || [row.description, row.shape].filter(Boolean).join(', ');
+}
+
+// Each running search's progress, store by store: Map of to_find id -> Map of store id ->
+// { store, status: 'searching' | 'done' | 'failed', found }. Only in memory: after a restart
+// the queue runs the search again.
+const progress = new Map();
+
+function progressOf(toFindId) {
+  const stores = progress.get(toFindId);
+  return stores ? [...stores.values()] : null;
 }
 
 function findToFind(userId, id) {
@@ -215,8 +224,9 @@ function startSearch(userId, toFind) {
   return null;
 }
 
-// Runs one search (from the queue). Counts one AI action. If Claude cannot answer, the
-// search is "failed" and the member can search again.
+// Runs one search (from the queue): every store at the same time, each saved as it answers.
+// Counts one AI action. If no store could be searched, the search is "failed" and the member
+// can search again.
 async function runSearch(toFind) {
   const userId = toFind.user_id;
   const member = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
@@ -226,28 +236,55 @@ async function runSearch(toFind) {
     if (!row || searched.length === 0) throw new ClaudeError('Nothing to search.');
     allowance.check(userId);
     recordAiAction(userId, 'store search');
-    const products = checked(await remote.claude(member, searched, pieceText(row)), member, searched);
-    for (const product of products) {
-      if (!product.imageUrl) product.imageUrl = await remote.previewImage(product.url);
-    }
-    saveResults(toFind, products);
+    const words = searchWords(toFind, row);
+    const stores = new Map(searched.map((s) => [s.id, { store: s.name, status: 'searching', found: 0 }]));
+    progress.set(toFind.id, stores);
+    const answers = await Promise.allSettled(searched.map((store) => searchStore(toFind, member, store, words)));
+    const failed = answers.filter((a) => a.status === 'rejected');
+    failed.forEach((a) => console.error(`Store search for To find ${toFind.id} failed at one store: ${a.reason?.message}`));
+    if (failed.length === answers.length) throw new ClaudeError('Every store failed.');
+    db.prepare(`UPDATE to_find SET search_status = 'done', search_message = NULL, searched_at = ? WHERE id = ? AND search_status = 'searching'`).run(
+      iso(now()),
+      toFind.id
+    );
   } catch (error) {
     console.error(`Store search for To find ${toFind.id} failed: ${error.message}`);
     const message = error instanceof allowance.AllowanceError ? error.message : 'Caro could not search your stores just now. Try again.';
     db.prepare(`UPDATE to_find SET search_status = 'failed', search_message = ? WHERE id = ? AND search_status = 'searching'`).run(message, toFind.id);
+  } finally {
+    progress.delete(toFind.id);
   }
 }
 
-// Saves what was found. Products the member kept stay; the others are replaced. A product
-// found again that was kept or discarded keeps that choice.
-function saveResults(toFind, products) {
+async function searchStore(toFind, member, store, words) {
+  const state = progress.get(toFind.id).get(store.id);
+  try {
+    const products = checked(await remote.claude(member, store, words), member, [store]);
+    for (const product of products) {
+      if (!product.imageUrl) product.imageUrl = await remote.previewImage(product.url);
+    }
+    saveStoreResults(toFind, store, products);
+    state.status = 'done';
+    state.found = products.length;
+  } catch (error) {
+    state.status = 'failed';
+    throw error;
+  }
+}
+
+// Saves what one store has. Its products the member kept stay; the others are replaced. A
+// product found again that was kept or discarded keeps that choice.
+function saveStoreResults(toFind, store, products) {
   db.transaction(() => {
     const still = db.prepare(`SELECT 1 FROM to_find WHERE id = ? AND search_status = 'searching'`).get(toFind.id);
     if (!still) return;
     const decided = new Map(
-      db.prepare('SELECT url, decision FROM store_results WHERE to_find_id = ? AND decision IS NOT NULL').all(toFind.id).map((r) => [r.url, r.decision])
+      db
+        .prepare('SELECT url, decision FROM store_results WHERE to_find_id = ? AND store_id = ? AND decision IS NOT NULL')
+        .all(toFind.id, store.id)
+        .map((r) => [r.url, r.decision])
     );
-    db.prepare(`DELETE FROM store_results WHERE to_find_id = ? AND (decision IS NULL OR decision = 'discarded')`).run(toFind.id);
+    db.prepare(`DELETE FROM store_results WHERE to_find_id = ? AND store_id = ? AND (decision IS NULL OR decision = 'discarded')`).run(toFind.id, store.id);
     const add = db.prepare(
       `INSERT INTO store_results (user_id, to_find_id, store_id, name, price_cents, currency, url, image_url, found_at, decision)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -262,9 +299,8 @@ function saveResults(toFind, products) {
         );
         continue;
       }
-      add.run(toFind.user_id, toFind.id, p.store.id, p.name, p.priceCents, p.currency, p.url, p.imageUrl, at, decision);
+      add.run(toFind.user_id, toFind.id, store.id, p.name, p.priceCents, p.currency, p.url, p.imageUrl, at, decision);
     }
-    db.prepare(`UPDATE to_find SET search_status = 'done', search_message = NULL, searched_at = ? WHERE id = ?`).run(at, toFind.id);
   })();
 }
 
@@ -289,7 +325,7 @@ function resultsOf(userId, toFindId, { withDiscarded = false } = {}) {
       `SELECT store_results.*, stores.name AS store_name FROM store_results
        JOIN stores ON stores.id = store_results.store_id
        WHERE store_results.to_find_id = ? AND store_results.user_id = ? ${withDiscarded ? '' : `AND (decision IS NULL OR decision = 'kept')`}
-       ORDER BY decision = 'kept' DESC, store_results.id`
+       ORDER BY decision = 'kept' DESC, stores.position, store_results.id`
     )
     .all(toFindId, userId)
     .map(resultJSON);
@@ -310,7 +346,7 @@ function searchSummary(userId, toFind) {
 }
 
 module.exports = {
-  MAX_RESULTS,
+  PER_STORE,
   remote,
   checked,
   storesFor,
@@ -320,5 +356,6 @@ module.exports = {
   runSearch,
   resultsOf,
   searchSummary,
-  pieceText,
+  searchWords,
+  progressOf,
 };

@@ -2,7 +2,8 @@
 //
 // GET  /me/to-find/:id                       the Find it page: the piece, its inspiration, the
 //                                            search state, the products found, stores not searched
-// POST /me/to-find/:id/search                Find it or Search again (one AI action, in the background)
+// POST /me/to-find/:id/search                { words }: Find it or Search again, with the member's own
+//                                            words if given (one AI action, in the background)
 // PUT  /me/to-find/:id/results/:rid          { decision: 'kept' | 'discarded' | null }: swipe right or left
 // GET  /me/to-find/:id/results/:rid/image    the product's picture, fetched from the store by the server
 // POST /me/to-find/:id/bought                { result, photo, cutout }: adds the piece to the edit with
@@ -46,6 +47,11 @@ function pageJSON(userId, toFind) {
     searchStatus: toFind.search_status,
     searchMessage: toFind.search_message,
     searchedAt: toFind.searched_at,
+    // The words searched with, and whether they are the member's own.
+    searchWords: search.searchWords(toFind, row),
+    ownWords: Boolean(toFind.search_words),
+    // While searching: each store, searching, done (with how many found) or failed.
+    progress: toFind.search_status === 'searching' ? search.progressOf(toFind.id) ?? searched.map((s) => ({ store: s.name, status: 'searching', found: 0 })) : null,
     results: search.resultsOf(userId, toFind.id),
     // For prices and dates in the member's own format.
     country: member.country,
@@ -77,6 +83,12 @@ router.post('/:id/search', (req, res) => {
   const toFind = find(req, res);
   if (!toFind) return;
   if (toFind.search_status !== 'searching') {
+    // The member's own words: kept for later searches. Empty goes back to Caro's description.
+    if (req.body && 'words' in req.body) {
+      const words = String(req.body.words ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
+      db.prepare('UPDATE to_find SET search_words = ? WHERE id = ? AND user_id = ?').run(words || null, toFind.id, req.member.id);
+      toFind.search_words = words || null;
+    }
     const refused = search.startSearch(req.member.id, toFind);
     if (refused) return res.status(refused.status ?? 400).json({ error: refused.error });
     queue.add(toFind.id);

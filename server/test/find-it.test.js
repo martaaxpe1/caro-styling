@@ -1,7 +1,8 @@
 // npm test
 // Checks Find it and To find (PRD sections 7, 8, 10 and 11, ticket T11): marking a piece as key
-// searches the member's stores at once, only the stores that sell online in their country,
-// only products in their currency on their stores' sites, up to five; keep and discard; Search
+// searches each of the member's stores that sells online in their country, all at once, only
+// products in their currency on that store's site, up to three per store; the member's own
+// search words; keep and discard; Search
 // again keeps the kept ones; Bought adds the piece to the edit with no AI action; the monthly
 // AI allowance; the admin's AI totals; and that one member never reaches another's To find.
 // Claude and the stores are replaced by stand-ins, so nothing outside is called.
@@ -28,11 +29,13 @@ const queue = require('../src/jobs/search-queue');
 // The stand-in for Claude's store search.
 let nextProducts = () => [];
 let searches = [];
-storeSearch.remote.claude = async (member, stores, piece) => {
-  searches.push({ member: member.id, stores: stores.map((s) => s.domain), piece });
-  const answer = nextProducts(member);
+// It gets one store; the test's products are handed to the store whose site they are on, so
+// a product on another site is what Claude might wrongly return for this store.
+storeSearch.remote.claude = async (member, store, piece) => {
+  searches.push({ member: member.id, store: store.domain, piece });
+  const answer = nextProducts(member, store);
   if (answer instanceof Error) throw answer;
-  return { products: answer };
+  return { products: answer.filter((p) => !p.url.includes('.cos.com') && !p.url.includes('.zara.com') ? store.domain === 'cos.com' : p.url.includes(`.${store.domain}`)) };
 };
 storeSearch.remote.previewImage = async () => 'https://images.example.test/preview.jpg';
 
@@ -112,7 +115,7 @@ async function photo() {
   return (await sharp({ create: { width: 600, height: 600, channels: 3, background: '#EFE7DB' } }).jpeg().toBuffer()).toString('base64');
 }
 
-test('Mark as key searches the member stores at once, in their currency, on their sites, up to five', async () => {
+test('Mark as key searches each store, in their currency, on that store, up to three per store', async () => {
   const marta = addMember();
   const inspirationId = addInspiration(marta.id);
   searches = [];
@@ -127,19 +130,18 @@ test('Mark as key searches the member stores at once, in their currency, on thei
     ...[4, 5, 6, 7].map((n) => product({ name: `Bag ${n}`, url: `https://www.cos.com/en-nl/bag-${n}.html` })),
   ];
   const row = await markKey(marta, inspirationId);
-  assert.equal(searches.length, 1);
-  assert.deepEqual(searches[0].stores, ['cos.com', 'zara.com'], 'Arket has no online shop, so it is not searched');
-  assert.match(searches[0].piece, /Black leather shoulder bag/);
+  assert.deepEqual(searches.map((s) => s.store).sort(), ['cos.com', 'zara.com'], 'Arket has no online shop, so it is not searched');
+  assert.match(searches[0].piece, /Black leather shoulder bag, small, chain strap/);
   assert.equal(row.searchStatus, 'done');
-  assert.equal(row.found, 5);
+  assert.equal(row.found, 4);
 
   const page = await call('GET', `/me/to-find/${row.id}`, { token: marta.token });
   assert.equal(page.status, 200);
   const names = page.body.toFind.results.map((r) => r.name);
-  assert.deepEqual(names, ['Leather shoulder bag', 'Zara bag', 'Bag 4', 'Bag 5', 'Bag 6']);
+  assert.deepEqual(names, ['Leather shoulder bag', 'Bag 4', 'Bag 5', 'Zara bag'], 'three from COS, one from Zara, in the order of the stores');
   assert.ok(page.body.toFind.results.every((r) => r.currency === 'EUR'));
-  assert.equal(page.body.toFind.results[1].priceCents, 4995);
-  assert.match(page.body.toFind.results[1].image, /^\/me\/to-find\/\d+\/results\/\d+\/image$/);
+  assert.equal(page.body.toFind.results[3].priceCents, 4995);
+  assert.match(page.body.toFind.results[3].image, /^\/me\/to-find\/\d+\/results\/\d+\/image$/);
   const zara = db.prepare(`SELECT image_url FROM store_results WHERE name = 'Zara bag'`).pluck().get();
   assert.equal(zara, 'https://images.example.test/preview.jpg', 'no image from Claude: the page preview');
   assert.equal(page.body.toFind.results[0].store, 'COS');
@@ -147,7 +149,37 @@ test('Mark as key searches the member stores at once, in their currency, on thei
   assert.match(page.body.toFind.notSearched[0], /Arket has no online shop in the Netherlands/);
 
   const usage = db.prepare(`SELECT COUNT(*) FROM ai_usage WHERE user_id = ? AND action = 'store search'`).pluck().get(marta.id);
-  assert.equal(usage, 1, 'one search is one AI action');
+  assert.equal(usage, 1, 'one search of every store is one AI action');
+  assert.equal(page.body.toFind.searchWords, 'Black leather shoulder bag, small, chain strap');
+  assert.equal(page.body.toFind.progress, null, 'no progress once done');
+});
+
+test('One store failing still shows the others; the member can search with their own words', async () => {
+  const member = addMember();
+  const inspirationId = addInspiration(member.id);
+  nextProducts = (m, store) => (store.domain === 'zara.com' ? new Error('Claude took too long to answer.') : []);
+  const row = await markKey(member, inspirationId);
+  assert.equal(row.searchStatus, 'done', 'COS answered: nothing found there');
+  assert.equal(row.found, 0);
+
+  searches = [];
+  nextProducts = () => [product({ name: 'Crossbody bag' })];
+  const again = await call('POST', `/me/to-find/${row.id}/search`, { token: member.token, body: { words: '  black   crossbody bag ' } });
+  assert.equal(again.status, 200);
+  assert.equal(again.body.toFind.searchWords, 'black crossbody bag');
+  assert.equal(again.body.toFind.ownWords, true);
+  assert.equal(again.body.toFind.progress.length, 2, 'each store, while searching');
+  await queue.idle();
+  assert.ok(searches.every((s) => s.piece === 'black crossbody bag'));
+  const page = (await call('GET', `/me/to-find/${row.id}`, { token: member.token })).body.toFind;
+  assert.deepEqual(page.results.map((r) => r.name), ['Crossbody bag']);
+
+  // Empty words: back to Caro's description.
+  await call('POST', `/me/to-find/${row.id}/search`, { token: member.token, body: { words: '' } });
+  await queue.idle();
+  const back = (await call('GET', `/me/to-find/${row.id}`, { token: member.token })).body.toFind;
+  assert.equal(back.ownWords, false);
+  assert.match(back.searchWords, /^Black leather shoulder bag/);
 });
 
 test('Nothing found is a valid answer; a failed search can be tried again', async () => {
