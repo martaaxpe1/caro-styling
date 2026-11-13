@@ -198,11 +198,17 @@ struct FindItView: View {
         }
     }
 
-    /// "Found 12 Nov in your stores. Prices and stock change."
+    /// When the search ran: "Searched your 7 stores on 12 Nov." With products, a reminder that
+    /// the store's price and stock can have changed since.
     private func foundLine(_ page: FindItPage) -> String {
-        guard let date = page.searchedAt else { return "Searched in your stores." }
-        let day = date.formatted(.dateTime.day().month(.abbreviated).locale(Locale(identifier: "en_\(page.country ?? "US")")))
-        return "Found \(day) in your stores. Prices and stock change."
+        let stores = page.stores.count == 1 ? "your store" : "your \(page.stores.count) stores"
+        var line = "Searched \(stores)"
+        if let date = page.searchedAt {
+            line += " on " + date.formatted(.dateTime.day().month(.abbreviated).locale(Locale(identifier: "en_\(page.country ?? "US")")))
+        }
+        line += "."
+        if !page.results.isEmpty { line += " Prices and stock may have changed since." }
+        return line
     }
 
     /// "COS, Zara and Arket", or "your stores" when there are many.
