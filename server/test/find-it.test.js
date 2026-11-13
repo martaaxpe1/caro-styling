@@ -37,7 +37,8 @@ storeSearch.remote.claude = async (member, store, piece) => {
   if (answer instanceof Error) throw answer;
   return { products: answer.filter((p) => !p.url.includes('.cos.com') && !p.url.includes('.zara.com') ? store.domain === 'cos.com' : p.url.includes(`.${store.domain}`)) };
 };
-storeSearch.remote.previewImage = async () => 'https://images.example.test/preview.jpg';
+// The stand-in for reading a product page: a page whose address says sold out is sold out.
+storeSearch.remote.productPage = async (url) => ({ image: 'https://images.example.test/preview.jpg', soldOut: url.includes('sold-out') });
 
 let server;
 let base;
@@ -101,7 +102,7 @@ function addInspiration(userId) {
   return inspirationId;
 }
 
-const product = (over) => ({ name: 'Leather shoulder bag', price: 89, currency: 'EUR', url: 'https://www.cos.com/en-nl/bag-1.html', image_url: 'https://images.cos.com/bag-1.jpg', ...over });
+const product = (over) => ({ name: 'Leather shoulder bag', price: 89, currency: 'EUR', url: 'https://www.cos.com/en-nl/bag-1.html', image_url: 'https://images.cos.com/bag-1.jpg', available: 'yes', ...over });
 
 async function markKey(member, inspirationId) {
   const res = await call('PUT', `/me/inspirations/${inspirationId}/pieces/1`, { token: member.token, body: { key: true } });
@@ -126,6 +127,9 @@ test('Mark as key searches each store, in their currency, on that store, up to t
     product({ name: 'Not https', url: 'http://www.zara.com/nl/bag.html' }),
     product({ name: 'No price', price: 0, url: 'https://www.zara.com/nl/bag-0.html' }),
     product({ name: 'Zara bag', price: 49.95, url: 'https://www.zara.com/nl/bag-3.html', image_url: '' }),
+    product({ name: 'Sold out, Claude saw', url: 'https://www.zara.com/nl/bag-8.html', available: 'no' }),
+    product({ name: 'Sold out, the page says', url: 'https://www.zara.com/nl/bag-sold-out.html' }),
+    product({ name: 'Not sure', url: 'https://www.zara.com/nl/bag-9.html', available: 'not sure' }),
     product({ name: 'Twice', url: 'https://www.cos.com/en-nl/bag-1.html' }),
     ...[4, 5, 6, 7].map((n) => product({ name: `Bag ${n}`, url: `https://www.cos.com/en-nl/bag-${n}.html` })),
   ];
@@ -133,12 +137,12 @@ test('Mark as key searches each store, in their currency, on that store, up to t
   assert.deepEqual(searches.map((s) => s.store).sort(), ['cos.com', 'zara.com'], 'Arket has no online shop, so it is not searched');
   assert.match(searches[0].piece, /Black leather shoulder bag, small, chain strap/);
   assert.equal(row.searchStatus, 'done');
-  assert.equal(row.found, 4);
+  assert.equal(row.found, 5);
 
   const page = await call('GET', `/me/to-find/${row.id}`, { token: marta.token });
   assert.equal(page.status, 200);
   const names = page.body.toFind.results.map((r) => r.name);
-  assert.deepEqual(names, ['Leather shoulder bag', 'Bag 4', 'Bag 5', 'Zara bag'], 'three from COS, one from Zara, in the order of the stores');
+  assert.deepEqual(names, ['Leather shoulder bag', 'Bag 4', 'Bag 5', 'Zara bag', 'Not sure'], 'three from COS, two from Zara, in the order of the stores; sold out ones left out');
   assert.ok(page.body.toFind.results.every((r) => r.currency === 'EUR'));
   assert.equal(page.body.toFind.results[3].priceCents, 4995);
   assert.match(page.body.toFind.results[3].image, /^\/me\/to-find\/\d+\/results\/\d+\/image$/);

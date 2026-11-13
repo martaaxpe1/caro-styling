@@ -9,7 +9,9 @@
 //    unisex). Never children's.
 // 3. Haiku's web fetch opens each product page, to get its image and to drop dead links.
 // The server then checks every answer itself: a link on that store, the member's currency, a
-// price, an https image. Up to three per store. "Nothing found" is a valid answer.
+// price, an https image, and not sold out (Claude checks the page, and the server checks the
+// page's own stock data where the store lets it read it). Up to three per store.
+// "Nothing found" is a valid answer.
 // While it runs, each store's progress is kept in memory, so the app can show it.
 //
 // Claude only looks up what the stores list for the piece the member asked about. It never
@@ -49,8 +51,9 @@ const SCHEMA = {
           currency: { type: 'string' },
           url: { type: 'string' },
           image_url: { type: 'string' },
+          available: { type: 'string', enum: ['yes', 'no', 'not sure'] },
         },
-        required: ['name', 'price', 'currency', 'url', 'image_url'],
+        required: ['name', 'price', 'currency', 'url', 'image_url', 'available'],
         additionalProperties: false,
       },
     },
@@ -96,8 +99,8 @@ function prompt(member, store, piece) {
   return `Search the ${store.name} online shop for ${place} (${store.country_url}) for one piece: "${piece}".
 
 Search the store's whole website, ${store.domain}. Return up to ${PER_STORE} products listed in that shop that match the description, closest first. Only products sold in the shop for ${place}, with prices in ${member.currency}. Only products from the shop's ${listText(sectionsOf(member))} sections: leave out every other section, including children's.
-Open each product page you return with web fetch, to check that it still works and to find its main product image. Leave out any product whose page does not open.
-For each product: the name as the shop writes it, the price as a number, the three-letter currency code, the address of the product page, and the address of its main image (empty if you could not find one).
+Open each product page you return with web fetch, to check that it still works, that it can still be bought, and to find its main product image. Leave out any product whose page does not open, and any product that is sold out, out of stock, coming soon, or no longer sold in every size.
+For each product: the name as the shop writes it, the price as a number, the three-letter currency code, the address of the product page, the address of its main image (empty if you could not find one), and available: "yes" if its page shows it can be added to the bag in at least one size, "no" if it is sold out, "not sure" if you could not tell.
 If nothing matches, return an empty list. That is a valid answer.`;
 }
 
@@ -131,19 +134,24 @@ const remote = {
     throw lastError;
   },
 
-  // Without AI: the product page's preview image (og:image), when Claude found none.
-  async previewImage(url) {
+  // Without AI: reads the product page, when the store allows it: its preview image
+  // (og:image), and whether its structured data says it is sold out (schema.org availability,
+  // which most shops publish for search engines). { image, soldOut }, or null if it did not open.
+  async productPage(url) {
     try {
       const response = await fetch(url, {
         signal: AbortSignal.timeout(8000),
         headers: { 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' },
       });
       if (!response.ok) return null;
-      const html = (await response.text()).slice(0, 500000);
+      const html = (await response.text()).slice(0, 1500000);
       const match =
         html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
         html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
-      return match ? httpsUrl(match[1].replace(/&amp;/g, '&')) : null;
+      const availability = [...html.matchAll(/schema\.org\/(InStock|OutOfStock|SoldOut|Discontinued|PreOrder|BackOrder|LimitedAvailability|OnlineOnly|InStoreOnly)/g)].map((m) => m[1]);
+      const buyable = availability.some((a) => ['InStock', 'LimitedAvailability', 'OnlineOnly'].includes(a));
+      const gone = availability.some((a) => ['OutOfStock', 'SoldOut', 'Discontinued'].includes(a));
+      return { image: match ? httpsUrl(match[1].replace(/&amp;/g, '&')) : null, soldOut: gone && !buyable };
     } catch {
       return null;
     }
@@ -180,6 +188,8 @@ function checked(answer, member, stores) {
     if (!Number.isFinite(price) || price <= 0 || price > 100000) continue;
     const name = String(item?.name ?? '').trim().slice(0, 120);
     if (!name) continue;
+    // Only what can be bought: Claude saw it sold out.
+    if (item?.available === 'no') continue;
     seen.add(url);
     products.push({ store, name, priceCents: Math.round(price * 100), currency: member.currency, url, imageUrl: httpsUrl(item?.image_url) });
     if (products.length === PER_STORE) break;
@@ -259,10 +269,14 @@ async function runSearch(toFind) {
 async function searchStore(toFind, member, store, words) {
   const state = progress.get(toFind.id).get(store.id);
   try {
-    const products = checked(await remote.claude(member, store, words), member, [store]);
-    for (const product of products) {
-      if (!product.imageUrl) product.imageUrl = await remote.previewImage(product.url);
-    }
+    const found = checked(await remote.claude(member, store, words), member, [store]);
+    // A second check without AI, where the store lets the server read the page: a product its
+    // page says is sold out is left out, and a missing image is taken from the page.
+    const pages = await Promise.all(found.map((p) => remote.productPage(p.url)));
+    const products = found.filter((p, i) => !pages[i]?.soldOut);
+    products.forEach((p) => {
+      if (!p.imageUrl) p.imageUrl = pages[found.indexOf(p)]?.image ?? null;
+    });
     saveStoreResults(toFind, store, products);
     state.status = 'done';
     state.found = products.length;
