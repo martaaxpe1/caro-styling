@@ -318,6 +318,43 @@ test('your version saves as an inspired look, again changes the same look, and t
   assert.equal((await call('GET', `/me/inspirations/${inspId}`, { token })).body.inspiration.look, null);
 });
 
+test("a piece that doesn't fit yet stays in your version, but is not counted as yours", async () => {
+  const { id, token } = addMember();
+  const p = wardrobeOf(id);
+  nextAnswer = screen15(id, p);
+  const inspirationId = (await addInspiration(token)).body.inspiration.id;
+  const page = async () => (await call('GET', `/me/inspirations/${inspirationId}`, { token })).body.inspiration;
+  const home = async () => (await call('GET', '/me/inspirations', { token })).body.inspirations[0];
+  const fits = (pieceId, value) => call('PUT', `/me/pieces/${pieceId}/fits`, { token, body: { fits: value } });
+  assert.deepEqual([(await page()).owned, (await page()).total], [3, 5]);
+
+  // Matched by Caro: still there, marked, one less.
+  await fits(p.jeans, false);
+  let insp = await page();
+  assert.deepEqual([insp.owned, insp.total], [2, 5]);
+  assert.equal((await home()).owned, 2);
+  assert.equal(insp.pieces[2].match, 'yours');
+  assert.equal(insp.pieces[2].piece.id, p.jeans);
+  assert.equal(insp.pieces[2].piece.fits, false);
+
+  // Filled by the member: the same.
+  insp = (await call('PUT', `/me/inspirations/${inspirationId}/pieces/1`, { token, body: { piece: p.blazer } })).body.inspiration;
+  assert.equal(insp.owned, 3);
+  await fits(p.blazer, false);
+  assert.equal((await page()).owned, 2);
+
+  // It does not hold the look in progress: every piece has one of the member's own.
+  await call('PUT', `/me/inspirations/${inspirationId}/pieces/5`, { token, body: { piece: p.tote } });
+  const saved = await call('POST', `/me/inspirations/${inspirationId}/look`, { token, body: { occasions: [], seasons: [] } });
+  assert.equal(saved.body.look?.inProgress, false);
+  assert.equal(saved.body.look.pieces.length, 5);
+
+  // It fits now: counted again.
+  await fits(p.jeans, true);
+  await fits(p.blazer, true);
+  assert.equal((await page()).owned, 5);
+});
+
 test('a version can be saved in progress: the look keeps its inspiration and its pieces to find', async () => {
   const { id, token } = addMember();
   const p = wardrobeOf(id);

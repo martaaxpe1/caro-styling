@@ -178,10 +178,11 @@ function ownPieceFor(row) {
 }
 
 // "4 of 5 yours": pieces Claude marked yours, and pieces the member filled with their own.
-// Close does not count as yours (PRD section 8). Removed pieces are left out.
+// Close does not count as yours (PRD section 8), and neither does a piece that doesn't fit yet,
+// matched or filled (T13). Removed pieces are left out.
 function counts(rows) {
   const kept = rows.filter((row) => !row.removed);
-  const yours = kept.filter((row) => (row.filled_piece_id ? ownPieceFor(row) : row.match === 'yours' && ownPieceFor(row)));
+  const yours = kept.filter((row) => (row.filled_piece_id || row.match === 'yours') && ownPieceFor(row)?.fits === 1);
   return { owned: yours.length, total: kept.length };
 }
 

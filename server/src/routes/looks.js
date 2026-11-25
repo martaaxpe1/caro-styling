@@ -80,14 +80,14 @@ router.get('/', (req, res) => {
   res.json({ looks: looks.map(lookJSON), occasions: ownOccasions(userId), seasons: ownSeasons(userId) });
 });
 
-// The pieces the tray chooses from: everything counted in the edit, newest first. The phone
-// puts the current season first; it never hides a piece.
+// The pieces the tray chooses from: everything counted in the edit, newest first, those that
+// don't fit yet last (T13). The phone puts the current season first; it never hides a piece.
 router.get('/table', (req, res) => {
   const userId = req.member.id;
   const pieces = db
     .prepare(
       `SELECT pieces.* FROM pieces JOIN kinds ON kinds.name = pieces.kind
-       WHERE pieces.user_id = ? AND pieces.status IN ('confirmed', 'maybe') ORDER BY pieces.id DESC`
+       WHERE pieces.user_id = ? AND pieces.status IN ('confirmed', 'maybe') ORDER BY pieces.fits DESC, pieces.id DESC`
     )
     .all(userId);
   res.json({

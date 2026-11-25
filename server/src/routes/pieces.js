@@ -2,10 +2,11 @@
 //
 // POST   /me/pieces                   { photo, cutout }   a new piece, pictures as base64 (cutout: null when nothing lifted)
 // GET    /me/pieces?status=pending    the review queue, oldest first, with the season rule per warmth
-// GET    /me/pieces?chapter=tops      the counted pieces of one chapter, newest first, with what the filters need
+// GET    /me/pieces?chapter=tops      the counted pieces of one chapter, with what the filters need: newest first, those that don't fit yet last
 // GET    /me/pieces/:id               one piece for its page (screen 11), with the looks it is in
-// PUT    /me/pieces/:id               { name, kind, colours, ..., status, brand, notes }   confirm (or maybe) with the member's details
+// PUT    /me/pieces/:id               { name, kind, colours, ..., status, brand, notes, fits }   confirm (or maybe) with the member's details
 // PUT    /me/pieces/:id/status        { status: 'maybe' | 'confirmed' }   mark a piece in the edit as maybe, or not
+// PUT    /me/pieces/:id/fits          { fits: true | false }   false: a piece in the edit doesn't fit yet (T13)
 // PUT    /me/pieces/:id/photo         { photo, cutout }   retake: a new photo, the same details
 // POST   /me/pieces/:id/rotate        turns the pictures a quarter turn clockwise
 // GET    /me/pieces/:id/photo         the photo; also /cutout and /thumb (the thumbnail)
@@ -20,7 +21,7 @@ const db = require('../db');
 const { now, iso } = require('../lib/today');
 const { requireMember } = require('../middleware/signed-in');
 const photos = require('../lib/photos');
-const { findPiece, imageUrl, pieceJSON, checkDetails, saveDetails } = require('../lib/pieces');
+const { findPiece, imageUrl, pieceJSON, checkDetails, saveDetails, setFits } = require('../lib/pieces');
 const pieceQueue = require('../jobs/piece-queue');
 const wardrobe = require('../lib/wardrobe');
 const { seasonsByWarmth, currentSeason } = require('../lib/piece-seasons');
@@ -80,7 +81,7 @@ router.get('/', (req, res) => {
       .prepare(
         `SELECT pieces.* FROM pieces JOIN kinds ON kinds.name = pieces.kind
          WHERE pieces.user_id = ? AND kinds.chapter = ? AND pieces.status IN ('confirmed', 'maybe')
-         ORDER BY pieces.id DESC`
+         ORDER BY pieces.fits DESC, pieces.id DESC`
       )
       .all(userId, req.query.chapter);
     // The filters (S6) choose among these on the phone: the season (the current one at first),
@@ -139,6 +140,17 @@ router.put('/:id/status', (req, res) => {
   if (!['confirmed', 'maybe'].includes(req.body?.status)) return res.status(400).json({ error: 'Choose maybe or not.' });
 
   db.prepare('UPDATE pieces SET status = ? WHERE id = ? AND user_id = ?').run(req.body.status, piece.id, req.member.id);
+  res.json({ piece: pieceJSON(findPiece(req.member.id, piece.id)) });
+});
+
+// A piece in the edit doesn't fit yet, or fits now (T13). It still counts towards the unlock.
+router.put('/:id/fits', (req, res) => {
+  const piece = findPiece(req.member.id, req.params.id);
+  if (!piece) return res.status(404).json({ error: 'This piece is no longer in your wardrobe.' });
+  if (piece.status === 'pending') return res.status(400).json({ error: 'Review this piece first.' });
+  if (typeof req.body?.fits !== 'boolean') return res.status(400).json({ error: 'Say whether this piece fits.' });
+
+  setFits(piece, req.body.fits);
   res.json({ piece: pieceJSON(findPiece(req.member.id, piece.id)) });
 });
 

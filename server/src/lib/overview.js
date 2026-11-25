@@ -1,12 +1,21 @@
 // The wardrobe overview (screen S7, PRD sections 7 and 8): what the member has, as facts.
 // Counts by chapter, main colour, season and occasion; once there is a look, the pieces in no
-// look yet and the occasions with fewer than three looks. Never advice, never what to buy.
+// look yet (leaving out those that don't fit yet, a fact of their own) and the occasions with
+// fewer than three looks. Never advice, never what to buy.
 // Only the member's own counted pieces (confirmed or maybe).
 
 const db = require('../db');
 const lists = require('./lists');
 const { COUNTED, looksCount } = require('./wardrobe');
 const { imageUrl } = require('./pieces');
+
+// How many pieces, and pictures of the newest eight.
+function countWithPictures(pieces) {
+  return {
+    count: pieces.length,
+    pieces: pieces.slice(0, 8).map((p) => ({ id: p.id, name: p.name, thumb: imageUrl(p, 'thumb'), hasCutout: Boolean(p.cutout_path) })),
+  };
+}
 
 function overviewJSON(userId) {
   // To find (T10): the missing pieces the member marked as key, as in Get the look.
@@ -81,17 +90,17 @@ function overviewJSON(userId) {
   if (looks > 0) {
     const pieces = db
       .prepare(
-        `SELECT * FROM pieces WHERE user_id = ? AND ${COUNTED}
+        `SELECT * FROM pieces WHERE user_id = ? AND ${COUNTED} AND fits = 1
          AND NOT EXISTS (SELECT 1 FROM look_pieces WHERE look_pieces.piece_id = pieces.id)
          ORDER BY id DESC`
       )
       .all(userId);
-    notInALook = {
-      count: pieces.length,
-      pieces: pieces.slice(0, 8).map((p) => ({ id: p.id, name: p.name, thumb: imageUrl(p, 'thumb'), hasCutout: Boolean(p.cutout_path) })),
-    };
+    notInALook = countWithPictures(pieces);
     occasionsFewLooks = occasions.filter((o) => o.looks < 3).map((o) => ({ id: o.id, name: o.name, looks: o.looks }));
   }
+
+  // Doesn't fit yet (T13): with or without looks, so the member is reminded of them.
+  const doesntFit = db.prepare(`SELECT * FROM pieces WHERE user_id = ? AND ${COUNTED} AND fits = 0 ORDER BY id DESC`).all(userId);
 
   return {
     pieces: total,
@@ -104,6 +113,7 @@ function overviewJSON(userId) {
     looks,
     notInALook,
     occasionsFewLooks,
+    doesntFit: countWithPictures(doesntFit),
     toFind,
   };
 }

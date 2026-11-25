@@ -59,7 +59,8 @@ function looksCount(userId) {
 // What the edit shows (screens 08 and 10): progress, pieces still being read or waiting for
 // review, the current season for the dateline, how many pieces have new seasons to check, and
 // each chapter with pieces: its count, how many are in no look (once there is a look), and its
-// three newest cut-outs.
+// three newest cut-outs. Pieces that don't fit yet (T13) are counted, but they are not "not styled
+// yet", and their cut-outs show only in a chapter with no others.
 function wardrobeJSON(userId) {
   const waiting = db
     .prepare(
@@ -72,7 +73,8 @@ function wardrobeJSON(userId) {
   const chapters = db
     .prepare(
       `SELECT chapters.name, chapters.number, COUNT(pieces.id) AS count,
-         COALESCE(SUM(NOT EXISTS (SELECT 1 FROM look_pieces WHERE look_pieces.piece_id = pieces.id)), 0) AS not_styled
+         COALESCE(SUM(pieces.fits = 1 AND NOT EXISTS (SELECT 1 FROM look_pieces WHERE look_pieces.piece_id = pieces.id)), 0) AS not_styled,
+         MAX(pieces.fits) AS any_fits
        FROM chapters
        JOIN kinds ON kinds.chapter = chapters.name
        JOIN pieces ON pieces.kind = kinds.name AND pieces.user_id = ? AND ${COUNTED}
@@ -82,7 +84,7 @@ function wardrobeJSON(userId) {
 
   const newest = db.prepare(
     `SELECT pieces.* FROM pieces JOIN kinds ON kinds.name = pieces.kind
-     WHERE pieces.user_id = ? AND kinds.chapter = ? AND ${COUNTED}
+     WHERE pieces.user_id = ? AND kinds.chapter = ? AND pieces.fits = ? AND ${COUNTED}
      ORDER BY pieces.id DESC LIMIT 3`
   );
 
@@ -103,7 +105,7 @@ function wardrobeJSON(userId) {
       number: chapter.number,
       count: chapter.count,
       notStyled: looks > 0 ? chapter.not_styled : null,
-      thumbs: newest.all(userId, chapter.name).map((piece) => imageUrl(piece, 'thumb')),
+      thumbs: newest.all(userId, chapter.name, chapter.any_fits).map((piece) => imageUrl(piece, 'thumb')),
     })),
   };
 }

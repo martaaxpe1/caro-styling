@@ -52,6 +52,8 @@ function pieceJSON(piece) {
     formality: piece.formality,
     brand: piece.brand,
     notes: piece.notes,
+    // False: the member marked it as not fitting yet (T13).
+    fits: piece.fits === 1,
     seasons: seasonsOf.pluck().all(piece.id),
     // New seasons proposed after the member changed their year, not checked yet (PRD section 8).
     seasonsToCheck: piece.seasons_to_check === 1,
@@ -71,7 +73,8 @@ function pieceJSON(piece) {
 }
 
 // Checks the details the member saved in the review queue: { name, kind, colours, pattern,
-// material, warmth, formality, seasons, occasions, status }. Returns { details } or { error }.
+// material, warmth, formality, seasons, occasions, status }, and optionally brand, notes and fits.
+// Returns { details } or { error }.
 // Every value must be on its fixed list; seasons and occasions must be the member's own.
 function checkDetails(body, userId) {
   const { kindByName, colours, patterns, materials, warmth, formality } = lists.load();
@@ -109,6 +112,9 @@ function checkDetails(body, userId) {
   if (brand?.length > 40) return { error: 'Keep the brand to 40 letters.' };
   if (notes?.length > 280) return { error: 'Keep the note to 280 letters.' };
 
+  // Doesn't fit yet (T13). Left out, as an older app does: unchanged.
+  if (body.fits !== undefined && typeof body.fits !== 'boolean') return { error: 'Say whether this piece fits.' };
+
   return {
     details: {
       name: name[0].toUpperCase() + name.slice(1),
@@ -123,6 +129,7 @@ function checkDetails(body, userId) {
       status: body.status,
       brand,
       notes,
+      fits: body.fits,
     },
   };
 }
@@ -132,6 +139,11 @@ function optionalText(body, field) {
   if (!body || !(field in body)) return undefined;
   const text = String(body[field] ?? '').trim();
   return text || null;
+}
+
+// Marks a piece as not fitting yet, or as fitting again (T13).
+function setFits(piece, fits) {
+  db.prepare('UPDATE pieces SET fits = ? WHERE id = ? AND user_id = ?').run(fits ? 1 : 0, piece.id, piece.user_id);
 }
 
 // Saves checked details. A piece the member confirms before Claude finished reading it
@@ -146,6 +158,7 @@ const saveDetails = db.transaction((piece, d, at) => {
   ).run(d.name, d.kind, d.pattern, d.material, d.warmth, d.formality, d.status, at, piece.id, piece.user_id);
   if (d.brand !== undefined) db.prepare('UPDATE pieces SET brand = ? WHERE id = ? AND user_id = ?').run(d.brand, piece.id, piece.user_id);
   if (d.notes !== undefined) db.prepare('UPDATE pieces SET notes = ? WHERE id = ? AND user_id = ?').run(d.notes, piece.id, piece.user_id);
+  if (d.fits !== undefined) setFits(piece, d.fits);
 
   db.prepare('DELETE FROM piece_colours WHERE piece_id = ? AND user_id = ?').run(piece.id, piece.user_id);
   const addColour = db.prepare('INSERT INTO piece_colours (user_id, piece_id, colour, position) VALUES (?, ?, ?, ?)');
@@ -160,4 +173,4 @@ const saveDetails = db.transaction((piece, d, at) => {
   d.occasions.forEach((id) => addOccasion.run(piece.user_id, piece.id, id));
 });
 
-module.exports = { findPiece, imageUrl, pieceJSON, checkDetails, saveDetails };
+module.exports = { findPiece, imageUrl, pieceJSON, checkDetails, saveDetails, setFits };

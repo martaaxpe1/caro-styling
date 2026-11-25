@@ -1,8 +1,8 @@
 // npm test
 // Checks the edit (PRD sections 7, 8 and 9, ticket T6): the contents with the current season and
 // "not styled yet", a chapter with what its filters need, the piece page with the looks it is in,
-// maybe, brand and notes, the overview, and the one-batch check of new seasons. Like the other
-// tests, it runs on a throwaway database, with DEV_TODAY in autumn. No AI is called.
+// maybe, doesn't fit yet (T13), brand and notes, the overview, and the one-batch check of new
+// seasons. Like the other tests, it runs on a throwaway database, with DEV_TODAY in autumn. No AI is called.
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -193,6 +193,91 @@ test('a piece in the edit can be marked maybe and back; a waiting piece cannot',
 
   assert.equal((await call('PUT', `/me/pieces/${coat}/status`, { token, body: { status: 'pending' } })).status, 400);
   assert.equal((await call('PUT', `/me/pieces/${waiting}/status`, { token, body: { status: 'maybe' } })).status, 400);
+});
+
+test("a piece in the edit can be marked as not fitting yet and back; it still counts", async () => {
+  const { id, token } = addMember();
+  const other = addMember();
+  const coat = addPiece(id, { name: 'Camel wool coat', kind: 'coat', status: 'maybe' });
+  const waiting = addPiece(id, { name: 'Waiting coat', kind: 'coat', status: 'pending' });
+  assert.equal((await call('GET', `/me/pieces/${coat}`, { token })).body.piece.fits, true, 'every piece fits at first');
+
+  let res = await call('PUT', `/me/pieces/${coat}/fits`, { token, body: { fits: false } });
+  assert.equal(res.body.piece.fits, false);
+  assert.equal(res.body.piece.status, 'maybe', 'apart from maybe: a piece can be both');
+  assert.equal((await wardrobe(token)).progress.pieces, 1, 'it still counts');
+  res = await call('PUT', `/me/pieces/${coat}/fits`, { token, body: { fits: true } });
+  assert.equal(res.body.piece.fits, true);
+
+  for (const body of [{}, { fits: 'no' }, { fits: 0 }]) {
+    assert.equal((await call('PUT', `/me/pieces/${coat}/fits`, { token, body })).status, 400);
+  }
+  assert.equal((await call('PUT', `/me/pieces/${waiting}/fits`, { token, body: { fits: false } })).status, 400, 'reviewed first');
+  assert.equal((await call('PUT', `/me/pieces/${coat}/fits`, { token: other.token, body: { fits: false } })).status, 404);
+  assert.equal((await call('PUT', `/me/pieces/${coat}/fits`, { body: { fits: false } })).status, 401);
+  assert.equal((await call('GET', `/me/pieces/${coat}`, { token })).body.piece.fits, true, 'nobody else changed it');
+});
+
+test("doesn't fit yet is saved in the review and in Edit; left out, as an older app does, it stays", async () => {
+  const { id, token } = addMember();
+  const coat = addPiece(id, { name: 'Camel coat', kind: 'coat', status: 'pending' });
+  const body = { name: 'Camel coat', kind: 'coat', colours: ['camel'], seasons: [], occasions: [], status: 'confirmed' };
+
+  let saved = (await call('PUT', `/me/pieces/${coat}`, { token, body: { ...body, fits: false } })).body.piece;
+  assert.equal(saved.fits, false);
+  saved = (await call('PUT', `/me/pieces/${coat}`, { token, body })).body.piece;
+  assert.equal(saved.fits, false, 'left out: unchanged');
+  assert.equal((await call('PUT', `/me/pieces/${coat}`, { token, body: { ...body, fits: 'yes' } })).status, 400);
+  saved = (await call('PUT', `/me/pieces/${coat}`, { token, body: { ...body, fits: true } })).body.piece;
+  assert.equal(saved.fits, true);
+});
+
+test("pieces that don't fit yet come last in their chapter and in the tray", async () => {
+  const { id, token } = addMember();
+  db.prepare('UPDATE users SET unlocked_at = ? WHERE id = ?').run(iso(now()), id);
+  addPiece(id, { name: 'Oldest jumper', kind: 'jumper' });
+  addPiece(id, { name: 'Middle jumper', kind: 'jumper' });
+  const newest = addPiece(id, { name: 'Newest jumper', kind: 'jumper' });
+  const names = async (route) => (await call('GET', route, { token })).body.pieces.map((p) => p.name);
+
+  assert.deepEqual(await names('/me/pieces?chapter=knitwear'), ['Newest jumper', 'Middle jumper', 'Oldest jumper']);
+  await call('PUT', `/me/pieces/${newest}/fits`, { token, body: { fits: false } });
+  assert.deepEqual(await names('/me/pieces?chapter=knitwear'), ['Middle jumper', 'Oldest jumper', 'Newest jumper']);
+  assert.deepEqual(await names('/me/looks/table'), ['Middle jumper', 'Oldest jumper', 'Newest jumper'], 'last, never hidden');
+  await call('PUT', `/me/pieces/${newest}/fits`, { token, body: { fits: true } });
+  assert.deepEqual(await names('/me/pieces?chapter=knitwear'), ['Newest jumper', 'Middle jumper', 'Oldest jumper']);
+});
+
+test("the edit and the overview leave out pieces that don't fit yet, and the overview counts them", async () => {
+  const { id, token } = addMember();
+  const coat = addPiece(id, { name: 'Camel coat', kind: 'coat' });
+  const jacket = addPiece(id, { name: 'Olive jacket', kind: 'jacket' });
+  const skirt = addPiece(id, { name: 'Black skirt', kind: 'skirt' });
+  const thumbOf = (pieceId) => `/me/pieces/${pieceId}/thumb`;
+  const chapter = async (name) => (await wardrobe(token)).chapters.find((c) => c.name === name);
+  const pictures = async (name) => (await chapter(name)).thumbs.map((thumb) => thumb.split('?')[0]);
+
+  let overview = (await call('GET', '/me/wardrobe/overview', { token })).body;
+  assert.deepEqual(overview.doesntFit, { count: 0, pieces: [] });
+
+  // Before the first look too: a reminder, not a looks fact.
+  for (const piece of [jacket, skirt]) await call('PUT', `/me/pieces/${piece}/fits`, { token, body: { fits: false } });
+  overview = (await call('GET', '/me/wardrobe/overview', { token })).body;
+  assert.equal(overview.doesntFit.count, 2);
+  assert.deepEqual(overview.doesntFit.pieces.map((p) => p.name), ['Black skirt', 'Olive jacket']);
+  assert.equal(overview.pieces, 3, 'they are still in the edit');
+
+  // Their cut-outs show only in a chapter with no others. The count stays.
+  assert.deepEqual(await pictures('outerwear'), [thumbOf(coat)]);
+  assert.equal((await chapter('outerwear')).count, 2);
+  assert.deepEqual(await pictures('dresses and skirts'), [thumbOf(skirt)]);
+
+  // Not styled yet, and Pieces in no look yet.
+  addLook(id, 1, [[addPiece(id, { name: 'Loafers', kind: 'loafers' }), 'shoes']]);
+  assert.equal((await chapter('outerwear')).notStyled, 1, 'the coat only');
+  assert.equal((await chapter('dresses and skirts')).notStyled, 0);
+  overview = (await call('GET', '/me/wardrobe/overview', { token })).body;
+  assert.deepEqual(overview.notInALook.pieces.map((p) => p.name), ['Camel coat']);
 });
 
 test('editing a piece changes its name, occasions, brand and notes; left out, brand and notes stay', async () => {
