@@ -572,11 +572,33 @@ struct ReviewView: View {
 }
 
 /// Lays out chips in rows, wrapping to the next line when a row is full.
+///
+/// SwiftUI asks twice: how much room the chips need (sizeThatFits), then to put them there
+/// (placeSubviews). Both get the rows from `arrange`, so they always agree and a chip never
+/// lands on a row that was not reserved.
 struct FlowLayout: Layout {
     var spacing: CGFloat = 6
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.width ?? .infinity
+        arrange(subviews, width: proposal.width).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        // The width on offer (the proposal), not bounds: bounds is only as wide as the chips, and
+        // its left edge can be off by a hair, enough to push the last chip to a new row.
+        let places = arrange(subviews, width: proposal.width).places
+        for (subview, place) in zip(subviews, places) {
+            subview.place(
+                at: CGPoint(x: bounds.minX + place.minX, y: bounds.minY + place.minY),
+                proposal: ProposedViewSize(place.size)
+            )
+        }
+    }
+
+    /// Where each chip goes, counted from the top left corner of the layout, and the size of all of them.
+    private func arrange(_ subviews: Subviews, width: CGFloat?) -> (places: [CGRect], size: CGSize) {
+        let width = width ?? .infinity
+        var places: [CGRect] = []
         var x: CGFloat = 0
         var y: CGFloat = 0
         var rowHeight: CGFloat = 0
@@ -588,27 +610,11 @@ struct FlowLayout: Layout {
                 x = 0
                 rowHeight = 0
             }
-            x += size.width + spacing
-            widest = max(widest, x - spacing)
+            places.append(CGRect(origin: CGPoint(x: x, y: y), size: size))
+            widest = max(widest, x + size.width)
             rowHeight = max(rowHeight, size.height)
-        }
-        return CGSize(width: min(widest, width), height: y + rowHeight)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX
-        var y = bounds.minY
-        var rowHeight: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x > bounds.minX && x + size.width > bounds.maxX {
-                y += rowHeight + spacing
-                x = bounds.minX
-                rowHeight = 0
-            }
-            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
             x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
         }
+        return (places, CGSize(width: min(widest, width), height: y + rowHeight))
     }
 }
