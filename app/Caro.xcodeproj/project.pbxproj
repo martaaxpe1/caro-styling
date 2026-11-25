@@ -43,10 +43,16 @@
 		CA0000000000000000000006 /* Exceptions for "Caro" folder in "Caro" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Caro.entitlements,
 				Info.plist,
 			);
 			target = CA0000000000000000000007 /* Caro */;
+		};
+		CA0000000000000000000022 /* Exceptions for "CaroShare" folder in "CaroShare" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CA0000000000000000000024 /* CaroShare */;
 		};
 		CA0000000000000000000023 /* Exceptions for "Caro" folder in "CaroShare" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -57,17 +63,9 @@
 				Design/CaroFont.swift,
 				Design/CaroLayout.swift,
 				Design/Components/PillButton.swift,
-				"Resources/Fonts/Inter.ttf",
+				Resources/Fonts/Inter.ttf,
 				"Resources/Fonts/Newsreader-Italic.ttf",
-				"Resources/Fonts/Newsreader.ttf",
-			);
-			target = CA0000000000000000000024 /* CaroShare */;
-		};
-		CA0000000000000000000022 /* Exceptions for "CaroShare" folder in "CaroShare" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				CaroShare.entitlements,
-				Info.plist,
+				Resources/Fonts/Newsreader.ttf,
 			);
 			target = CA0000000000000000000024 /* CaroShare */;
 		};
