@@ -15,6 +15,7 @@ extension Color {
     static let onInk = Color(hex: 0xF7F2E9)       // Text on ink buttons and chips
     static let placeholder = Color(hex: 0x786D5F) // Example text in an empty field. 4.5 to 1 on paper
     static let terracottaOnTile = Color(hex: 0x8E5642) // Small terracotta text on the tile colour. 4.8 to 1
+    static let indigo = Color(hex: 0x3C5387)      // The dot of a piece that doesn't fit yet
 
     // Details from the design files, by name.
     static let drawingNavy = Color(hex: 0x2E3A55)   // Drawn sample pieces, like the tee on screen 05

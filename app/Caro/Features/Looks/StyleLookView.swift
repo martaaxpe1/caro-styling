@@ -228,30 +228,37 @@ struct StyleLookView: View {
         }
     }
 
-    /// Your pieces for the chosen slot: the season's first, then the others after a hairline.
+    /// Your pieces for the chosen slot: the season's first, then the others after a hairline, then
+    /// those that don't fit yet (T13) after another, with the dot.
     private func tray(_ table: StylingTable) -> some View {
-        let (inSeason, others) = trayPieces(table)
+        let groups = trayPieces(table)
+        let all = groups.inSeason + groups.others + groups.doesntFit
         return VStack(alignment: .leading, spacing: 8) {
-            Text(trayTitle(table, count: inSeason.count, all: inSeason.count + others.count))
+            Text(trayTitle(table, count: groups.inSeason.count, all: all.count))
                 .font(.caroMeta)
                 .foregroundStyle(Color.muted)
                 .padding(.horizontal, CaroLayout.pageMargin)
 
-            if !inSeason.isEmpty || !others.isEmpty {
+            if !all.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        ForEach(inSeason) { trayTile($0) }
-                        if !inSeason.isEmpty && !others.isEmpty {
-                            Rectangle().fill(Color.hairline).frame(width: 1, height: 56)
-                                .accessibilityHidden(true)
-                        }
-                        ForEach(others) { trayTile($0) }
+                        ForEach(groups.inSeason) { trayTile($0) }
+                        if !groups.inSeason.isEmpty && !groups.others.isEmpty { trayLine }
+                        ForEach(groups.others) { trayTile($0) }
+                        if all.count > groups.doesntFit.count && !groups.doesntFit.isEmpty { trayLine }
+                        ForEach(groups.doesntFit) { trayTile($0) }
                     }
                     .padding(.horizontal, CaroLayout.pageMargin)
                     .padding(.vertical, 2)
                 }
             }
         }
+    }
+
+    /// The hairline between the groups in the tray.
+    private var trayLine: some View {
+        Rectangle().fill(Color.hairline).frame(width: 1, height: 56)
+            .accessibilityHidden(true)
     }
 
     private func trayTile(_ piece: Piece) -> some View {
@@ -267,10 +274,11 @@ struct StyleLookView: View {
                     RoundedRectangle(cornerRadius: 10)
                         .strokeBorder(on ? Color.ink : Color.hairline, lineWidth: on ? 2 : 1)
                 }
+                .fitDot(piece, inset: 6)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(piece.name ?? "Piece")
+        .accessibilityLabel(piece.spokenName)
         .accessibilityAddTraits(on ? .isSelected : [])
     }
 
@@ -319,10 +327,12 @@ struct StyleLookView: View {
         table.seasons.first { seasons.contains($0.id) } ?? table.currentSeason
     }
 
-    private func trayPieces(_ table: StylingTable) -> (inSeason: [Piece], others: [Piece]) {
+    private func trayPieces(_ table: StylingTable) -> (inSeason: [Piece], others: [Piece], doesntFit: [Piece]) {
         let forSlot = table.pieces.filter { $0.slot == slot.rawValue }
-        guard let season = traySeason(table) else { return (forSlot, []) }
-        return (forSlot.filter { $0.seasons.contains(season.id) }, forSlot.filter { !$0.seasons.contains(season.id) })
+        let fits = forSlot.filter(\.fits)
+        let doesntFit = forSlot.filter { !$0.fits }
+        guard let season = traySeason(table) else { return (fits, [], doesntFit) }
+        return (fits.filter { $0.seasons.contains(season.id) }, fits.filter { !$0.seasons.contains(season.id) }, doesntFit)
     }
 
     /// "Your shoes for autumn · 4", or "Your shoes · 6" with no seasons.

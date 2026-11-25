@@ -7,6 +7,8 @@ import SwiftUI
 /// The filters work on the phone: the chapter's pieces are loaded once, and each filter only
 /// chooses which of them to show, so changing one is instant. Each filter is a native iOS menu
 /// in the shape of a Caro chip; a chip turns ink when its filter is on.
+///
+/// Pieces that don't fit yet (T13) come last, as the server sends them, with the indigo dot.
 struct ChapterView: View {
     let name: String
     let number: Int
@@ -22,6 +24,7 @@ struct ChapterView: View {
     @State private var colour: String?
     @State private var kind: String?
     @State private var maybeOnly = false
+    @State private var doesntFitOnly = false
     /// The season filter starts on the current season once, at the first load.
     @State private var seasonChosen = false
 
@@ -100,11 +103,12 @@ struct ChapterView: View {
                 && (colour.map { piece.colours.contains($0) } ?? true)
                 && (kind.map { piece.kind == $0 } ?? true)
                 && (!maybeOnly || piece.status == .maybe)
+                && (!doesntFitOnly || !piece.fits)
         }
     }
 
     private var filtered: Bool {
-        season != nil || occasion != nil || colour != nil || kind != nil || maybeOnly
+        season != nil || occasion != nil || colour != nil || kind != nil || maybeOnly || doesntFitOnly
     }
 
     /// "11 pieces", or "6 of 11 pieces" with a filter on.
@@ -158,6 +162,9 @@ struct ChapterView: View {
                 if page.pieces.contains(where: { $0.status == .maybe }) || maybeOnly {
                     Chip(title: "Maybe", isOn: maybeOnly) { maybeOnly.toggle() }
                 }
+                if page.pieces.contains(where: { !$0.fits }) || doesntFitOnly {
+                    Chip(title: FitDot.words, isOn: doesntFitOnly) { doesntFitOnly.toggle() }
+                }
             }
             .padding(.vertical, 1)
         }
@@ -184,6 +191,7 @@ struct ChapterView: View {
         colour = nil
         kind = nil
         maybeOnly = false
+        doesntFitOnly = false
     }
 
     // MARK: Pieces
@@ -296,7 +304,8 @@ struct FilterMenu<Value: Hashable>: View {
     }
 }
 
-/// A piece on the chapter page: its cut-out on the tile colour, its name, and "Maybe" when it is one.
+/// A piece on the chapter page: its cut-out on the tile colour, its name, "Maybe" when it is one,
+/// and the dot when it doesn't fit yet.
 struct ChapterTile: View {
     let piece: Piece
 
@@ -316,6 +325,7 @@ struct ChapterTile: View {
                             .padding(8)
                     }
                 }
+                .fitDot(piece, inset: 8)
             Text(piece.name ?? "")
                 .font(.caroNote)
                 .lineLimit(2)

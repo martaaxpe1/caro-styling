@@ -317,10 +317,14 @@ struct InspirationView: View {
         }
     }
 
-    /// "For their grey oversized blazer"; for a missing piece: "Not in your wardrobe · in 3 of
-    /// your inspirations" and "Your nearest: black knit jumper".
+    /// "For their grey oversized blazer", and "Doesn't fit yet" when yours does not (T13); for a
+    /// missing piece: "Not in your wardrobe · in 3 of your inspirations" and "Your nearest: black
+    /// knit jumper".
     private func subLines(_ piece: InspirationPiece) -> [String] {
-        guard piece.isMissing else { return ["For their \(lowercasedFirst(piece.description))"] }
+        guard piece.isMissing else {
+            let line = "For their \(lowercasedFirst(piece.description))"
+            return piece.piece?.fits == false ? [line, FitDot.words] : [line]
+        }
         var first = "Not in your wardrobe"
         if let count = piece.inspirations { first += " · in \(count) of your inspirations" }
         var lines = [first]

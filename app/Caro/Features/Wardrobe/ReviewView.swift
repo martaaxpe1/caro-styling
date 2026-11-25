@@ -4,7 +4,8 @@ import SwiftUI
 /// Screen 07, the review queue: one piece at a time, with Caro's suggested details to confirm
 /// or change. Confirm counts it towards 20; Mark as maybe counts too; Skip leaves it waiting
 /// for next time. Added to the design: Pattern in the Colour row, a Formality row, Remove,
-/// Retake for a photo where nothing lifted, and turning a photo taken sideways.
+/// Retake for a photo where nothing lifted, and turning a photo taken sideways. T13 adds the
+/// Doesn't fit yet row, also in Edit.
 ///
 /// The same screen is Edit on the piece page (screen 11, `editing`): change the details and
 /// Save, with Brand and Notes added. Mark as maybe and Remove live on the piece page then.
@@ -202,6 +203,7 @@ struct ReviewView: View {
                     row("Colour", sheet: .colour) { colourValue(details.wrappedValue) }
                     row("Material", value: materialText(details.wrappedValue), sheet: .material)
                     row("Formality", value: details.wrappedValue.formality.map { PieceWords.title($0) }, sheet: .formality)
+                    fitRow(details)
                     if isEditing {
                         brandField(details)
                     }
@@ -396,6 +398,36 @@ struct ReviewView: View {
         }
         .buttonStyle(.plain)
         .disabled(store.lists == nil)
+    }
+
+    /// Doesn't fit yet, with a round tick: off for a new piece.
+    private func fitRow(_ details: Binding<PieceDetails>) -> some View {
+        let on = !details.wrappedValue.fits
+        return Button {
+            nameFocused = false
+            details.wrappedValue.fits.toggle()
+        } label: {
+            HStack {
+                Text(FitDot.words)
+                    .font(.caroLabel)
+                    .textCase(.uppercase)
+                    .tracking(11 * 0.14)
+                    .foregroundStyle(Color.muted)
+                Spacer()
+                Image(systemName: on ? "checkmark.circle.fill" : "circle")
+                    .iconFont(20, weight: .light)
+                    .foregroundStyle(on ? Color.ink : Color.outline)
+                    .accessibilityHidden(true)
+            }
+            .padding(.vertical, 6)
+            .frame(minHeight: 38)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Color.hairline).frame(height: 1)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(on ? .isSelected : [])
     }
 
     private func colourValue(_ details: PieceDetails) -> some View {

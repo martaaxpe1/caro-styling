@@ -41,6 +41,8 @@ struct Piece: Decodable, Identifiable, Equatable, Hashable {
     let formality: String?
     let brand: String?
     let notes: String?
+    /// False: you marked it as not fitting yet (T13).
+    let fits: Bool
     /// Season ids, in the order of the member's year.
     let seasons: [Int]
     /// New seasons proposed after the member changed their year, not checked yet.
@@ -54,6 +56,12 @@ struct Piece: Decodable, Identifiable, Equatable, Hashable {
     let storePhoto: String?
 
     var hasCutout: Bool { images.cutout != nil }
+
+    /// For VoiceOver, where the dot is: "Camel wool coat, doesn't fit yet".
+    var spokenName: String {
+        let name = name ?? "Piece"
+        return fits ? name : "\(name), doesn't fit yet"
+    }
 }
 
 /// Progress towards opening Looks and Get the look, worked out on the server.
@@ -161,7 +169,8 @@ struct Overview: Decodable {
         let count: Int
     }
 
-    struct NotInALook: Decodable {
+    /// How many pieces, and pictures of the newest eight.
+    struct PieceCount: Decodable {
         let count: Int
         let pieces: [PieceThumb]
     }
@@ -181,10 +190,12 @@ struct Overview: Decodable {
     let noOccasion: Int
     let looks: Int
     /// Nil until the member has a first look.
-    let notInALook: NotInALook?
+    let notInALook: PieceCount?
     let occasionsFewLooks: [FewLooks]?
     /// Missing pieces marked as key in Get the look (T10).
     let toFind: [ToFindItem]?
+    /// Pieces that don't fit yet (T13), with pictures of the newest.
+    let doesntFit: PieceCount
 }
 
 /// GET /me/wardrobe/seasons-to-check: the pieces with new seasons, grouped by warmth.
@@ -259,6 +270,7 @@ struct PieceDetails: Encodable, Equatable {
     var status: Piece.Status
     var brand: String
     var notes: String
+    var fits: Bool
 
     init(from piece: Piece) {
         name = piece.name ?? ""
@@ -273,6 +285,7 @@ struct PieceDetails: Encodable, Equatable {
         status = .confirmed
         brand = piece.brand ?? ""
         notes = piece.notes ?? ""
+        fits = piece.fits
     }
 
     // Empty values are sent as null, so the server knows they were left empty on purpose.
@@ -290,10 +303,11 @@ struct PieceDetails: Encodable, Equatable {
         try container.encode(status, forKey: .status)
         try container.encode(brand, forKey: .brand)
         try container.encode(notes, forKey: .notes)
+        try container.encode(fits, forKey: .fits)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case name, kind, colours, pattern, material, warmth, formality, seasons, occasions, status, brand, notes
+        case name, kind, colours, pattern, material, warmth, formality, seasons, occasions, status, brand, notes, fits
     }
 }
 

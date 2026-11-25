@@ -51,6 +51,13 @@ final class WardrobeStore {
         return piece
     }
 
+    /// Doesn't fit yet, or fits now (T13). The edit is updated in the background.
+    func setFits(_ fits: Bool, of pieceID: Int) async throws -> Piece {
+        let piece = try await api.setFits(fits, of: pieceID)
+        Task { await load() }
+        return piece
+    }
+
     /// The facts of the wardrobe overview (S7).
     func overview() async throws -> Overview {
         try await api.overview()

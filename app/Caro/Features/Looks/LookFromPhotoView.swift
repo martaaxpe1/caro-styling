@@ -525,7 +525,8 @@ struct LookFromPhotoView: View {
 }
 
 /// Add a piece: the chapters with how many pieces each has, then that chapter's pieces as
-/// cut-outs. Tapping one adds it to the look and closes. Also used on Your version (T10).
+/// cut-outs, those that don't fit yet last and with the dot (T13). Tapping one adds it to the look
+/// and closes. Also used on Your version (T10).
 struct AddPieceSheet: View {
     let pieces: [Piece]
     let listed: Set<Int>
@@ -600,6 +601,7 @@ struct AddPieceSheet: View {
                                     RoundedRectangle(cornerRadius: CaroLayout.tileRadius)
                                         .strokeBorder(on ? Color.ink : Color.clear, lineWidth: 2)
                                 }
+                                .fitDot(piece, inset: 6)
                             Text(piece.name ?? "Piece")
                                 .font(.caroMeta)
                                 .lineLimit(2)
@@ -607,7 +609,7 @@ struct AddPieceSheet: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(piece.name ?? "Piece")
+                    .accessibilityLabel(piece.spokenName)
                     .accessibilityAddTraits(on ? .isSelected : [])
                 }
             }

@@ -4,6 +4,7 @@ import SwiftUI
 /// as facts. Counts by chapter, main colour, season and occasion. Once there is a first look,
 /// the pieces in no look yet and the occasions with fewer than three looks. Never advice.
 /// T10: To find, the missing pieces you marked as key, each opening its inspiration in Get the look.
+/// T13: the pieces that don't fit yet, when there are any. They are not in Not in a look yet.
 struct OverviewView: View {
     @Environment(WardrobeStore.self) private var store
     @State private var overview: Overview?
@@ -96,19 +97,7 @@ struct OverviewView: View {
         }
 
         if let notInALook = overview.notInALook {
-            section("Not in a look yet") {
-                CountRow(count: notInALook.count) { Text(notInALook.count == 1 ? "Piece" : "Pieces") }
-                if !notInALook.pieces.isEmpty {
-                    HStack(spacing: -10) {
-                        ForEach(notInALook.pieces) { piece in
-                            PieceImage(path: piece.thumb, isCutout: piece.hasCutout)
-                                .frame(width: 44, height: 44)
-                        }
-                    }
-                    .padding(.vertical, 10)
-                    .accessibilityHidden(true)
-                }
-            }
+            countWithPictures("Not in a look yet", notInALook)
             if let few = overview.occasionsFewLooks, !few.isEmpty {
                 section("Occasions with fewer than three looks") {
                     ForEach(few) { occasion in
@@ -123,6 +112,10 @@ struct OverviewView: View {
                     .foregroundStyle(Color.muted)
                     .padding(.vertical, 10)
             }
+        }
+
+        if overview.doesntFit.count > 0 {
+            countWithPictures(FitDot.words, overview.doesntFit)
         }
 
         if let toFind = overview.toFind, !toFind.isEmpty {
@@ -153,6 +146,23 @@ struct OverviewView: View {
                     }
                     .buttonStyle(.plain)
                 }
+            }
+        }
+    }
+
+    /// How many pieces, with the newest ones as small pictures.
+    private func countWithPictures(_ title: String, _ fact: Overview.PieceCount) -> some View {
+        section(title) {
+            CountRow(count: fact.count) { Text(fact.count == 1 ? "Piece" : "Pieces") }
+            if !fact.pieces.isEmpty {
+                HStack(spacing: -10) {
+                    ForEach(fact.pieces) { piece in
+                        PieceImage(path: piece.thumb, isCutout: piece.hasCutout)
+                            .frame(width: 44, height: 44)
+                    }
+                }
+                .padding(.vertical, 10)
+                .accessibilityHidden(true)
             }
         }
     }

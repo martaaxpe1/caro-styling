@@ -244,6 +244,12 @@ struct APIClient {
         return response.piece
     }
 
+    /// PUT /me/pieces/:id/fits: doesn't fit yet, or fits now (T13).
+    func setFits(_ fits: Bool, of pieceID: Int) async throws -> Piece {
+        let response: PieceResponse = try await send("PUT", "me/pieces/\(pieceID)/fits", body: ["fits": fits])
+        return response.piece
+    }
+
     /// GET /me/wardrobe/overview: the facts of the wardrobe overview.
     func overview() async throws -> Overview {
         try await send("GET", "me/wardrobe/overview")

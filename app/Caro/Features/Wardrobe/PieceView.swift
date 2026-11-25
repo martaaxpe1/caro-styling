@@ -11,6 +11,7 @@ import SwiftUI
 /// Not yet: the Size row (size is not filled in yet).
 /// T11: a piece bought from Find it still shows the store's picture: "Photo from COS." with
 /// Retake (take a photo or choose one), which keeps the details.
+/// T13: "Doesn't fit yet." above the looks when it does not, and a link to say so or to undo it.
 struct PieceView: View {
     let pieceID: Int
 
@@ -142,22 +143,18 @@ struct PieceView: View {
                         .padding(.top, 12)
                 }
 
-                looks(page.looks)
-                    .padding(.top, 18)
-
-                HStack {
-                    Button(piece.status == .maybe ? "No longer a maybe" : "Mark as maybe") {
-                        Task { await setStatus(piece.status == .maybe ? .confirmed : .maybe) }
+                VStack(alignment: .leading, spacing: 6) {
+                    if !piece.fits {
+                        Text("Doesn't fit yet.")
+                            .font(.caroSectionTitle)
+                            .foregroundStyle(Color.muted)
                     }
-                    Spacer()
-                    Button("Remove") { confirmingRemove = true }
+                    looks(page.looks)
                 }
-                .font(.caroLink)
-                .foregroundStyle(Color.terracotta)
-                .underline()
-                .frame(minHeight: CaroLayout.minTouchTarget)
-                .padding(.top, 20)
-                .disabled(working)
+                .padding(.top, 18)
+
+                links(piece)
+                    .padding(.top, 20)
 
                 if let errorMessage {
                     Text(errorMessage)
@@ -227,6 +224,42 @@ struct PieceView: View {
                 }
             }
         }
+    }
+
+    /// Mark as maybe, Doesn't fit yet and Remove on one line; under each other when the text is large.
+    private func links(_ piece: Piece) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 20) {
+                stateLinks(piece)
+                Spacer(minLength: 0)
+                removeLink
+            }
+            VStack(alignment: .leading, spacing: 0) {
+                stateLinks(piece)
+                removeLink
+            }
+        }
+        .font(.caroLink)
+        .foregroundStyle(Color.terracotta)
+        .underline()
+        .disabled(working)
+    }
+
+    @ViewBuilder
+    private func stateLinks(_ piece: Piece) -> some View {
+        Button(piece.status == .maybe ? "No longer a maybe" : "Mark as maybe") {
+            Task { await setStatus(piece.status == .maybe ? .confirmed : .maybe) }
+        }
+        .frame(minHeight: CaroLayout.minTouchTarget)
+        Button(piece.fits ? FitDot.words : "It fits now") {
+            Task { await setFits(!piece.fits) }
+        }
+        .frame(minHeight: CaroLayout.minTouchTarget)
+    }
+
+    private var removeLink: some View {
+        Button("Remove") { confirmingRemove = true }
+            .frame(minHeight: CaroLayout.minTouchTarget)
     }
 
     private func colourValue(_ piece: Piece) -> some View {
@@ -331,6 +364,17 @@ struct PieceView: View {
         defer { working = false }
         do {
             _ = try await store.setStatus(of: pieceID, to: status)
+            await load()
+        } catch {
+            errorMessage = store.message(for: error)
+        }
+    }
+
+    private func setFits(_ fits: Bool) async {
+        working = true
+        defer { working = false }
+        do {
+            _ = try await store.setFits(fits, of: pieceID)
             await load()
         } catch {
             errorMessage = store.message(for: error)
