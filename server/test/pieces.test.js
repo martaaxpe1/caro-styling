@@ -47,6 +47,8 @@ pieceDetails.remote.claude = async (photo) => {
   if (claude.fails) throw new Error('Claude is busy');
   return claude.answer;
 };
+// Comparing with the member's other pieces has its own tests (lookalikes.test.js): here nothing looks alike.
+require('../src/lib/lookalikes').remote.claude = async () => ({ same: [] });
 
 // Official 1991 to 2020 normals (the same as setup.test.js).
 const CITIES = {

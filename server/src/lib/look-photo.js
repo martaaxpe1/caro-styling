@@ -63,15 +63,15 @@ function pieceLine({ number, piece }) {
   return `Piece ${number}: ${piece.name || 'No name'}. Kind: ${piece.kind}. Colours: ${colours}. Pattern: ${piece.pattern || 'not known'}. Material: ${piece.material || 'not known'}.`;
 }
 
-// A piece's small picture for Claude, or null if its file cannot be read (then Claude gets
-// its line of details only).
-async function thumbForClaude(piece) {
+// A piece's picture for Claude, its cut-out on the tile colour, or null if its file cannot be
+// read (then Claude gets its line of details only).
+async function pieceForClaude(piece, size = THUMB_SIZE) {
   const file = piece.cutout_path || piece.original_path || piece.thumb_path;
   if (!file) return null;
   try {
     const bytes = await sharp(photos.absolute(file))
       .rotate()
-      .resize({ width: THUMB_SIZE, height: THUMB_SIZE, fit: 'inside', withoutEnlargement: true })
+      .resize({ width: size, height: size, fit: 'inside', withoutEnlargement: true })
       .flatten({ background: TILE })
       .jpeg({ quality: 80 })
       .toBuffer();
@@ -92,15 +92,16 @@ async function promptFor(wardrobe, photoBase64) {
 }
 
 // The wardrobe as Claude sees it: one line and one small picture per piece. Also used for
-// inspirations (T10), so both read the same cached wardrobe.
-async function wardrobeBlocks(wardrobe) {
+// inspirations (T10), so both read the same cached wardrobe, and for Already in the edit (T14),
+// where each question has its own few pieces and nothing is worth caching.
+async function wardrobeBlocks(wardrobe, { cache = true } = {}) {
   const blocks = [{ type: 'text', text: `These are the ${wardrobe.length} pieces in my wardrobe.` }];
   for (const entry of wardrobe) {
     blocks.push({ type: 'text', text: pieceLine(entry) });
-    const thumb = await thumbForClaude(entry.piece);
+    const thumb = await pieceForClaude(entry.piece);
     if (thumb) blocks.push(imageBlock(thumb));
   }
-  blocks[blocks.length - 1].cache_control = { type: 'ephemeral' };
+  if (cache) blocks[blocks.length - 1].cache_control = { type: 'ephemeral' };
   return blocks;
 }
 
@@ -214,4 +215,4 @@ async function spot(userId, photoBase64) {
   return checked(answer, wardrobe);
 }
 
-module.exports = { SYSTEM, remote, spot, checked, wardrobeOf, wardrobeBlocks, imageBlock, shortName };
+module.exports = { SYSTEM, remote, spot, checked, wardrobeOf, wardrobeBlocks, pieceForClaude, imageBlock, shortName };

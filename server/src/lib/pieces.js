@@ -35,6 +35,32 @@ const occasionsOf = db.prepare(
 
 const looksOf = db.prepare('SELECT COUNT(*) FROM look_pieces WHERE piece_id = ?');
 
+// What Review asks about (T14): the piece this one looks like, the surest first, while it waits
+// for review and the member has not answered. Null when there is nothing to ask.
+const lookalikeOf = db.prepare(
+  `SELECT pieces.* FROM piece_lookalikes JOIN pieces ON pieces.id = piece_lookalikes.other_id
+   WHERE piece_lookalikes.piece_id = ? AND piece_lookalikes.user_id = ? AND pieces.user_id = piece_lookalikes.user_id
+     AND piece_lookalikes.answer IS NULL
+   ORDER BY piece_lookalikes.certainty = 'high' DESC, pieces.id LIMIT 1`
+);
+
+function looksLike(piece) {
+  if (piece.status !== 'pending') return null;
+  const other = lookalikeOf.get(piece.id, piece.user_id);
+  if (!other) return null;
+  return {
+    id: other.id,
+    name: other.name,
+    // Also waiting for review: two photos of the same piece in one batch.
+    waiting: other.status === 'pending',
+    images: imagesOf(other),
+  };
+}
+
+function imagesOf(piece) {
+  return { photo: imageUrl(piece, 'photo'), cutout: imageUrl(piece, 'cutout'), thumb: imageUrl(piece, 'thumb') };
+}
+
 function pieceJSON(piece) {
   const kind = piece.kind ? kindOf.get(piece.kind) : null;
   return {
@@ -60,11 +86,8 @@ function pieceJSON(piece) {
     // How many of the member's looks it is in.
     looks: looksOf.pluck().get(piece.id),
     occasions: occasionsOf.pluck().all(piece.id),
-    images: {
-      photo: imageUrl(piece, 'photo'),
-      cutout: imageUrl(piece, 'cutout'),
-      thumb: imageUrl(piece, 'thumb'),
-    },
+    images: imagesOf(piece),
+    looksLike: looksLike(piece),
     // The store's name when its photo is still the store's picture (Bought, T11).
     storePhoto: piece.store_photo ?? null,
     createdAt: piece.created_at,

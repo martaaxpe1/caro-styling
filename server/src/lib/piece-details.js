@@ -6,6 +6,10 @@
 //
 // Every answer is checked against the fixed lists before it is saved, and it stays a
 // suggestion: the member confirms or changes it in the review queue.
+//
+// Then the piece is compared with the member's others (T14, lookalikes.js), and only then is it
+// ready: the review never shows a piece before its "already in the edit" note. Both questions
+// are one AI action.
 
 const db = require('../db');
 const lists = require('./lists');
@@ -15,6 +19,7 @@ const allowance = require('./allowance');
 const pieceSeasons = require('./piece-seasons');
 const places = require('./places');
 const weather = require('./weather');
+const lookalikes = require('./lookalikes');
 
 const PHOTO_SIZE = 1568;
 
@@ -108,13 +113,15 @@ function checked(answer) {
   };
 }
 
+// Saves the suggestion. The piece stays 'reading' until it has been compared too. Returns false
+// when there is nothing to save it on.
 const saveSuggestion = db.transaction((piece, details) => {
-  // The member may have removed the piece while Claude was reading it.
+  // The member may have removed the piece, or confirmed it, while Claude was reading it.
   const stillThere = db.prepare(`SELECT 1 FROM pieces WHERE id = ? AND user_id = ? AND details_status = 'reading'`).get(piece.id, piece.user_id);
-  if (!stillThere) return;
+  if (!stillThere) return false;
 
   db.prepare(
-    `UPDATE pieces SET name = ?, kind = ?, pattern = ?, material = ?, warmth = ?, formality = ?, details_status = 'suggested'
+    `UPDATE pieces SET name = ?, kind = ?, pattern = ?, material = ?, warmth = ?, formality = ?
      WHERE id = ? AND user_id = ?`
   ).run(details.name, details.kind, details.pattern, details.material, details.warmth, details.formality, piece.id, piece.user_id);
 
@@ -123,7 +130,23 @@ const saveSuggestion = db.transaction((piece, details) => {
   details.colours.forEach((colour, index) => addColour.run(piece.user_id, piece.id, colour, index + 1));
 
   if (details.warmth) pieceSeasons.proposeForPiece(piece.user_id, piece.id, details.warmth);
+  return true;
 });
+
+function markReady(piece) {
+  db.prepare(`UPDATE pieces SET details_status = 'suggested' WHERE id = ? AND user_id = ? AND details_status = 'reading'`).run(piece.id, piece.user_id);
+}
+
+// Already in the edit (T14). Without an answer there is no note; the piece is ready all the same.
+async function compare(piece) {
+  const read = db.prepare('SELECT * FROM pieces WHERE id = ? AND user_id = ?').get(piece.id, piece.user_id);
+  if (!read?.kind) return;
+  try {
+    await lookalikes.compare(read);
+  } catch (error) {
+    console.error(`Comparing piece ${piece.id} failed: ${error.message}`);
+  }
+}
 
 function markNotRead(piece) {
   db.prepare(`UPDATE pieces SET details_status = 'not read' WHERE id = ? AND user_id = ? AND details_status = 'reading'`).run(piece.id, piece.user_id);
@@ -168,7 +191,9 @@ async function readPiece(piece) {
     recordAiAction(piece.user_id, 'piece details');
     const answer = await remote.claude(photo);
     await ensureWeather(piece.user_id);
-    saveSuggestion(piece, checked(answer));
+    if (!saveSuggestion(piece, checked(answer))) return;
+    await compare(piece);
+    markReady(piece);
   } catch (error) {
     // Removed by the member while it was being read: nothing to do.
     if (!db.prepare('SELECT 1 FROM pieces WHERE id = ?').get(piece.id)) return;

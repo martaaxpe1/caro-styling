@@ -8,6 +8,8 @@
 // PUT    /me/pieces/:id/status        { status: 'maybe' | 'confirmed' }   mark a piece in the edit as maybe, or not
 // PUT    /me/pieces/:id/fits          { fits: true | false }   false: a piece in the edit doesn't fit yet (T13)
 // PUT    /me/pieces/:id/photo         { photo, cutout }   retake: a new photo, the same details
+// POST   /me/pieces/:id/same          { piece, photo: 'old' | 'new' }   the new piece is one she has: keep that one, with this photo (T14)
+// POST   /me/pieces/:id/different     { piece }   it is another piece: not asked about again (T14)
 // POST   /me/pieces/:id/rotate        turns the pictures a quarter turn clockwise
 // GET    /me/pieces/:id/photo         the photo; also /cutout and /thumb (the thumbnail)
 // DELETE /me/pieces/:id               removes the piece and its photos
@@ -23,6 +25,7 @@ const { requireMember } = require('../middleware/signed-in');
 const photos = require('../lib/photos');
 const { findPiece, imageUrl, pieceJSON, checkDetails, saveDetails, setFits } = require('../lib/pieces');
 const pieceQueue = require('../jobs/piece-queue');
+const lookalikes = require('../lib/lookalikes');
 const wardrobe = require('../lib/wardrobe');
 const { seasonsByWarmth, currentSeason } = require('../lib/piece-seasons');
 const { removeEmptyLooks } = require('../lib/looks');
@@ -191,6 +194,20 @@ router.put('/:id/photo', async (req, res, next) => {
     if (error instanceof photos.PhotoError) return res.status(400).json({ error: error.message });
     next(error);
   }
+});
+
+// Already in the edit (T14). Answers with the piece that stays, and the progress.
+router.post('/:id/same', (req, res) => {
+  const answered = lookalikes.same(req.member.id, req.params.id, req.body?.piece, req.body?.photo);
+  if (answered.error) return res.status(answered.status).json({ error: answered.error });
+  res.json({ piece: pieceJSON(answered.piece), progress: wardrobe.progress(req.member.id) });
+});
+
+// Answers with the new piece, and what it may look like next, if anything.
+router.post('/:id/different', (req, res) => {
+  const answered = lookalikes.different(req.member.id, req.params.id, req.body?.piece);
+  if (answered.error) return res.status(answered.status).json({ error: answered.error });
+  res.json({ piece: pieceJSON(answered.piece) });
 });
 
 // A photo taken sideways: turn the pictures a quarter turn clockwise. Tap again to keep turning.
