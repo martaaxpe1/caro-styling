@@ -21,7 +21,8 @@
     "spike:stores": "node --env-file-if-exists=.env spike/4-stores.js",
     "spike:year": "node --env-file-if-exists=.env spike/5-year.js",
     "spike:review": "node --env-file-if-exists=.env spike/review.js",
-    "spike:costs": "node --env-file-if-exists=.env spike/costs.js"
+    "spike:costs": "node --env-file-if-exists=.env spike/costs.js",
+    "spike:repeats": "node --env-file-if-exists=.env spike/7-repeats.js"
   },
   "license": "UNLICENSED",
   "engines": {

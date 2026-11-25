@@ -169,6 +169,21 @@ Recommendation:
 - Keep the iPhone's cut-outs, as the PRD planned. No background removal on the server and no other service.
 - **The fallback,** for a photo where nothing lifts: the piece keeps its photo as it is, on Caro's tile colour, and the member can retake it. A fair cut-out is kept; on the tile colour a little leftover background hardly shows.
 
+## Test 7: already in the edit (T14, 25 November)
+
+Does Caro notice a new photo of a piece that is already in the edit? `npm run spike:repeats` uses the server's own choosing, question and answer form (`server/src/lib/lookalikes.js`), on a throwaway database with the 16 pieces as the edit.
+
+| Made-up repeats of the 16 pieces | Sonnet | Haiku |
+|---|---|---|
+| Its piece is in the edit: found | 16 of 16 | 16 of 16 |
+| Its piece is taken out: nothing flagged | 16 of 16 | 16 of 16 |
+| Cost for each question, 2 to 4 pieces compared | $0.006 | $0.0003 |
+| Time | 2 to 3 s | 2 s |
+
+- **This test was easy.** The second photos were made from the first ones: darker, warmer or cooler, turned, leaned and cropped, cut out again on the Mac. The folds are the same, and there are few pieces in each chapter. Marta's own photos (five pieces photographed twice, five pairs that only look alike) are the real test: put them in `server/spike/photos/repeats/` and run it again.
+- **The first wording was too soft on colour.** Sonnet once took a white skirt for a black one, at medium certainty. Saying that light shifts a colour but never turns white into black fixed it, in two runs.
+- **Sonnet stays for now,** as for everything with photos. Haiku did as well here at a twentieth of the price; compare them again on Marta's photos. With 12 pieces to compare, Sonnet should cost about 1.3 cents.
+
 ## What the AI costs a member
 
 From the averages above, with the recommended models:

@@ -9,6 +9,8 @@ Small scripts that test how well Claude recognises your clothes, what it costs, 
    - `spike/photos/pieces/`: 15 photos, one piece each: flat or on a hanger, plain background, daylight. A mix of chapters, with at least two pairs of shoes and a bag. Choose pieces you wear in the looks.
    - `spike/photos/looks/`: 5 photos of you wearing looks, each with 3 to 5 of the 15 pieces. At least one piece that is not among the 15.
    - `spike/photos/inspirations/`: 5 images of looks you like. Some pieces close to yours, at least one you do not own.
+   - `spike/photos/repeats/same/` (T14): 10 photos, five pieces photographed twice in different light. In name order, two by two: 1 and 2 are the same piece, 3 and 4 the next.
+   - `spike/photos/repeats/alike/` (T14): 10 photos, five pairs of pieces that only look alike, like two black jumpers. Two by two in the same way.
 
 The photos and everything made from them (in `spike/results/`) are ignored by Git. Copies sent to Claude are resized, turned upright and stripped of location data first.
 
@@ -25,6 +27,7 @@ In Terminal, from the `server` folder. Each command prints what it found, with t
 | `npm run spike:inspirations` | Test 3: the pieces in each inspiration, and your closest piece of the same kind. |
 | `npm run spike:stores -- --piece "black leather loafers"` | Test 4: your stores' websites in the Netherlands and the US, then one piece searched in COS in each. |
 | `npm run spike:year` | Test 5: typical weather for Amsterdam, Miami and Buenos Aires from two climate sources and from Claude, and a proposed year. |
+| `npm run spike:repeats` | Test 7 (T14): a second photo of a piece that is already in the edit, made up from your 16 photos, and from your own pairs when they are there. |
 | `npm run spike:costs` | The cost per action per model, and what 100 pieces would cost. |
 
 Test 6, the iPhone's own cut-outs, is by hand: follow `spike/6-cutouts.md`.
