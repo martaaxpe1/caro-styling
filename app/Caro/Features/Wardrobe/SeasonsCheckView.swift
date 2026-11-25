@@ -59,7 +59,7 @@ struct SeasonsCheckView: View {
         .foregroundStyle(Color.ink)
         .background(Color.paper)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.paper, for: .navigationBar)
+        .paperBar()
         .safeAreaInset(edge: .bottom) {
             if let check, !check.groups.isEmpty {
                 Button("Confirm seasons") {

@@ -38,7 +38,7 @@ struct LookView: View {
         .foregroundStyle(Color.ink)
         .background(Color.paper)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.paper, for: .navigationBar)
+        .paperBar()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if let look = page?.look {
@@ -359,14 +359,24 @@ struct LookPhotoImage: View {
     @State private var image: UIImage?
 
     var body: some View {
-        ZStack {
-            // The placeholder colour while it loads, in a thumbnail; nothing behind a large photo.
-            if fill { Color.photo }
-            if let image {
-                if fill {
-                    Image(uiImage: image).resizable().scaledToFill()
-                } else {
-                    Image(uiImage: image).resizable().scaledToFit()
+        Group {
+            if fill {
+                // The placeholder colour takes the space, and the picture is drawn over it, cut off
+                // at its edges: a wide picture never makes its tile wider.
+                Color.photo
+                    .overlay {
+                        if let image {
+                            Image(uiImage: image).resizable().scaledToFill()
+                        }
+                    }
+                    .clipped()
+                    .contentShape(Rectangle())
+            } else {
+                // A large photo, whole, with nothing behind it.
+                ZStack {
+                    if let image {
+                        Image(uiImage: image).resizable().scaledToFit()
+                    }
                 }
             }
         }

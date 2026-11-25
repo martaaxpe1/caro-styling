@@ -26,6 +26,13 @@ extension View {
         }
     }
 
+    /// The top bar on Caro's paper. It is always light, so the clock and the buttons on it stay ink:
+    /// otherwise iOS 26 turns them white while a dark photo scrolls under the bar.
+    func paperBar() -> some View {
+        toolbarBackground(Color.paper, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
+    }
+
     /// The soft shadow under pieces on the styling table and large cut-outs.
     func cutOutShadow() -> some View {
         shadow(color: Color.shadowBrown.opacity(0.22), radius: 4.5, x: 0, y: 8)

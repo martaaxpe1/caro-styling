@@ -41,7 +41,7 @@ struct OverviewView: View {
         .foregroundStyle(Color.ink)
         .background(Color.paper)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.paper, for: .navigationBar)
+        .paperBar()
         .refreshable { await load() }
         .onAppear { Task { await load() } }
     }

@@ -47,7 +47,7 @@ struct CropView: View {
             .background(Color.paper)
             .navigationTitle(productName)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.paper, for: .navigationBar)
+            .paperBar()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

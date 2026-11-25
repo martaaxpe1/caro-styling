@@ -45,7 +45,7 @@ struct FindItView: View {
         .foregroundStyle(Color.ink)
         .background(Color.paper)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.paper, for: .navigationBar)
+        .paperBar()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if let page, !page.isBought {

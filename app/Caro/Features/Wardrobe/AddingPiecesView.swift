@@ -87,7 +87,7 @@ struct AddingPiecesView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.paper, for: .navigationBar)
+        .paperBar()
         .addPhotosSources(library: $showingLibrary, camera: $showingCamera) {}
         .task { await store.refreshQueue() }
     }

@@ -296,7 +296,7 @@ struct PieceLooksView: View {
         .foregroundStyle(Color.ink)
         .background(Color.paper)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.paper, for: .navigationBar)
+        .paperBar()
         .onAppear {
             Task {
                 do {

@@ -89,7 +89,7 @@ struct WhichPhotoView: View {
             .foregroundStyle(Color.ink)
             .background(Color.paper)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.paper, for: .navigationBar)
+            .paperBar()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }

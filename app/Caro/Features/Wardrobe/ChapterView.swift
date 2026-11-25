@@ -76,7 +76,7 @@ struct ChapterView: View {
         .foregroundStyle(Color.ink)
         .background(Color.paper)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.paper, for: .navigationBar)
+        .paperBar()
         .task { await store.loadLists() }
         // Again each time it shows, so a piece changed, turned or removed shows as it is now.
         .onAppear { Task { await load() } }

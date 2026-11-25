@@ -58,7 +58,7 @@ extension View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.paper, for: .navigationBar)
+            .paperBar()
             .background(Color.paper)
     }
 }

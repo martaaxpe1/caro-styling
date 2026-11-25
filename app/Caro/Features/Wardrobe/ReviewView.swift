@@ -69,7 +69,7 @@ struct ReviewView: View {
         .navigationBarBackButtonHidden(!isEditing)
         .toolbar { toolbar }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.paper, for: .navigationBar)
+        .paperBar()
         .task {
             await store.loadLists()
             if let editing {

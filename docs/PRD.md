@@ -1,4 +1,4 @@
-# Caro Styling: Product requirements (v1.14, ready to build)
+# Caro Styling: Product requirements (v1.15, ready to build)
 
 The spec for building Caro Styling. It folds in every decision from the drafts (v0.2 to v0.10) and from the design round on the canvas. Where this file and the screens in `design/` disagree on layout, colour, type or copy, the screens win. Where they disagree on behaviour, this file wins. Changes are listed at the end.
 
@@ -512,6 +512,11 @@ Done when: Marta marks a piece as not fitting from its page. The page says "Does
 - Screens 07, 11, S12. Migration 013.
 Done when: Marta photographs a piece that is already in the edit. Review says which piece it looks like; she compares the two photos, uses the new one, and the piece in the edit shows it, with its details and looks unchanged and the count the same. A look-alike she marks **Different piece** is added and not asked about again. Two copies of the same photo in one batch are flagged too.
 
+**T15. Small fixes in Get the look.**
+- Inspiration pictures stay inside their tile, whatever their shape: square and wide ones pushed over their neighbours.
+- The clock stays ink on every page with a paper top bar, also while a dark photo scrolls under it (iOS 26).
+Done when: in Get the look, square, wide and tall inspirations sit side by side with their words under them. In Your version and Review, the clock can be read while a dark photo scrolls under the top bar.
+
 **Later.** Style profile, reminders, open sign-up, an App Store listing.
 
 ## 18. Open decisions and defaults
@@ -578,3 +583,4 @@ Not in version one. A short onboarding step to help a member see their own patte
 - **v1.12.** From Marta's test on her iPhone, before building. Phase 4: T12 fixes (overlapping pills), T13 Doesn't fit yet (a yes or no on each piece, the indigo dot, last in its chapter and in the tray, not counted in "N of M yours" or not styled yet), T14 Already in the edit (a new piece that looks like one you have is flagged in Review; Same piece compares the two photos on S12 and keeps the one you choose; Different piece is remembered). Section 10: the AI also says when a new piece looks like one you have. Section 12: migrations 012 and 013.
 - **v1.13.** From T13. Doesn't fit yet as built. Added to what was planned: the dot and last place also in Add a piece (S9 and Your version), the dot's ring in the tile colour, the overview's section with small cut-outs, the piece page's links under each other at large text sizes. An app that does not send it leaves it as it was.
 - **v1.14.** From T14. Already in the edit as built: the note also names a piece still waiting for review, Confirm asks "The same piece?" as an alert, photos on S12 open large to zoom. Retake on every piece page, through S12 (decided with Marta). Tested first on made-up repeats of the T1 photos: light shifts a colour but never turns white into black, so the question to Claude says so. Marta's own photos are still to come.
+- **v1.15.** T15, small fixes found while checking T13: inspiration pictures stay inside their tile, and the clock stays ink on the paper top bar of every page.
