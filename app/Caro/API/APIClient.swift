@@ -286,6 +286,18 @@ struct APIClient {
         return response.piece
     }
 
+    /// POST /me/pieces/:id/same: the new piece is one you have. Answers with the one that stays (T14).
+    func samePiece(_ pieceID: Int, as otherID: Int, photo: PhotoChoice) async throws -> Piece {
+        let response: PieceResponse = try await send("POST", "me/pieces/\(pieceID)/same", body: SamePieceBody(piece: otherID, photo: photo.rawValue))
+        return response.piece
+    }
+
+    /// POST /me/pieces/:id/different: it is another piece. Answers with the new piece (T14).
+    func differentPiece(_ pieceID: Int, from otherID: Int) async throws -> Piece {
+        let response: PieceResponse = try await send("POST", "me/pieces/\(pieceID)/different", body: ["piece": otherID])
+        return response.piece
+    }
+
     /// POST /me/pieces/:id/rotate: turns the pictures a quarter turn clockwise.
     func rotatePiece(_ pieceID: Int) async throws -> Piece {
         let response: PieceResponse = try await send("POST", "me/pieces/\(pieceID)/rotate", timeout: 30)
@@ -519,6 +531,7 @@ struct APIClient {
     private struct FoundStoreResponse: Decodable { let store: FoundStore }
     private struct ConfirmedSeasonsResponse: Decodable { let wardrobe: Wardrobe }
     private struct PieceResponse: Decodable { let piece: Piece }
+    private struct SamePieceBody: Encodable { let piece: Int; let photo: String }
     private struct LookResponse: Decodable { let look: Look }
     private struct RemovedResponse: Decodable { let progress: WardrobeProgress }
     private struct LookPhotoBody: Encodable { let photo: String }

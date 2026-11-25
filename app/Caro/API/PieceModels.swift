@@ -27,6 +27,17 @@ struct Piece: Decodable, Identifiable, Equatable, Hashable {
         var large: String { cutout ?? photo }
     }
 
+    /// A piece you already have that a new one looks like (T14).
+    struct LooksLike: Decodable, Equatable, Hashable, Identifiable {
+        let id: Int
+        let name: String?
+        /// Also waiting for review: two photos of the same piece in one batch.
+        let waiting: Bool
+        let images: Images
+
+        var hasCutout: Bool { images.cutout != nil }
+    }
+
     let id: Int
     let status: Status
     let detailsStatus: DetailsStatus
@@ -54,6 +65,8 @@ struct Piece: Decodable, Identifiable, Equatable, Hashable {
     let images: Images
     /// The store's name while its photo is still the store's picture (Bought, T11). Retake clears it.
     let storePhoto: String?
+    /// While it waits for review: the piece it looks like, to ask about (T14).
+    let looksLike: LooksLike?
 
     var hasCutout: Bool { images.cutout != nil }
 

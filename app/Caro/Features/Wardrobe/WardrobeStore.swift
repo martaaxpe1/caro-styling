@@ -126,13 +126,36 @@ final class WardrobeStore {
         return piece
     }
 
+    /// Already in the edit (T14): the new piece is one you have. The one that was there first stays,
+    /// with the photo you chose. The edit is updated in the background.
+    func same(_ pieceID: Int, as otherID: Int, photo: PhotoChoice) async throws -> Piece {
+        let kept = try await api.samePiece(pieceID, as: otherID, photo: photo)
+        Task { await load() }
+        return kept
+    }
+
+    /// Already in the edit (T14): it is another piece. Not asked about again.
+    func different(_ pieceID: Int, from otherID: Int) async throws -> Piece {
+        try await api.differentPiece(pieceID, from: otherID)
+    }
+
     /// Retake: a new photo for a piece, cut out again on the iPhone. The details stay.
     func retake(_ pieceID: Int, photoFile: Data) async throws -> Piece {
+        try await retake(pieceID, with: prepareRetake(photoFile))
+    }
+
+    /// The new photo, cut out on the iPhone but not sent yet, to compare with the old one (T14).
+    func prepareRetake(_ photoFile: Data) async throws -> PhotoPrep.Prepared {
         guard let prepared = await PhotoPrep.prepare(data: photoFile) else {
             throw APIError.refused("Caro could not read this photo. Try another one.")
         }
+        return prepared
+    }
+
+    func retake(_ pieceID: Int, with prepared: PhotoPrep.Prepared) async throws -> Piece {
         let piece = try await api.retakePhoto(of: pieceID, photo: prepared.photo, cutout: prepared.cutout)
         ImageCache.shared.keep(prepared.preview, for: piece.images.thumb)
+        Task { await load() }
         return piece
     }
 

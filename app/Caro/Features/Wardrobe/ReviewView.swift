@@ -5,7 +5,9 @@ import SwiftUI
 /// or change. Confirm counts it towards 20; Mark as maybe counts too; Skip leaves it waiting
 /// for next time. Added to the design: Pattern in the Colour row, a Formality row, Remove,
 /// Retake for a photo where nothing lifted, and turning a photo taken sideways. T13 adds the
-/// Doesn't fit yet row, also in Edit.
+/// Doesn't fit yet row, also in Edit. T14 adds the note for a piece that looks like one you already
+/// have: Same piece compares the two photos (S12), Different piece is remembered, and Confirm and
+/// Mark as maybe ask the same question first.
 ///
 /// The same screen is Edit on the piece page (screen 11, `editing`): change the details and
 /// Save, with Brand and Notes added. Mark as maybe and Remove live on the piece page then.
@@ -36,6 +38,14 @@ struct ReviewView: View {
     @State private var opened: WardrobeProgress?
     /// Style your first look (true) or Go to the edit (false), acted on once screen 09 has closed.
     @State private var openLooksAfter = false
+
+    /// Same piece: the piece being compared on S12.
+    @State private var comparing: Piece.LooksLike?
+    /// S12 ended with a photo kept: the new piece is gone, on to the next.
+    @State private var joined = false
+    /// Confirm or Mark as maybe, waiting for the answer about the piece it looks like.
+    @State private var saveAfterAnswer: Piece.Status?
+    @State private var askingSame = false
 
     @FocusState private var nameFocused: Bool
 
@@ -99,6 +109,23 @@ struct ReviewView: View {
                 openLooksAfter = openLooks
                 opened = nil
             }
+        }
+        .sheet(item: $comparing, onDismiss: {
+            guard joined else { return }
+            joined = false
+            Task { await goOnAfterJoining() }
+        }) { other in
+            whichPhoto(other)
+        }
+        .alert("The same piece?", isPresented: $askingSame, presenting: piece?.looksLike) { other in
+            Button("Same piece") { comparing = other }
+            Button("Different piece") {
+                let status = saveAfterAnswer
+                Task { await different(thenSave: status) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { other in
+            Text(lookalikeLine(other))
         }
         .alert("Remove this piece?", isPresented: $confirmingRemove) {
             Button("Remove", role: .destructive) {
@@ -198,6 +225,11 @@ struct ReviewView: View {
                 nameField(details)
                     .padding(.top, 12)
 
+                if !isEditing, let other = piece.looksLike {
+                    lookalikeNote(other)
+                        .padding(.top, 12)
+                }
+
                 VStack(spacing: 0) {
                     row("Category", value: categoryText(details.wrappedValue), sheet: .category)
                     row("Colour", sheet: .colour) { colourValue(details.wrappedValue) }
@@ -227,7 +259,7 @@ struct ReviewView: View {
                 if !isEditing {
                     HStack {
                         Button("Mark as maybe") {
-                            Task { await save(as: .maybe) }
+                            confirm(as: .maybe)
                         }
                         Spacer()
                         Button("Remove") { confirmingRemove = true }
@@ -254,7 +286,7 @@ struct ReviewView: View {
         .safeAreaInset(edge: .bottom) {
             Button(isEditing ? "Save" : "Confirm") {
                 // Save keeps a piece opened from the edit as it was: confirmed or maybe.
-                Task { await save(as: isEditing ? piece.status : .confirmed) }
+                confirm(as: isEditing ? piece.status : .confirmed)
             }
             .buttonStyle(.pill)
             .disabled(saving || !canConfirm(details.wrappedValue))
@@ -317,6 +349,77 @@ struct ReviewView: View {
                     .accessibilityHidden(true)
             }
             .accessibilityLabel("Name")
+    }
+
+    /// Already in the edit (T14): the piece it looks like, with its picture, and the two answers.
+    private func lookalikeNote(_ other: Piece.LooksLike) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Button {
+                comparing = other
+            } label: {
+                PieceImage(path: other.images.thumb, isCutout: other.hasCutout)
+                    .padding(6)
+                    .frame(width: 64, height: 72)
+                    .background(Color.paper, in: RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Compare the photos")
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text(lookalikeLine(other))
+                    .font(.caroBody)
+                    .fixedSize(horizontal: false, vertical: true)
+                // On one line; under each other when the text is large.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 20) { lookalikeAnswers(other) }
+                    VStack(alignment: .leading, spacing: 0) { lookalikeAnswers(other) }
+                }
+                .font(.caroLink)
+                .foregroundStyle(Color.terracottaOnTile)
+                .underline()
+                .buttonStyle(.plain)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.leading, 12)
+        .padding(.trailing, 14)
+        .padding(.top, 12)
+        .padding(.bottom, 4)
+        .background(Color.tile, in: RoundedRectangle(cornerRadius: CaroLayout.tileRadius))
+        .disabled(saving)
+    }
+
+    @ViewBuilder
+    private func lookalikeAnswers(_ other: Piece.LooksLike) -> some View {
+        Button("Same piece") { comparing = other }
+            .frame(minHeight: CaroLayout.minTouchTarget)
+        Button("Different piece") {
+            Task { await different(thenSave: nil) }
+        }
+        .frame(minHeight: CaroLayout.minTouchTarget)
+    }
+
+    /// S12 for a piece in the review: the one you have, and this new one.
+    @ViewBuilder
+    private func whichPhoto(_ other: Piece.LooksLike) -> some View {
+        if let piece {
+            WhichPhotoView(
+                name: other.name ?? piece.name ?? "",
+                old: ComparePhoto(title: other.waiting ? "Waiting for review" : "In the edit", path: other.images.large, isCutout: other.hasCutout),
+                new: ComparePhoto(title: "New", path: piece.images.large, isCutout: piece.hasCutout),
+                different: { Task { await different(thenSave: nil) } },
+                choose: { choice in
+                    do {
+                        _ = try await store.same(piece.id, as: other.id, photo: choice)
+                        joined = true
+                        return nil
+                    } catch {
+                        return store.message(for: error)
+                    }
+                }
+            )
+        }
     }
 
     /// Edit only: the brand, typed, on a details row.
@@ -486,6 +589,13 @@ struct ReviewView: View {
 
     // MARK: Words
 
+    /// "This looks like your green quilted jacket, already in the edit."
+    private func lookalikeLine(_ other: Piece.LooksLike) -> String {
+        let place = other.waiting ? "also waiting for review" : "already in the edit"
+        guard let name = other.name, !name.isEmpty else { return "This looks like another of your pieces, \(place)." }
+        return "This looks like your \(name.prefix(1).lowercased() + name.dropFirst()), \(place)."
+    }
+
     private func categoryText(_ details: PieceDetails) -> String? {
         guard let kind = details.kind else { return nil }
         let chapter = store.lists?.chapter(of: kind).map { ChapterWords.title($0.name) }
@@ -541,6 +651,50 @@ struct ReviewView: View {
 
     private func proposeSeasons(for warmth: String) {
         details?.seasons = store.queue?.seasonsByWarmth[warmth] ?? []
+    }
+
+    /// Confirm, Mark as maybe or Save. A new piece that looks like one you have asks about that first.
+    private func confirm(as status: Piece.Status) {
+        nameFocused = false
+        if !isEditing, piece?.looksLike != nil {
+            saveAfterAnswer = status
+            askingSame = true
+        } else {
+            Task { await save(as: status) }
+        }
+    }
+
+    /// Different piece: remembered on the server, which says what it may look like next, if anything.
+    /// From Confirm or Mark as maybe, the piece is saved once there is nothing left to ask.
+    private func different(thenSave status: Piece.Status?) async {
+        guard let piece, let other = piece.looksLike, !saving else { return }
+        saving = true
+        errorMessage = nil
+        do {
+            pieces[index] = try await store.different(piece.id, from: other.id)
+            saving = false
+            if let status { confirm(as: status) }
+        } catch {
+            saving = false
+            errorMessage = store.message(for: error)
+        }
+    }
+
+    /// The new piece is gone. Others in line may have been asking about it, or about a photo that
+    /// changed: they are shown as the server has them now.
+    private func goOnAfterJoining() async {
+        saving = true
+        pieces.remove(at: index)
+        await store.refreshQueue()
+        if let queue = store.queue {
+            let latest = Dictionary(uniqueKeysWithValues: queue.pieces.map { ($0.id, $0) })
+            pieces = pieces.enumerated().compactMap { place, piece in
+                place < index ? piece : latest[piece.id]
+            }
+        }
+        index -= 1
+        saving = false
+        next()
     }
 
     private func save(as status: Piece.Status) async {

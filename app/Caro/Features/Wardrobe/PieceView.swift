@@ -1,4 +1,3 @@
-import PhotosUI
 import SwiftUI
 
 /// Screen 11, a piece: its chapter, the cut-out large and slightly turned, its name with the last
@@ -11,6 +10,8 @@ import SwiftUI
 /// Not yet: the Size row (size is not filled in yet).
 /// T11: a piece bought from Find it still shows the store's picture: "Photo from COS." with
 /// Retake (take a photo or choose one), which keeps the details.
+/// T14: Retake on every piece, as a camera button on the picture. Either way S12 shows the old photo
+/// and the new one, and you keep one.
 /// T13: "Doesn't fit yet." above the looks when it does not, and a link to say so or to undo it.
 struct PieceView: View {
     let pieceID: Int
@@ -22,10 +23,10 @@ struct PieceView: View {
     @State private var working = false
     @State private var confirmingRemove = false
     @State private var styling: StyleStart?
-    @State private var showingRetakeLibrary = false
-    @State private var retakeItem: PhotosPickerItem?
-    @State private var retakeCameraOpen = false
-    @State private var showingCameraRefused = false
+    @State private var retakeRequest: LookPhotoRequest?
+    /// A new photo, cut out and not sent yet, to compare with the old one.
+    @State private var retaken: Retaken?
+    @State private var preparing = false
 
     var body: some View {
         Group {
@@ -72,24 +73,19 @@ struct PieceView: View {
                 Task { await load() }
             }
         }
-        .photosPicker(isPresented: $showingRetakeLibrary, selection: $retakeItem, matching: .images, preferredItemEncoding: .compatible)
-        .onChange(of: retakeItem) { _, item in
-            guard let item else { return }
-            retakeItem = nil
-            Task {
-                guard let data = try? await item.loadTransferable(type: Data.self) else { return }
-                await retake(with: data)
+        .lookPhotoSource(request: $retakeRequest) { data in
+            Task { await prepareRetake(data) }
+        }
+        .sheet(item: $retaken) { retaken in
+            if let piece = page?.piece {
+                WhichPhotoView(
+                    name: piece.name ?? "",
+                    old: ComparePhoto(title: "In the edit", path: piece.images.large, isCutout: piece.hasCutout),
+                    new: ComparePhoto(title: "New", image: retaken.picture, isCutout: retaken.prepared.cutout != nil),
+                    choose: { choice in await keep(choice, retaken) }
+                )
             }
         }
-        .fullScreenCover(isPresented: $retakeCameraOpen) {
-            CameraView(single: true) { file in
-                Task { await retake(with: file) }
-            } done: { _ in
-                retakeCameraOpen = false
-            }
-            .ignoresSafeArea()
-        }
-        .cameraRefusedAlert(isPresented: $showingCameraRefused)
         .alert("Remove this piece?", isPresented: $confirmingRemove) {
             Button("Remove", role: .destructive) {
                 Task { await remove() }
@@ -178,22 +174,48 @@ struct PieceView: View {
             .rotationEffect(.degrees(piece.hasCutout ? -3 : 0))
             .frame(maxWidth: .infinity)
             .frame(height: 240)
+            .overlay {
+                if preparing {
+                    ProgressView()
+                }
+            }
             .overlay(alignment: .bottomTrailing) {
-                // For a photo taken sideways: each tap turns it a quarter turn.
-                Button {
-                    Task { await rotate() }
-                } label: {
-                    Image(systemName: "rotate.right")
-                        .font(.system(size: 16, weight: .regular))
-                        .foregroundStyle(Color.ink)
-                        .frame(width: 36, height: 36)
-                        .background(Color.tile, in: Circle())
-                        .frame(width: CaroLayout.minTouchTarget, height: CaroLayout.minTouchTarget)
-                        .contentShape(Rectangle())
+                HStack(spacing: 0) {
+                    // A better photo of the same piece: the details stay.
+                    Menu {
+                        retakeMenu
+                    } label: {
+                        pictureIcon("camera")
+                    }
+                    .accessibilityLabel("Retake the photo")
+
+                    // For a photo taken sideways: each tap turns it a quarter turn.
+                    Button {
+                        Task { await rotate() }
+                    } label: {
+                        pictureIcon("rotate.right")
+                    }
+                    .accessibilityLabel("Turn the photo")
                 }
                 .disabled(working)
-                .accessibilityLabel("Turn the photo")
             }
+    }
+
+    /// A small round button on the picture.
+    private func pictureIcon(_ name: String) -> some View {
+        Image(systemName: name)
+            .font(.system(size: 16, weight: .regular))
+            .foregroundStyle(Color.ink)
+            .frame(width: 36, height: 36)
+            .background(Color.tile, in: Circle())
+            .frame(width: CaroLayout.minTouchTarget, height: CaroLayout.minTouchTarget)
+            .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var retakeMenu: some View {
+        Button("Take photo", systemImage: "camera") { retakeRequest = .camera }
+        Button("Choose from library", systemImage: "photo.on.rectangle") { retakeRequest = .library }
     }
 
     @ViewBuilder
@@ -314,8 +336,7 @@ struct PieceView: View {
             Text("Photo from \(storeName).")
                 .foregroundStyle(Color.muted)
             Menu {
-                Button("Take photo", systemImage: "camera") { openCamera() }
-                Button("Choose from library", systemImage: "photo.on.rectangle") { showingRetakeLibrary = true }
+                retakeMenu
             } label: {
                 Text("Retake it when your piece arrives")
                     .font(.caroLink)
@@ -328,25 +349,38 @@ struct PieceView: View {
         .font(.caroNote)
     }
 
-    private func openCamera() {
-        Task {
-            switch await CameraAccess.ask() {
-            case .allowed: retakeCameraOpen = true
-            case .refused: showingCameraRefused = true
-            case .noCamera: errorMessage = "This iPhone has no camera. Choose from library instead."
-            }
+    /// A new photo, cut out on the iPhone, next to the old one (S12). Nothing is sent yet.
+    private struct Retaken: Identifiable {
+        let id = UUID()
+        let prepared: PhotoPrep.Prepared
+        let picture: UIImage
+    }
+
+    private func prepareRetake(_ data: Data) async {
+        working = true
+        preparing = true
+        errorMessage = nil
+        defer {
+            working = false
+            preparing = false
+        }
+        do {
+            let prepared = try await store.prepareRetake(data)
+            retaken = Retaken(prepared: prepared, picture: UIImage(data: prepared.cutout ?? prepared.photo) ?? prepared.preview)
+        } catch {
+            errorMessage = store.message(for: error)
         }
     }
 
-    /// Your own photo replaces the store's picture; the details stay.
-    private func retake(with data: Data) async {
-        working = true
-        defer { working = false }
+    /// Keep the old photo: nothing changes. Use the new one: it is sent, and the details stay.
+    private func keep(_ choice: PhotoChoice, _ retaken: Retaken) async -> String? {
+        guard choice == .new else { return nil }
         do {
-            _ = try await store.retake(pieceID, photoFile: data)
+            _ = try await store.retake(pieceID, with: retaken.prepared)
             await load()
+            return nil
         } catch {
-            errorMessage = store.message(for: error)
+            return store.message(for: error)
         }
     }
 
